@@ -35,7 +35,7 @@ export default function ChooseRole() {
   const [selected, setSelected] = useState('verified_citizen');
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <StatusBar style="dark" />
 
       {/* Back + Title */}
@@ -76,11 +76,7 @@ export default function ChooseRole() {
         </TouchableOpacity>
       ))}
 
-      <TouchableOpacity style={styles.button} onPress={() => {
-        if (selected === 'police') router.push('/(auth)/verify/police');
-        else if (selected === 'verified_citizen') router.push('/(auth)/verify/citizen');
-        else router.replace('/(citizen)/home');
-      }}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/(auth)/verify/citizen-step1')}>
         <Text style={styles.buttonText}>Continue</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -88,7 +84,8 @@ export default function ChooseRole() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 56, paddingBottom: 40 },
+  screen: { flex: 1, backgroundColor: '#fff' },
+  container: { flexGrow: 1, backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 56, paddingBottom: 40 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 28 },
   back: { fontSize: 22, color: '#111' },
   title: { fontSize: 20, fontWeight: '700', color: '#111' },

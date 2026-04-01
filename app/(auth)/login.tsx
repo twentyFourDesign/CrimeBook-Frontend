@@ -26,12 +26,10 @@ export default function Login() {
 
       {/* Inputs */}
       <View style={styles.inputWrapper}>
-        <Text style={styles.inputIcon}>✉️</Text>
         <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
       </View>
 
       <View style={styles.inputWrapper}>
-        <Text style={styles.inputIcon}>🔒</Text>
         <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
       </View>
 
@@ -39,7 +37,7 @@ export default function Login() {
         <Text style={styles.forgotText}>Forgot Password?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/(auth)/choose-role')}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
@@ -53,16 +51,15 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', paddingHorizontal: 24, paddingTop: 72, paddingBottom: 40 },
-  logo: { width: 140, height: 52, marginBottom: 36 },
+  container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
+  logo: { width: 140, height: 52, marginBottom: 28 },
   tabRow: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 10, padding: 4, width: '100%', marginBottom: 28 },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   activeTab: { backgroundColor: '#2563EB' },
   tabText: { fontSize: 15, fontWeight: '600', color: '#888' },
   activeTabText: { color: '#fff' },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F4FF', borderRadius: 10, paddingHorizontal: 14, marginBottom: 14, width: '100%' },
-  inputIcon: { fontSize: 16, marginRight: 10 },
-  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#111' },
+  inputWrapper: { backgroundColor: '#F0F4FF', borderRadius: 10, paddingHorizontal: 14, marginBottom: 14, width: '100%' },
+  input: { width: '100%', paddingVertical: 14, fontSize: 15, color: '#111' },
   forgotBtn: { alignSelf: 'flex-start', marginBottom: 20 },
   forgotText: { color: '#2563EB', fontSize: 13 },
   button: { width: '100%', backgroundColor: '#2563EB', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 16 },
