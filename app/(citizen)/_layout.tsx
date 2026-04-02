@@ -1,4 +1,4 @@
-import { Redirect, Slot } from "expo-router";
+import { Redirect, Slot, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../../src/auth/AuthContext";
 import { citizenNeedsVerification } from "../../src/auth/routing";
@@ -6,6 +6,7 @@ import { citizenNeedsVerification } from "../../src/auth/routing";
 /** Citizen routes: `Slot` (same pattern as police layout) — avoids native Stack mount issues on Fabric. */
 export default function CitizenLayout() {
   const { user, loading } = useAuth();
+  const segments = useSegments();
 
   if (loading) {
     return (
@@ -18,6 +19,12 @@ export default function CitizenLayout() {
   if (!user) return <Redirect href="/(auth)/login" />;
 
   if (user.role === "POLICE_OFFICER" || user.role === "POLICE_COMMAND") {
+    const leaf = String(segments[segments.length - 1] ?? "");
+    const inReportFlow =
+      leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
+    if (inReportFlow) {
+      return <Slot />;
+    }
     return <Redirect href="/(police)/home" />;
   }
 
