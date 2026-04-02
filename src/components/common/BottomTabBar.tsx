@@ -2,11 +2,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 
 const tabs = [
-  { label: 'Home', icon: '🏠', route: '/(citizen)/home' },
-  { label: 'Map', icon: '🗺️', route: '/(citizen)/map' },
-  { label: '', icon: '+', route: '/(citizen)/report-crime', isFab: true },
-  { label: 'Feed', icon: '📄', route: '/(citizen)/feed' },
-  { label: 'Profile', icon: '👤', route: '/(citizen)/profile' },
+  { label: 'Home', icon: '🏠', route: '/(citizen)/community' },
+  { label: 'Map', icon: '🗺️', route: '/(citizen)/community' },
+  { label: '', icon: '+', route: '/(citizen)/create-alert', isFab: true },
+  { label: 'Feed', icon: '📄', route: '/(citizen)/community' },
+  { label: 'Profile', icon: '👤', route: '/(citizen)/community' },
 ];
 
 export default function BottomTabBar() {
