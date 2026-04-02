@@ -15,7 +15,7 @@ export default function PoliceLayout() {
 
   if (!user) return <Redirect href="/(auth)/login" />;
   if (user.role !== "POLICE_OFFICER" && user.role !== "POLICE_COMMAND") {
-    return <Redirect href="/(citizen)/community" />;
+    return <Redirect href="/(citizen)/home" />;
   }
 
   return <Slot />;

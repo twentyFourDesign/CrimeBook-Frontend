@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
 import { useVerificationDraft } from "../../../src/verification/VerificationDraftContext";
 
 export default function CitizenStep2() {
@@ -28,9 +29,7 @@ export default function CitizenStep2() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
+          <ScreenBackButton />
           <View>
             <Text style={styles.heading}>Identification Verification</Text>
             <Text style={styles.step}>Step 2 of 3</Text>
@@ -108,8 +107,6 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#fff" },
   container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 40 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
-  backBtn: { width: 32, height: 32, justifyContent: "center" },
-  backArrow: { fontSize: 20, color: "#111" },
   heading: { fontSize: 16, fontWeight: "700", color: "#111" },
   step: { fontSize: 12, color: "#888", marginTop: 1 },
   progressRow: { flexDirection: "row", gap: 6, marginBottom: 16 },

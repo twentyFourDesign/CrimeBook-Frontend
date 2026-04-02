@@ -1,9 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { REPORT_H_PAD } from "../../src/report/reportScreenLayout";
 
 export default function ReportSuccess() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { displayCaseId, status } = useLocalSearchParams<{
     displayCaseId?: string;
     status?: string;
@@ -16,9 +20,18 @@ export default function ReportSuccess() {
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
 
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingHorizontal: REPORT_H_PAD,
+            paddingTop: Math.max(insets.top, 20) + 24,
+            paddingBottom: Math.max(insets.bottom, 24) + 16,
+          },
+        ]}
+      >
         <View style={styles.successCircle}>
-          <Text style={styles.successCheck}>✓</Text>
+          <Ionicons name="checkmark-circle" size={56} color="#fff" />
         </View>
 
         <Text style={styles.title}>Report Submitted</Text>
@@ -46,11 +59,17 @@ export default function ReportSuccess() {
         </View>
 
         <TouchableOpacity style={styles.trackBtn} onPress={() => router.replace("/(citizen)/community")}>
-          <Text style={styles.trackText}>Back to feed</Text>
+          <View style={styles.btnRow}>
+            <Ionicons name="newspaper-outline" size={20} color="#fff" />
+            <Text style={styles.trackText}>Back to feed</Text>
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.homeBtn} onPress={() => router.replace("/(citizen)/community")}>
-          <Text style={styles.homeText}>Back to home</Text>
+        <TouchableOpacity style={styles.homeBtn} onPress={() => router.replace("/(citizen)/home")}>
+          <View style={styles.btnRow}>
+            <Ionicons name="home-outline" size={20} color="#555" />
+            <Text style={styles.homeText}>Back to home</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -59,7 +78,7 @@ export default function ReportSuccess() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, alignItems: "center" },
+  container: { flex: 1, alignItems: "center" },
   successCircle: {
     width: 88,
     height: 88,
@@ -74,7 +93,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  successCheck: { fontSize: 40, color: "#fff", fontWeight: "700" },
   title: { fontSize: 22, fontWeight: "700", color: "#111", marginBottom: 10, textAlign: "center" },
   subtitle: { fontSize: 13, color: "#666", textAlign: "center", lineHeight: 21, marginBottom: 32, paddingHorizontal: 8 },
   caseCard: {
@@ -100,6 +118,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  btnRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   trackText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   homeBtn: {
     width: "100%",

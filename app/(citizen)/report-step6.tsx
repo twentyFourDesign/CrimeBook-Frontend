@@ -2,14 +2,18 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { ReportProgress } from "../../src/report/ReportProgress";
 import { CRIME_LABELS } from "../../src/report/constants";
 import { readTokens } from "../../src/auth/storage";
 import { submitIncidentReport } from "../../src/report/api";
+import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
+import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
 
 export default function ReportStep6() {
   const router = useRouter();
+  const layout = useReportScreenLayout();
   const { draft, resetDraft } = useReportDraft();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,16 +78,12 @@ export default function ReportStep6() {
   return (
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.heading}>Report Incident</Text>
-            <Text style={styles.step}>Step 6 of 6</Text>
-          </View>
-        </View>
+      <ScrollView
+        contentContainerStyle={layout.scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ReportScreenHeader step={6} />
 
         <ReportProgress currentStep={6} />
 
@@ -135,7 +135,10 @@ export default function ReportStep6() {
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Submit Report ✓</Text>
+            <View style={styles.submitRow}>
+              <Text style={styles.buttonText}>Submit report</Text>
+              <Ionicons name="checkmark-circle" size={22} color="#fff" />
+            </View>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -145,19 +148,6 @@ export default function ReportStep6() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#fff" },
-  container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 32 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#F0F4FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backArrow: { fontSize: 18, color: "#111" },
-  heading: { fontSize: 16, fontWeight: "700", color: "#111" },
-  step: { fontSize: 12, color: "#888", marginTop: 1 },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111", marginBottom: 4 },
   sectionDesc: { fontSize: 13, color: "#888", marginBottom: 20 },
   reviewCard: {
@@ -183,4 +173,5 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#2563EB", paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  submitRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

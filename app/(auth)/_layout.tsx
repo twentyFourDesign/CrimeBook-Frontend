@@ -7,6 +7,9 @@ export default function AuthLayout() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const inVerifyFlow = segments.includes("verify");
+  const atChooseRole = segments.includes("choose-role");
+  /** Logged-in user is still on OTP until `replace` runs — without this, layout redirects to citizen-step1 before choose-role. */
+  const atOtp = segments.includes("otp");
 
   if (loading) {
     return (
@@ -17,13 +20,13 @@ export default function AuthLayout() {
   }
 
   if (user) {
-    if (inVerifyFlow) {
+    if (inVerifyFlow || atChooseRole || atOtp) {
       return <Slot />;
     }
     return <Redirect href={getPostAuthRoute(user)} />;
   }
 
-  if (inVerifyFlow) {
+  if (inVerifyFlow || atChooseRole) {
     return <Redirect href="/(auth)/login" />;
   }
 

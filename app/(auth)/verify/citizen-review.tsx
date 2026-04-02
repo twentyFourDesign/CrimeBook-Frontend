@@ -56,7 +56,7 @@ export default function CitizenReview() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={() => router.replace("/(citizen)/community")}>
+          <TouchableOpacity style={styles.button} onPress={() => router.replace("/(citizen)/home")}>
             <Text style={styles.buttonText}>Continue to app →</Text>
           </TouchableOpacity>
 

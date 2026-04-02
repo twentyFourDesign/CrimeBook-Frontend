@@ -1,15 +1,19 @@
+import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useSegments } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useReportDraft } from "../../report/ReportDraftContext";
 
-const ROUTE_COMMUNITY = "/(citizen)/community";
+const ROUTE_HOME = "/(citizen)/home";
+const ROUTE_MAP = "/(citizen)/map";
+const ROUTE_FEED = "/(citizen)/community";
 const ROUTE_PROFILE = "/(citizen)/profile";
 const ROUTE_REPORT_START = "/(citizen)/report-step1";
 
-/**
- * Pure JS tab bar — uses `useSegments` so active state works reliably across Expo Router builds.
- */
+const ACTIVE = "#2563EB";
+const INACTIVE = "#94A3B8";
+
 export function CitizenTabBar() {
   const insets = useSafeAreaInsets();
   const { resetDraft } = useReportDraft();
@@ -19,110 +23,160 @@ export function CitizenTabBar() {
   const inReportFlow =
     leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
 
-  const onCommunity = leaf === "community" && !inReportFlow;
+  const onHome = leaf === "home" && !inReportFlow;
+  const onMap = leaf === "map" && !inReportFlow;
+  const onFeed = leaf === "community" && !inReportFlow;
   const onProfile = leaf === "profile" && !inReportFlow;
   const fabActive = inReportFlow;
 
-  const goCommunity = () => {
-    router.replace(ROUTE_COMMUNITY);
-  };
+  const goHome = () => router.replace(ROUTE_HOME);
+  const goMap = () => router.replace(ROUTE_MAP);
+  const goFeed = () => router.replace(ROUTE_FEED);
+  const goProfile = () => router.replace(ROUTE_PROFILE);
 
   const goNewReport = () => {
     resetDraft();
     router.push(ROUTE_REPORT_START);
   };
 
-  const goProfile = () => {
-    router.push(ROUTE_PROFILE);
-  };
-
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <Pressable
-        style={styles.tab}
-        onPress={goCommunity}
-        accessibilityRole="button"
-        accessibilityLabel="Home"
-      >
-        <Text style={styles.emoji}>🏠</Text>
-        <Text style={[styles.label, onCommunity && styles.labelActive]}>Home</Text>
-      </Pressable>
+      <View style={styles.row}>
+        <TabButton
+          label="Home"
+          icon="home-outline"
+          iconFocused="home"
+          active={onHome}
+          onPress={goHome}
+          a11y="Home"
+        />
+        <TabButton
+          label="Map"
+          icon="map-outline"
+          iconFocused="map"
+          active={onMap}
+          onPress={goMap}
+          a11y="Map"
+        />
 
-      <Pressable
-        style={[styles.fab, fabActive && styles.fabActive]}
-        onPress={goNewReport}
-        accessibilityRole="button"
-        accessibilityLabel="New report"
-      >
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
+        {/* Keeps tab spacing; FAB is drawn in overlay below */}
+        <View style={styles.fabPlaceholder} />
 
-      <Pressable style={styles.tab} onPress={goCommunity} accessibilityRole="button">
-        <Text style={styles.emoji}>🗺️</Text>
-        <Text style={styles.label}>Map</Text>
-      </Pressable>
+        <TabButton
+          label="Feed"
+          icon="newspaper-outline"
+          iconFocused="newspaper"
+          active={onFeed}
+          onPress={goFeed}
+          a11y="Feed"
+        />
+        <TabButton
+          label="Profile"
+          icon="person-outline"
+          iconFocused="person"
+          active={onProfile}
+          onPress={goProfile}
+          a11y="Profile"
+        />
+      </View>
 
-      <Pressable style={styles.tab} onPress={goCommunity} accessibilityRole="button">
-        <Text style={styles.emoji}>📄</Text>
-        <Text style={styles.label}>Feed</Text>
-      </Pressable>
-
-      <Pressable
-        style={styles.tab}
-        onPress={goProfile}
-        accessibilityRole="button"
-        accessibilityLabel="Profile"
-      >
-        <Text style={styles.emoji}>👤</Text>
-        <Text style={[styles.label, onProfile && styles.labelActive]}>Profile</Text>
-      </Pressable>
+      <View style={styles.fabOverlay} pointerEvents="box-none">
+        <Pressable
+          style={[styles.fab, fabActive && styles.fabActive]}
+          onPress={goNewReport}
+          accessibilityRole="button"
+          accessibilityLabel="New report"
+        >
+          <Ionicons name="add" size={30} color="#fff" />
+        </Pressable>
+      </View>
     </View>
+  );
+}
+
+function TabButton({
+  label,
+  icon,
+  iconFocused,
+  active,
+  onPress,
+  a11y,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  iconFocused: React.ComponentProps<typeof Ionicons>["name"];
+  active: boolean;
+  onPress: () => void;
+  a11y: string;
+}) {
+  const color = active ? ACTIVE : INACTIVE;
+  return (
+    <Pressable style={styles.tab} onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y}>
+      <Ionicons name={active ? iconFocused : icon} size={22} color={color} />
+      <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
+    position: "relative",
+    overflow: "visible",
     backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: "#E8ECF1",
     paddingTop: 8,
-    paddingHorizontal: 4,
     shadowColor: "#000",
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 8,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 10,
+    zIndex: 20,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+    minHeight: 52,
   },
   tab: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 6,
     minHeight: 48,
-    justifyContent: "center",
   },
-  emoji: { fontSize: 20, marginBottom: 2 },
-  label: { fontSize: 11, color: "#999", fontWeight: "500" },
-  labelActive: { color: "#2563EB", fontWeight: "700" },
+  fabPlaceholder: {
+    flex: 1,
+    minHeight: 48,
+  },
+  fabOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    /** Negative top pulls the + above the tab bar (Y axis). Increase magnitude to move it higher. */
+    top: -15,
+    alignItems: "center",
+    zIndex: 30,
+  },
+  label: { fontSize: 10, color: INACTIVE, fontWeight: "600", marginTop: 4 },
+  labelActive: { color: ACTIVE },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#2563EB",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: ACTIVE,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#2563EB",
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    shadowColor: ACTIVE,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 14,
   },
   fabActive: {
     borderWidth: 3,
     borderColor: "#93C5FD",
   },
-  fabText: { fontSize: 28, color: "#fff", fontWeight: "300", lineHeight: 32 },
 });

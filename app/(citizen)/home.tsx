@@ -7,8 +7,10 @@ export default function CitizenHome() {
     <CitizenShell>
       <StatusBar style="dark" />
       <View style={styles.content}>
-        <Text style={styles.title}>Citizen Home</Text>
-        <Text style={styles.subtitle}>Welcome to your community safety dashboard.</Text>
+        <Text style={styles.title}>Home</Text>
+        <Text style={styles.subtitle}>
+          Your safety dashboard. Use the Feed tab for neighborhood alerts, posts, and the full community hub.
+        </Text>
       </View>
     </CitizenShell>
   );

@@ -2,8 +2,11 @@ import {
   ApiResponse,
   AppUser,
   AuthTokens,
+  CitizenProfilePayload,
   CrimeMediaUploadResult,
   MyReportItem,
+  OnboardingIntent,
+  ReportDetailPayload,
   VerificationSubmitBody,
 } from "./types";
 import { readTokens, saveTokens } from "./storage";
@@ -52,6 +55,13 @@ export function loginWithPassword(input: { email: string; password: string }) {
 
 export function requestLoginOtp(input: { email: string }) {
   return request<Record<string, never>>("/api/auth/login/otp/request", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function resendSignupOtp(input: { email: string }) {
+  return request<{ sent: boolean }>("/api/auth/resend-signup-otp", {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -149,8 +159,58 @@ export function submitCitizenVerification(body: VerificationSubmitBody) {
   });
 }
 
+export function setOnboardingIntent(intent: OnboardingIntent) {
+  return requestAuthenticated<{ user: AppUser }>("/api/users/me/onboarding-intent", {
+    method: "PATCH",
+    body: JSON.stringify({ intent }),
+  });
+}
+
+export function submitPoliceApplication(body: {
+  badgeNumber: string;
+  rank: string;
+  department: string;
+  precinct: string;
+  unitCode?: string;
+  idDocumentUrl?: string;
+}) {
+  return requestAuthenticated<{ submitted: boolean }>("/api/police/apply", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export function fetchMyReports() {
   return requestAuthenticated<{ reports: MyReportItem[] }>("/api/citizen/my-reports", {
+    method: "GET",
+  });
+}
+
+export function fetchCitizenProfile() {
+  return requestAuthenticated<{ profile: CitizenProfilePayload }>("/api/citizen/profile", {
+    method: "GET",
+  });
+}
+
+export function updateCitizenProfile(body: {
+  name?: string;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  homeAddress?: string | null;
+  homeLatitude?: number | null;
+  homeLongitude?: number | null;
+  occupation?: string | null;
+  preferredLanguage?: string;
+}) {
+  return requestAuthenticated<{ user: AppUser; profile: CitizenProfilePayload }>("/api/citizen/profile", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchReportDetail(reportId: string) {
+  return requestAuthenticated<{ report: ReportDetailPayload }>(`/api/citizen/my-reports/${reportId}`, {
     method: "GET",
   });
 }
@@ -159,7 +219,7 @@ export function uploadCrimeMediaFile(input: {
   uri: string;
   name: string;
   mimeType: string;
-  folder: "reports" | "verification";
+  folder: "reports" | "verification" | "avatars";
 }) {
   const form = new FormData();
   form.append("folder", input.folder);

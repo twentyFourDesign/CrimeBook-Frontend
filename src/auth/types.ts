@@ -1,9 +1,14 @@
 export type IdentityVerificationStatus = "none" | "pending" | "approved" | "rejected";
 
+export type OnboardingIntent = "STANDARD_CITIZEN" | "VERIFIED_COMMUNITY" | "POLICE";
+
 export type AppUser = {
   id: string;
   email: string;
   name: string;
+  avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
   role:
     | "CITIZEN"
     | "VERIFIED_COMMUNITY_MEMBER"
@@ -12,8 +17,13 @@ export type AppUser = {
     | "ENTERPRISE_SECURITY"
     | "SYSTEM_ADMIN";
   isEmailVerified: boolean;
+  onboardingIntent: OnboardingIntent | null;
   identityVerificationStatus: IdentityVerificationStatus;
   communityVerification: {
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    submittedAt: string;
+  } | null;
+  policeApplication: {
     status: "PENDING" | "APPROVED" | "REJECTED";
     submittedAt: string;
   } | null;
@@ -41,6 +51,60 @@ export type MyReportItem = {
   createdAt: string;
   locationAddress: string | null;
   locationLabel: string | null;
+};
+
+export type CitizenProfilePayload = {
+  id: string;
+  email: string;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  trustScore: number;
+  reputationPoints: number;
+  citizenProfile: {
+    homeAddress: string | null;
+    homeLatitude: number | null;
+    homeLongitude: number | null;
+    occupation: string | null;
+    preferredLanguage: string;
+  } | null;
+};
+
+export type ReportMediaItem = {
+  id: string;
+  mediaType: string;
+  fileUrl: string;
+  thumbnailUrl: string | null;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  durationSecs: number | null;
+  createdAt: string;
+};
+
+export type ReportDetailPayload = {
+  id: string;
+  caseId: string | null;
+  crimeCategory: string;
+  title: string | null;
+  description: string;
+  status: string;
+  visibility: string;
+  isAnonymous: boolean;
+  latitude: number;
+  longitude: number;
+  locationAddress: string | null;
+  locationLabel: string | null;
+  locationPrecision: string;
+  incidentTime: string;
+  isHappeningNow: boolean;
+  communityConfirmCount: number;
+  isPoliceVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  media: ReportMediaItem[];
 };
 
 /** Matches POST /api/media/upload response & Prisma `MediaType` */

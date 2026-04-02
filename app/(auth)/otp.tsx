@@ -9,9 +9,10 @@ type OtpMode = "signup" | "signin";
 export default function OtpScreen() {
   const router = useRouter();
   const { email = "", mode = "signup" } = useLocalSearchParams<{ email?: string; mode?: OtpMode }>();
-  const { verifySignUpOtp, verifyOtpSignIn, requestOtpSignIn } = useAuth();
+  const { verifySignUpOtp, verifyOtpSignIn, requestOtpSignIn, resendSignUpOtp } = useAuth();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const normalizedMode: OtpMode = mode === "signin" ? "signin" : "signup";
 
@@ -25,10 +26,11 @@ export default function OtpScreen() {
       setLoading(true);
       if (normalizedMode === "signin") {
         await verifyOtpSignIn({ email, code });
+        router.replace("/");
       } else {
         await verifySignUpOtp({ email, code });
+        router.replace("/(auth)/choose-role");
       }
-      router.replace("/");
     } catch (error) {
       Alert.alert("Verification failed", error instanceof Error ? error.message : "Something went wrong");
     } finally {
@@ -37,14 +39,22 @@ export default function OtpScreen() {
   };
 
   const onResend = async () => {
-    if (!email) return;
+    if (!email.trim()) {
+      Alert.alert("Email missing", "Go back and enter your email again.");
+      return;
+    }
     try {
+      setResending(true);
       if (normalizedMode === "signin") {
-        await requestOtpSignIn({ email });
+        await requestOtpSignIn({ email: email.trim() });
+      } else {
+        await resendSignUpOtp({ email: email.trim() });
       }
-      Alert.alert("OTP sent", "Please check your email for the new OTP.");
+      Alert.alert("OTP sent", "Please check your email for the new code.");
     } catch (error) {
-      Alert.alert("Failed", error instanceof Error ? error.message : "Could not resend OTP");
+      Alert.alert("Could not resend", error instanceof Error ? error.message : "Try again in a moment.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -64,8 +74,8 @@ export default function OtpScreen() {
       <TouchableOpacity style={styles.button} onPress={onVerify} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? "Verifying..." : "Verify OTP"}</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={onResend}>
-        <Text style={styles.resend}>Resend OTP</Text>
+      <TouchableOpacity onPress={onResend} disabled={resending}>
+        <Text style={styles.resend}>{resending ? "Sending…" : "Resend OTP"}</Text>
       </TouchableOpacity>
     </View>
   );

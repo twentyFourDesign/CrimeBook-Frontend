@@ -13,14 +13,19 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { ReportProgress } from "../../src/report/ReportProgress";
 import { uploadCrimeMediaFile } from "../../src/auth/api";
+import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
+import { ReportContinueButton } from "../../src/components/report/ReportContinueButton";
+import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
 
 const MAX_FILES = 8;
 
 export default function ReportStep5() {
   const router = useRouter();
+  const layout = useReportScreenLayout();
   const { draft, updateDraft, setDraft } = useReportDraft();
   const [note, setNote] = useState(draft.evidenceNote);
   const [busy, setBusy] = useState(false);
@@ -97,16 +102,12 @@ export default function ReportStep5() {
   return (
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.heading}>Report Incident</Text>
-            <Text style={styles.step}>Step 5 of 6</Text>
-          </View>
-        </View>
+      <ScrollView
+        contentContainerStyle={layout.scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ReportScreenHeader step={5} />
 
         <ReportProgress currentStep={5} />
 
@@ -126,7 +127,7 @@ export default function ReportStep5() {
               <ActivityIndicator />
             ) : (
               <>
-                <Text style={styles.uploadIcon}>📷</Text>
+                <Ionicons name="camera-outline" size={36} color="#2563EB" style={styles.uploadIcon} />
                 <Text style={styles.uploadLabel}>Take photo / video</Text>
               </>
             )}
@@ -141,7 +142,7 @@ export default function ReportStep5() {
               <ActivityIndicator />
             ) : (
               <>
-                <Text style={styles.uploadIcon}>📤</Text>
+                <Ionicons name="images-outline" size={36} color="#2563EB" style={styles.uploadIcon} />
                 <Text style={styles.uploadLabel}>Library</Text>
               </>
             )}
@@ -154,13 +155,13 @@ export default function ReportStep5() {
               <View key={`${m.path}-${i}`} style={styles.thumbWrap}>
                 {m.mimeType.startsWith("video/") ? (
                   <View style={styles.videoPlaceholder}>
-                    <Text style={styles.videoIcon}>🎬</Text>
+                    <Ionicons name="videocam" size={28} color="#93C5FD" />
                   </View>
                 ) : (
                   <Image source={{ uri: m.url }} style={styles.thumb} />
                 )}
                 <TouchableOpacity style={styles.removeX} onPress={() => removeAt(i)} hitSlop={8}>
-                  <Text style={styles.removeXText}>×</Text>
+                  <Ionicons name="close" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -177,15 +178,12 @@ export default function ReportStep5() {
           multiline
         />
 
-        <TouchableOpacity
-          style={styles.button}
+        <ReportContinueButton
           onPress={() => {
             updateDraft({ evidenceNote: note.trim() });
             router.push("/(citizen)/report-step6");
           }}
-        >
-          <Text style={styles.buttonText}>Continue →</Text>
-        </TouchableOpacity>
+        />
       </ScrollView>
     </View>
   );
@@ -193,19 +191,6 @@ export default function ReportStep5() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#fff" },
-  container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 32 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#F0F4FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backArrow: { fontSize: 18, color: "#111" },
-  heading: { fontSize: 16, fontWeight: "700", color: "#111" },
-  step: { fontSize: 12, color: "#888", marginTop: 1 },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111", marginBottom: 4 },
   sectionDesc: { fontSize: 13, color: "#888", marginBottom: 20 },
   uploadRow: { flexDirection: "row", gap: 16, marginBottom: 16 },
@@ -221,7 +206,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   uploadDisabled: { opacity: 0.6 },
-  uploadIcon: { fontSize: 36, marginBottom: 10 },
+  uploadIcon: { marginBottom: 10 },
   uploadLabel: { fontSize: 13, fontWeight: "600", color: "#555", textAlign: "center" },
   thumbRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
   thumbWrap: { position: "relative" },
@@ -234,7 +219,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  videoIcon: { fontSize: 28 },
   removeX: {
     position: "absolute",
     top: -6,
@@ -246,7 +230,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  removeXText: { color: "#fff", fontSize: 16, fontWeight: "700", lineHeight: 18 },
   fieldLabel: { fontSize: 13, fontWeight: "600", color: "#333", marginBottom: 8 },
   input: {
     borderWidth: 1,
@@ -261,6 +244,4 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     backgroundColor: "#FAFAFA",
   },
-  button: { backgroundColor: "#2563EB", paddingVertical: 16, borderRadius: 12, alignItems: "center" },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

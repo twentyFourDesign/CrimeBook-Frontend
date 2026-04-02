@@ -1,10 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 
 export default function IncidentReview() {
-  const router = useRouter();
-
   return (
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
@@ -12,9 +10,7 @@ export default function IncidentReview() {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
+          <ScreenBackButton />
           <View>
             <Text style={styles.heading}>Incident Review</Text>
             <Text style={styles.reportNo}>Report # 1</Text>
@@ -92,8 +88,6 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: '#F8FAFF' },
   container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 32 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F0F4FF', justifyContent: 'center', alignItems: 'center' },
-  backArrow: { fontSize: 18, color: '#111' },
   heading: { fontSize: 17, fontWeight: '700', color: '#111', flex: 1 },
   reportNo: { fontSize: 12, color: '#888' },
   pendingBadge: { backgroundColor: '#FEF9C3', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },

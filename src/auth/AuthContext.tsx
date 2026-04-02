@@ -1,5 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { fetchMe, loginWithPassword, logout, refreshToken, requestLoginOtp, signup, verifyLoginOtp, verifySignupOtp } from "./api";
+import {
+  fetchMe,
+  loginWithPassword,
+  logout,
+  refreshToken,
+  requestLoginOtp,
+  resendSignupOtp,
+  signup,
+  verifyLoginOtp,
+  verifySignupOtp,
+} from "./api";
 import { clearTokens, readTokens, saveTokens } from "./storage";
 import { AppUser } from "./types";
 
@@ -11,6 +21,7 @@ type AuthContextValue = {
   verifySignUpOtp: (input: { email: string; code: string }) => Promise<void>;
   signInPassword: (input: { email: string; password: string }) => Promise<{ requiresOtp?: boolean; email?: string }>;
   requestOtpSignIn: (input: { email: string }) => Promise<void>;
+  resendSignUpOtp: (input: { email: string }) => Promise<void>;
   verifyOtpSignIn: (input: { email: string; code: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -100,6 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       async requestOtpSignIn(input) {
         await requestLoginOtp(input);
+      },
+      async resendSignUpOtp(input) {
+        await resendSignupOtp(input);
       },
       async verifyOtpSignIn(input) {
         const payload = await verifyLoginOtp(input);

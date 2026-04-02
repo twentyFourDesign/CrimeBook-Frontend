@@ -1,35 +1,69 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
-import { fetchMyReports } from "../../src/auth/api";
-import type { MyReportItem } from "../../src/auth/types";
+import {
+  fetchCitizenProfile,
+  updateCitizenProfile,
+  uploadCrimeMediaFile,
+} from "../../src/auth/api";
+import type { CitizenProfilePayload } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 
-function formatCategory(cat: string) {
-  return cat.replace(/_/g, " ");
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase() || "?";
 }
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
-  const [reports, setReports] = useState<MyReportItem[]>([]);
+  const router = useRouter();
+  const { user, signOut, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CitizenProfilePayload | null>(null);
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [homeLat, setHomeLat] = useState("");
+  const [homeLng, setHomeLng] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState("en");
 
   const load = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
-      const data = await fetchMyReports();
-      setReports(data.reports);
+      const { profile: p } = await fetchCitizenProfile();
+      setProfile(p);
+      setName(p.name);
+      setPhone(p.phone ?? "");
+      setCity(p.city ?? "");
+      const cp = p.citizenProfile;
+      setHomeAddress(cp?.homeAddress ?? "");
+      setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
+      setHomeLng(cp?.homeLongitude != null ? String(cp.homeLongitude) : "");
+      setOccupation(cp?.occupation ?? "");
+      setPreferredLanguage(cp?.preferredLanguage ?? "en");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load reports");
+      setError(e instanceof Error ? e.message : "Could not load profile");
     } finally {
       setLoading(false);
     }
@@ -39,90 +73,317 @@ export default function ProfileScreen() {
     load();
   }, [load]);
 
+  const pickAvatar = async () => {
+    const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!lib.granted) {
+      Alert.alert("Permission needed", "Photo library access is required.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingAvatar(true);
+    try {
+      const asset = result.assets[0];
+      const fileName = asset.fileName ?? `avatar_${Date.now()}.jpg`;
+      const mime = asset.mimeType ?? "image/jpeg";
+      const uploaded = await uploadCrimeMediaFile({
+        uri: asset.uri,
+        name: fileName,
+        mimeType: mime,
+        folder: "avatars",
+      });
+      const res = await updateCitizenProfile({ avatarUrl: uploaded.url });
+      setProfile(res.profile);
+      await refreshUser();
+    } catch (e) {
+      Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const onSave = async () => {
+    const latTrim = homeLat.trim();
+    const lngTrim = homeLng.trim();
+    let homeLatitude: number | null | undefined;
+    let homeLongitude: number | null | undefined;
+    if (latTrim !== "" || lngTrim !== "") {
+      const la = parseFloat(latTrim);
+      const lo = parseFloat(lngTrim);
+      if (Number.isNaN(la) || Number.isNaN(lo)) {
+        Alert.alert("Location", "Enter valid home latitude and longitude, or leave both blank.");
+        return;
+      }
+      homeLatitude = la;
+      homeLongitude = lo;
+    } else {
+      homeLatitude = null;
+      homeLongitude = null;
+    }
+
+    try {
+      setSaving(true);
+      const res = await updateCitizenProfile({
+        name: name.trim(),
+        phone: phone.trim() || null,
+        city: city.trim() || null,
+        homeAddress: homeAddress.trim() || null,
+        homeLatitude,
+        homeLongitude,
+        occupation: occupation.trim() || null,
+        preferredLanguage: preferredLanguage.trim() || "en",
+      });
+      setProfile(res.profile);
+      await refreshUser();
+      Alert.alert("Saved", "Your profile has been updated.");
+    } catch (e) {
+      Alert.alert("Save failed", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const verifyLabel = user?.identityVerificationStatus.replace(/_/g, " ") ?? "";
+
   return (
     <CitizenShell>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Profile</Text>
-        {user && (
-          <View style={styles.card}>
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.meta}>{user.email}</Text>
-            <Text style={styles.meta}>
-              Verification: {user.identityVerificationStatus.replace(/_/g, " ")}
-            </Text>
-          </View>
-        )}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={88}
+      >
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Profile</Text>
 
-        <Text style={styles.section}>Your reports</Text>
-        {loading && (
-          <View style={styles.centerRow}>
-            <ActivityIndicator />
-          </View>
-        )}
-        {error && (
-          <View style={styles.errBox}>
-            <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={load} style={styles.retry}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        {!loading && !error && reports.length === 0 && (
-          <Text style={styles.empty}>No reports yet. Use the + button to submit one.</Text>
-        )}
-        {reports.map((r) => (
-          <View key={r.id} style={styles.reportCard}>
-            <Text style={styles.reportTitle}>{r.title?.trim() || formatCategory(r.crimeCategory)}</Text>
-            <Text style={styles.reportCat}>{formatCategory(r.crimeCategory)}</Text>
-            <Text style={styles.reportStatus}>Status: {r.status.replace(/_/g, " ")}</Text>
-            {r.locationLabel || r.locationAddress ? (
-              <Text style={styles.reportLoc} numberOfLines={2}>
-                {r.locationLabel || r.locationAddress}
-              </Text>
-            ) : null}
-            <Text style={styles.reportDate}>{new Date(r.createdAt).toLocaleString()}</Text>
-          </View>
-        ))}
+          {loading && (
+            <View style={styles.centerRow}>
+              <ActivityIndicator />
+            </View>
+          )}
 
-        <TouchableOpacity style={styles.signOut} onPress={() => signOut()}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          {error && (
+            <View style={styles.errBox}>
+              <Text style={styles.errText}>{error}</Text>
+              <TouchableOpacity onPress={load} style={styles.retry}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!loading && profile && (
+            <>
+              <View style={styles.avatarRow}>
+                <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} disabled={uploadingAvatar}>
+                  {uploadingAvatar ? (
+                    <ActivityIndicator style={styles.avatarLoader} />
+                  ) : profile.avatarUrl ? (
+                    <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
+                  ) : (
+                    <View style={styles.avatarFallback}>
+                      <Text style={styles.avatarInitials}>{initials(profile.name)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.avatarEditBadge}>
+                    <Text style={styles.avatarEditText}>Edit</Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.avatarMeta}>
+                  <Text style={styles.userName}>{profile.name}</Text>
+                  <Text style={styles.username}>@{profile.username}</Text>
+                  <Text style={styles.trust}>
+                    Trust {profile.trustScore.toFixed(0)} · {profile.reputationPoints} pts
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.verifyBadge}>Verification: {verifyLabel}</Text>
+
+              <Text style={styles.section}>Account</Text>
+              <Text style={styles.label}>Display name</Text>
+              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" />
+
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.readonly}>{profile.email}</Text>
+
+              <Text style={styles.label}>Phone</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Phone number"
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.label}>City</Text>
+              <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City or region" />
+
+              <Text style={styles.section}>Home (optional)</Text>
+              <Text style={styles.hint}>Used for safety radius and local alerts — never shown publicly as exact GPS.</Text>
+              <Text style={styles.label}>Address</Text>
+              <TextInput
+                style={[styles.input, styles.multiline]}
+                value={homeAddress}
+                onChangeText={setHomeAddress}
+                placeholder="Street, area"
+                multiline
+              />
+              <View style={styles.row2}>
+                <View style={styles.row2Item}>
+                  <Text style={styles.label}>Home latitude</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={homeLat}
+                    onChangeText={setHomeLat}
+                    placeholder="e.g. 6.52"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={styles.row2Item}>
+                  <Text style={styles.label}>Home longitude</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={homeLng}
+                    onChangeText={setHomeLng}
+                    placeholder="e.g. 3.37"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.section}>More</Text>
+              <Text style={styles.label}>Occupation</Text>
+              <TextInput style={styles.input} value={occupation} onChangeText={setOccupation} placeholder="Occupation" />
+
+              <Text style={styles.label}>Preferred language</Text>
+              <TextInput
+                style={styles.input}
+                value={preferredLanguage}
+                onChangeText={setPreferredLanguage}
+                placeholder="e.g. en"
+                autoCapitalize="none"
+              />
+
+              <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save profile</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportsBtn}
+                onPress={() => router.push("/(citizen)/my-reports")}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.reportsBtnText}>My reports →</Text>
+                <Text style={styles.reportsBtnSub}>View all submissions with photos, location, and status</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity style={styles.signOut} onPress={() => signOut()}>
+            <Text style={styles.signOutText}>Sign out</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </CitizenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, paddingBottom: 32 },
+  flex: { flex: 1 },
+  container: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: "700", color: "#111", marginBottom: 16 },
-  card: {
-    backgroundColor: "#F8FAFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  name: { fontSize: 18, fontWeight: "700", color: "#111" },
-  meta: { fontSize: 14, color: "#64748B", marginTop: 4 },
-  section: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 12 },
   centerRow: { paddingVertical: 24, alignItems: "center" },
   errBox: { marginBottom: 12 },
   errText: { color: "#B91C1C", fontSize: 14 },
   retry: { marginTop: 8, alignSelf: "flex-start" },
   retryText: { color: "#2563EB", fontWeight: "600" },
-  empty: { color: "#64748B", fontSize: 14, lineHeight: 20 },
-  reportCard: {
+  avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 16 },
+  avatarWrap: { position: "relative" },
+  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#E2E8F0" },
+  avatarFallback: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitials: { fontSize: 28, fontWeight: "700", color: "#fff" },
+  avatarLoader: { width: 96, height: 96 },
+  avatarEditBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  avatarEditText: { color: "#fff", fontSize: 11, fontWeight: "600" },
+  avatarMeta: { flex: 1 },
+  userName: { fontSize: 20, fontWeight: "700", color: "#111" },
+  username: { fontSize: 13, color: "#64748B", marginTop: 2 },
+  trust: { fontSize: 12, color: "#475569", marginTop: 6 },
+  verifyBadge: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 20,
+    backgroundColor: "#F1F5F9",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8, marginBottom: 10 },
+  hint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
+  label: { fontSize: 12, fontWeight: "600", color: "#64748B", marginBottom: 6, marginTop: 10 },
+  input: {
     borderWidth: 1,
     borderColor: "#E2E8F0",
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#111",
     backgroundColor: "#fff",
   },
-  reportTitle: { fontSize: 16, fontWeight: "700", color: "#111" },
-  reportCat: { fontSize: 13, color: "#64748B", marginTop: 4 },
-  reportStatus: { fontSize: 13, color: "#334155", marginTop: 6 },
-  reportLoc: { fontSize: 12, color: "#64748B", marginTop: 4 },
-  reportDate: { fontSize: 11, color: "#94A3B8", marginTop: 8 },
+  multiline: { minHeight: 72, textAlignVertical: "top" },
+  readonly: {
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#64748B",
+    backgroundColor: "#F8FAFC",
+  },
+  row2: { flexDirection: "row", gap: 12 },
+  row2Item: { flex: 1 },
+  saveBtn: {
+    marginTop: 24,
+    backgroundColor: "#2563EB",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  reportsBtn: {
+    marginTop: 16,
+    borderWidth: 1.5,
+    borderColor: "#2563EB",
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: "#EFF6FF",
+  },
+  reportsBtnText: { fontSize: 17, fontWeight: "700", color: "#1D4ED8" },
+  reportsBtnSub: { fontSize: 12, color: "#64748B", marginTop: 6, lineHeight: 18 },
   signOut: {
     marginTop: 28,
     paddingVertical: 14,
