@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'expo-router';
 const tabs = [
   { label: 'Home', icon: '🏠', route: '/(citizen)/community' },
   { label: 'Map', icon: '🗺️', route: '/(citizen)/community' },
-  { label: '', icon: '+', route: '/(citizen)/create-alert', isFab: true },
+  { label: '', icon: '+', route: '/(citizen)/report-step1', isFab: true },
   { label: 'Feed', icon: '📄', route: '/(citizen)/community' },
   { label: 'Profile', icon: '👤', route: '/(citizen)/community' },
 ];

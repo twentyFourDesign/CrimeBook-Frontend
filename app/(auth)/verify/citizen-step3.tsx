@@ -1,16 +1,44 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import BottomTabBar from '../../../src/components/common/BottomTabBar';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useVerificationDraft } from "../../../src/verification/VerificationDraftContext";
+import { useAuth } from "../../../src/auth/AuthContext";
 
 export default function CitizenStep3() {
   const router = useRouter();
+  const { draft, submit, submitting, submitError } = useVerificationDraft();
+  const { refreshUser } = useAuth();
+
+  const onSubmit = async () => {
+    if (!draft.fullName.trim() || !draft.idNumber.trim()) {
+      Alert.alert("Missing info", "Go back and complete your ID details.");
+      return;
+    }
+    if (!draft.street.trim() || !draft.city.trim() || !draft.zip.trim()) {
+      Alert.alert("Missing address", "Go back and complete your address.");
+      return;
+    }
+    try {
+      await submit();
+      await refreshUser();
+      router.replace("/(auth)/verify/citizen-review");
+    } catch (e) {
+      Alert.alert("Could not submit", e instanceof Error ? e.message : "Please try again.");
+    }
+  };
 
   return (
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backArrow}>←</Text>
@@ -29,66 +57,87 @@ export default function CitizenStep3() {
 
         <View style={styles.infoBanner}>
           <Text style={styles.infoIcon}>🔒</Text>
-          <Text style={styles.infoText}>Verification help maintains community trust and safety. Your documents are encrypted and securely stored.</Text>
+          <Text style={styles.infoText}>
+            Selfie matching can be added later. For now, confirm to send your application for review.
+          </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Selfie Verification</Text>
-        <Text style={styles.sectionDesc}>Take a clear selfie to match with your government ID. Ensure good lightning.</Text>
+        <Text style={styles.sectionTitle}>Review & submit</Text>
+        <Text style={styles.sectionDesc}>
+          We will verify your details against our records. You will be notified when the review is complete.
+        </Text>
 
-        {/* Camera Box */}
-        <TouchableOpacity style={styles.cameraBox}>
-          <Text style={styles.cameraIcon}>📤</Text>
-          <Text style={styles.cameraText}>Tap to take a Selfie</Text>
-          <Text style={styles.cameraHint}>Face forward with good lighting</Text>
+        <View style={styles.summary}>
+          <Text style={styles.summaryLine}>
+            <Text style={styles.summaryLabel}>Name: </Text>
+            {draft.fullName || "—"}
+          </Text>
+          <Text style={styles.summaryLine}>
+            <Text style={styles.summaryLabel}>Address: </Text>
+            {[draft.street, draft.city, draft.zip].filter(Boolean).join(", ") || "—"}
+          </Text>
+        </View>
+
+        {submitError ? <Text style={styles.err}>{submitError}</Text> : null}
+
+        <TouchableOpacity
+          style={[styles.button, submitting && styles.buttonDisabled]}
+          onPress={onSubmit}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Submit for review →</Text>
+          )}
         </TouchableOpacity>
-
-        {/* Tips */}
-        <Text style={styles.tipsTitle}>TIPS FOR GOOD SELFIE</Text>
-        {[
-          'Remove sunglasses or hat',
-          'Ensure even lightning',
-          'Look directly at the camera',
-        ].map((tip, i) => (
-          <View key={i} style={styles.tipRow}>
-            <Text style={styles.tipCheck}>✓</Text>
-            <Text style={styles.tipText}>{tip}</Text>
-          </View>
-        ))}
-
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/(auth)/verify/citizen-review')}>
-          <Text style={styles.buttonText}>Continue →</Text>
-        </TouchableOpacity>
-
       </ScrollView>
-      <BottomTabBar />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  backBtn: { width: 32, height: 32, justifyContent: 'center' },
-  backArrow: { fontSize: 20, color: '#111' },
-  heading: { fontSize: 16, fontWeight: '700', color: '#111' },
-  step: { fontSize: 12, color: '#888', marginTop: 1 },
-  progressRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
-  progressSegment: { flex: 1, height: 5, borderRadius: 4, backgroundColor: '#E2E8F0' },
-  progressActive: { backgroundColor: '#2563EB' },
-  infoBanner: { flexDirection: 'row', backgroundColor: '#F8FAFF', borderRadius: 10, padding: 12, gap: 10, marginBottom: 24, alignItems: 'flex-start' },
+  wrapper: { flex: 1, backgroundColor: "#fff" },
+  container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 40 },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
+  backBtn: { width: 32, height: 32, justifyContent: "center" },
+  backArrow: { fontSize: 20, color: "#111" },
+  heading: { fontSize: 16, fontWeight: "700", color: "#111" },
+  step: { fontSize: 12, color: "#888", marginTop: 1 },
+  progressRow: { flexDirection: "row", gap: 6, marginBottom: 16 },
+  progressSegment: { flex: 1, height: 5, borderRadius: 4, backgroundColor: "#E2E8F0" },
+  progressActive: { backgroundColor: "#2563EB" },
+  infoBanner: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFF",
+    borderRadius: 10,
+    padding: 12,
+    gap: 10,
+    marginBottom: 24,
+    alignItems: "flex-start",
+  },
   infoIcon: { fontSize: 14 },
-  infoText: { flex: 1, fontSize: 12, color: '#555', lineHeight: 18 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 6 },
-  sectionDesc: { fontSize: 13, color: '#666', lineHeight: 20, marginBottom: 16 },
-  cameraBox: { borderWidth: 1.5, borderColor: '#CBD5E1', borderStyle: 'dashed', borderRadius: 12, paddingVertical: 48, alignItems: 'center', marginBottom: 24, backgroundColor: '#FAFAFA' },
-  cameraIcon: { fontSize: 32, marginBottom: 10 },
-  cameraText: { fontSize: 14, fontWeight: '600', color: '#333' },
-  cameraHint: { fontSize: 12, color: '#999', marginTop: 4 },
-  tipsTitle: { fontSize: 11, fontWeight: '700', color: '#888', letterSpacing: 1, marginBottom: 10 },
-  tipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  tipCheck: { color: '#2563EB', fontSize: 14, fontWeight: '700' },
-  tipText: { fontSize: 13, color: '#444' },
-  button: { backgroundColor: '#2563EB', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  infoText: { flex: 1, fontSize: 12, color: "#555", lineHeight: 18 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111", marginBottom: 6 },
+  sectionDesc: { fontSize: 13, color: "#666", lineHeight: 20, marginBottom: 16 },
+  summary: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  summaryLine: { fontSize: 14, color: "#334155", marginBottom: 8 },
+  summaryLabel: { fontWeight: "700", color: "#0F172A" },
+  err: { color: "#B91C1C", fontSize: 13, marginBottom: 8 },
+  button: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonDisabled: { opacity: 0.7 },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

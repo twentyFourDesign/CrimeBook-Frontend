@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../src/auth/AuthContext";
-import { getRoleHomeRoute } from "../src/auth/routing";
+import { getPostAuthRoute } from "../src/auth/routing";
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -18,5 +18,5 @@ export default function Index() {
     return <Redirect href="/(auth)/onboarding-1" />;
   }
 
-  return <Redirect href={getRoleHomeRoute(user)} />;
+  return <Redirect href={getPostAuthRoute(user)} />;
 }

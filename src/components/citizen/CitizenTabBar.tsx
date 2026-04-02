@@ -1,61 +1,80 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, usePathname } from "expo-router";
+import { router, useSegments } from "expo-router";
+import { useReportDraft } from "../../report/ReportDraftContext";
 
-const ROUTES = {
-  community: "/(citizen)/community",
-  createAlert: "/(citizen)/create-alert",
-} as const;
+const ROUTE_COMMUNITY = "/(citizen)/community";
+const ROUTE_PROFILE = "/(citizen)/profile";
+const ROUTE_REPORT_START = "/(citizen)/report-step1";
 
 /**
- * Pure JS tab bar — no React Navigation bottom tabs (avoids RN Fabric crashes on iOS).
+ * Pure JS tab bar — uses `useSegments` so active state works reliably across Expo Router builds.
  */
 export function CitizenTabBar() {
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
+  const { resetDraft } = useReportDraft();
+  const segments = useSegments();
+  const leaf = String(segments[segments.length - 1] ?? "");
 
-  const isCommunity =
-    pathname.includes("community") && !pathname.includes("create-alert");
-  const isCreateAlert = pathname.includes("create-alert");
+  const inReportFlow =
+    leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
 
-  const go = (href: (typeof ROUTES)[keyof typeof ROUTES]) => {
-    router.replace(href);
+  const onCommunity = leaf === "community" && !inReportFlow;
+  const onProfile = leaf === "profile" && !inReportFlow;
+  const fabActive = inReportFlow;
+
+  const goCommunity = () => {
+    router.replace(ROUTE_COMMUNITY);
+  };
+
+  const goNewReport = () => {
+    resetDraft();
+    router.push(ROUTE_REPORT_START);
+  };
+
+  const goProfile = () => {
+    router.push(ROUTE_PROFILE);
   };
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <Pressable
         style={styles.tab}
-        onPress={() => go(ROUTES.community)}
+        onPress={goCommunity}
         accessibilityRole="button"
         accessibilityLabel="Home"
       >
         <Text style={styles.emoji}>🏠</Text>
-        <Text style={[styles.label, isCommunity && styles.labelActive]}>Home</Text>
+        <Text style={[styles.label, onCommunity && styles.labelActive]}>Home</Text>
       </Pressable>
 
       <Pressable
-        style={[styles.fab, isCreateAlert && styles.fabActive]}
-        onPress={() => go(ROUTES.createAlert)}
+        style={[styles.fab, fabActive && styles.fabActive]}
+        onPress={goNewReport}
         accessibilityRole="button"
-        accessibilityLabel="Create alert"
+        accessibilityLabel="New report"
       >
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <Pressable style={styles.tab} onPress={() => go(ROUTES.community)} accessibilityRole="button">
+      <Pressable style={styles.tab} onPress={goCommunity} accessibilityRole="button">
         <Text style={styles.emoji}>🗺️</Text>
         <Text style={styles.label}>Map</Text>
       </Pressable>
 
-      <Pressable style={styles.tab} onPress={() => go(ROUTES.community)} accessibilityRole="button">
+      <Pressable style={styles.tab} onPress={goCommunity} accessibilityRole="button">
         <Text style={styles.emoji}>📄</Text>
         <Text style={styles.label}>Feed</Text>
       </Pressable>
 
-      <Pressable style={styles.tab} onPress={() => go(ROUTES.community)} accessibilityRole="button">
+      <Pressable
+        style={styles.tab}
+        onPress={goProfile}
+        accessibilityRole="button"
+        accessibilityLabel="Profile"
+      >
         <Text style={styles.emoji}>👤</Text>
-        <Text style={styles.label}>Profile</Text>
+        <Text style={[styles.label, onProfile && styles.labelActive]}>Profile</Text>
       </Pressable>
     </View>
   );

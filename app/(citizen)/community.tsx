@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { useReportDraft } from "../../src/report/ReportDraftContext";
 
 const incidents = [
   { id: "1", title: "Armed Robbery Alert", location: "Main St & 5th Ave", time: "8 min ago", distance: "0.3 mi", confidence: 72 },
@@ -13,6 +14,7 @@ const alerts = [{ id: "1", title: "Suspicious vehical near Central Park", locati
 
 export default function Community() {
   const router = useRouter();
+  const { resetDraft } = useReportDraft();
 
   return (
     <CitizenShell>
@@ -34,7 +36,10 @@ export default function Community() {
           </View>
           <TouchableOpacity
             style={styles.newAlertBtn}
-            onPress={() => router.replace("/(citizen)/create-alert")}
+            onPress={() => {
+              resetDraft();
+              router.push("/(citizen)/report-step1");
+            }}
           >
             <Text style={styles.newAlertText}>🔔 New Alert</Text>
           </TouchableOpacity>

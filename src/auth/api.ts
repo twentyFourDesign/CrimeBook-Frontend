@@ -1,4 +1,12 @@
-import { ApiResponse, AppUser, AuthTokens } from "./types";
+import {
+  ApiResponse,
+  AppUser,
+  AuthTokens,
+  CrimeMediaUploadResult,
+  MyReportItem,
+  VerificationSubmitBody,
+} from "./types";
+import { readTokens, saveTokens } from "./storage";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
@@ -63,6 +71,61 @@ export function refreshToken(input: { refreshToken: string }) {
   });
 }
 
+async function requestAuthenticatedMultipart<T>(path: string, form: FormData): Promise<T> {
+  const tokens = await readTokens();
+  if (!tokens) throw new Error("Not signed in");
+
+  const run = async (accessToken: string) =>
+    fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: form,
+    });
+
+  let response = await run(tokens.accessToken);
+  if (response.status === 401) {
+    const tokensOut = await refreshToken({ refreshToken: tokens.refreshToken });
+    await saveTokens(tokensOut);
+    response = await run(tokensOut.accessToken);
+  }
+
+  const payload = (await response.json()) as ApiResponse<T>;
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.message || "Request failed");
+  }
+  return payload.data as T;
+}
+
+async function requestAuthenticated<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const tokens = await readTokens();
+  if (!tokens) throw new Error("Not signed in");
+
+  const run = async (accessToken: string) =>
+    fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(options.headers ?? {}),
+      },
+    });
+
+  let response = await run(tokens.accessToken);
+  if (response.status === 401) {
+    const tokensOut = await refreshToken({ refreshToken: tokens.refreshToken });
+    await saveTokens(tokensOut);
+    response = await run(tokensOut.accessToken);
+  }
+
+  const payload = (await response.json()) as ApiResponse<T>;
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.message || "Request failed");
+  }
+  return payload.data as T;
+}
+
 export function fetchMe(accessToken: string) {
   return request<{ user: AppUser }>("/api/auth/me", {
     method: "GET",
@@ -77,4 +140,32 @@ export function logout(refreshTokenValue: string) {
     method: "POST",
     body: JSON.stringify({ refreshToken: refreshTokenValue }),
   });
+}
+
+export function submitCitizenVerification(body: VerificationSubmitBody) {
+  return requestAuthenticated<{ submitted: boolean }>("/api/citizen/verification", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchMyReports() {
+  return requestAuthenticated<{ reports: MyReportItem[] }>("/api/citizen/my-reports", {
+    method: "GET",
+  });
+}
+
+export function uploadCrimeMediaFile(input: {
+  uri: string;
+  name: string;
+  mimeType: string;
+  folder: "reports" | "verification";
+}) {
+  const form = new FormData();
+  form.append("folder", input.folder);
+  form.append(
+    "file",
+    { uri: input.uri, name: input.name, type: input.mimeType } as unknown as Blob
+  );
+  return requestAuthenticatedMultipart<CrimeMediaUploadResult>("/api/media/upload", form);
 }

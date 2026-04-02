@@ -26,6 +26,15 @@
     },
     "web": {
       "favicon": "./assets/images/logo.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to attach photos for reports and verification.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to take photos for reports and verification."
+        }
+      ]
+    ]
   }
 }

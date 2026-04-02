@@ -1,3 +1,5 @@
+export type IdentityVerificationStatus = "none" | "pending" | "approved" | "rejected";
+
 export type AppUser = {
   id: string;
   email: string;
@@ -10,6 +12,53 @@ export type AppUser = {
     | "ENTERPRISE_SECURITY"
     | "SYSTEM_ADMIN";
   isEmailVerified: boolean;
+  identityVerificationStatus: IdentityVerificationStatus;
+  communityVerification: {
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    submittedAt: string;
+  } | null;
+};
+
+export type IdDocumentType = "national_id" | "passport" | "drivers_license";
+
+export type VerificationSubmitBody = {
+  idDocumentType: IdDocumentType;
+  idDocumentUrl?: string;
+  applicant: {
+    fullName: string;
+    idNumber: string;
+    address: { street: string; city: string; zip: string };
+    phone?: string;
+  };
+};
+
+export type MyReportItem = {
+  id: string;
+  crimeCategory: string;
+  title: string | null;
+  status: string;
+  description: string;
+  createdAt: string;
+  locationAddress: string | null;
+  locationLabel: string | null;
+};
+
+/** Matches POST /api/media/upload response & Prisma `MediaType` */
+export type CrimeMediaUploadResult = {
+  url: string;
+  path: string;
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  mediaType: "PHOTO" | "VIDEO" | "AUDIO" | "DOCUMENT";
+};
+
+export type ReportMediaPayload = {
+  fileUrl: string;
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  mediaType: CrimeMediaUploadResult["mediaType"];
 };
 
 export type AuthTokens = {
