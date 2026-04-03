@@ -1,5 +1,16 @@
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +20,17 @@ import type { ReportDetailPayload, ReportMediaItem } from "../../src/auth/types"
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
+}
+
+function openDirectionsTo(lat: number, lng: number) {
+  const apple = `http://maps.apple.com/?daddr=${lat},${lng}`;
+  const googleWeb = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  const androidNav = `google.navigation:q=${lat},${lng}`;
+  const url =
+    Platform.OS === "ios" ? apple : Platform.OS === "android" ? androidNav : googleWeb;
+  Linking.openURL(url).catch(() => {
+    Linking.openURL(googleWeb).catch(() => null);
+  });
 }
 
 function MediaTile({ m }: { m: ReportMediaItem }) {
@@ -105,10 +127,27 @@ export default function IncidentReport() {
                   <Ionicons name="location-outline" size={16} color="#111827" />
                   <Text style={styles.sectionTitle}>Location</Text>
                 </View>
-                <View style={styles.mapBox}>
-                  <Ionicons name="map-outline" size={56} color="#9CA3AF" />
-                  <View style={styles.mapPinDot} />
+                <View style={styles.mapContainer}>
+                  <MapView
+                    style={styles.map}
+                    provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                    pitchEnabled={false}
+                    rotateEnabled={false}
+                    initialRegion={{
+                      latitude: incident.latitude,
+                      longitude: incident.longitude,
+                      latitudeDelta: 0.015,
+                      longitudeDelta: 0.015,
+                    }}
+                  >
+                    <Marker coordinate={{ latitude: incident.latitude, longitude: incident.longitude }} />
+                  </MapView>
                 </View>
+                <Text style={styles.coordsText}>
+                  {incident.latitude.toFixed(5)}, {incident.longitude.toFixed(5)}
+                </Text>
                 <View style={styles.locationRow}>
                   <Text style={styles.locationText}>
                     {incident.locationLabel || incident.locationAddress || "Unknown location"}
@@ -120,6 +159,14 @@ export default function IncidentReport() {
                     </Text>
                   </View>
                 </View>
+                <TouchableOpacity
+                  style={styles.directionsBtn}
+                  activeOpacity={0.9}
+                  onPress={() => openDirectionsTo(incident.latitude, incident.longitude)}
+                >
+                  <Ionicons name="navigate" size={18} color="#FFFFFF" />
+                  <Text style={styles.directionsBtnText}>Directions to incident</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.section}>
@@ -229,24 +276,35 @@ const styles = StyleSheet.create({
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
   sectionTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  mapBox: {
-    height: 140,
-    backgroundColor: "#E8F4E8",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
     overflow: "hidden",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  mapPinDot: {
-    position: "absolute",
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  map: {
+    flex: 1,
+  },
+  coordsText: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginBottom: 8,
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
+  },
+  directionsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: "#2563EB",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 12,
   },
+  directionsBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   locationRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   locationText: { fontSize: 12, color: "#4B5563" },
   timeRow: { flexDirection: "row", alignItems: "center", gap: 4 },

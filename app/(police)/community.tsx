@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchFeedReports } from "../../src/auth/api";
 import type { FeedReportItem } from "../../src/auth/types";
@@ -10,6 +12,7 @@ function formatEnum(s: string) {
 }
 
 export default function PoliceFeedScreen() {
+  const router = useRouter();
   const [reports, setReports] = useState<FeedReportItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,14 +74,27 @@ export default function PoliceFeedScreen() {
 
         {!loading &&
           (reports ?? []).map((r) => (
-            <View key={r.id} style={styles.card}>
+            <TouchableOpacity
+              key={r.id}
+              style={styles.card}
+              activeOpacity={0.88}
+              onPress={() =>
+                router.push({
+                  pathname: "/(police)/incident-report",
+                  params: { id: r.id },
+                })
+              }
+            >
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>
                   {r.title?.trim() || formatEnum(r.crimeCategory)}
                 </Text>
-                <Text style={[styles.statusBadge, r.isPoliceVerified && styles.statusBadgeVerified]}>
-                  {formatEnum(r.status)}
-                </Text>
+                <View style={styles.cardHeaderRight}>
+                  <Text style={[styles.statusBadge, r.isPoliceVerified && styles.statusBadgeVerified]}>
+                    {formatEnum(r.status)}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                </View>
               </View>
               <Text style={styles.cardMeta}>
                 🕐 {new Date(r.createdAt).toLocaleString()}
@@ -95,7 +111,7 @@ export default function PoliceFeedScreen() {
                 <Text style={styles.footerText}>● {r.communityConfirmCount} confirmations</Text>
                 {r.isPoliceVerified && <Text style={styles.footerVerified}>Police verified</Text>}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
       </ScrollView>
     </PoliceShell>
@@ -129,6 +145,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  cardHeaderRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardTitle: { fontSize: 15, fontWeight: "700", color: "#111827", flex: 1, marginRight: 8 },
   statusBadge: {
     paddingHorizontal: 8,

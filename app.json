@@ -34,6 +34,18 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to attach photos for reports and verification.",
           "cameraPermission": "Allow $(PRODUCT_NAME) to take photos for reports and verification."
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to record audio for investigation evidence."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to set your home coordinates for safety features."
+        }
       ]
     ]
   }

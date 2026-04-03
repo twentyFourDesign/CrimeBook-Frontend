@@ -1,14 +1,55 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
 import { PoliceShell } from "../../../src/components/police/PoliceShell";
-import { addCaseEvidence, addCaseSuspect, saveCaseNote, uploadCrimeMediaFile } from "../../../src/auth/api";
+import {
+  addCaseEvidence,
+  addCaseSuspect,
+  fetchPoliceCase,
+  saveCaseNote,
+  updatePoliceCaseStatus,
+  uploadCrimeMediaFile,
+} from "../../../src/auth/api";
 
 const statusOptions = ["Responding", "On Scene", "Investigation"] as const;
 const caseStatusOptions = ["Suspect Detailed", "Case Resolved"] as const;
+
+function mapCaseStatusFromDb(status: string): {
+  top: (typeof statusOptions)[number];
+  bottom: (typeof caseStatusOptions)[number] | "";
+} {
+  switch (status) {
+    case "RESPONDING":
+      return { top: "Responding", bottom: "" };
+    case "SUSPECT_DETAINED":
+    case "SUSPECT_ARRESTED":
+      return { top: "Investigation", bottom: "Suspect Detailed" };
+    case "CLOSED":
+    case "COLD_CASE":
+      return { top: "Investigation", bottom: "Case Resolved" };
+    case "INVESTIGATING":
+      return { top: "Investigation", bottom: "" };
+    case "OPEN":
+      return { top: "On Scene", bottom: "" };
+    default:
+      return { top: "On Scene", bottom: "" };
+  }
+}
+
+function mapUiToCaseStatus(
+  top: (typeof statusOptions)[number],
+  bottom: (typeof caseStatusOptions)[number] | ""
+): string {
+  if (bottom === "Case Resolved") return "CLOSED";
+  if (bottom === "Suspect Detailed") return "SUSPECT_DETAINED";
+  if (top === "Responding") return "RESPONDING";
+  if (top === "On Scene") return "INVESTIGATING";
+  return "INVESTIGATING";
+}
 
 const quickCapture = [
   { icon: "camera-outline" as const, label: "Photo" },
@@ -28,6 +69,76 @@ export default function Investigation() {
   const [saving, setSaving] = useState(false);
   const [savingTag, setSavingTag] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [caseStatusLoading, setCaseStatusLoading] = useState(true);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
+  useEffect(() => {
+    if (!caseId) {
+      setCaseStatusLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setCaseStatusLoading(true);
+        const { case: c } = await fetchPoliceCase(caseId);
+        if (cancelled) return;
+        const mapped = mapCaseStatusFromDb(c.status);
+        setActiveStatus(mapped.top);
+        setActiveCaseStatus(mapped.bottom);
+      } catch {
+        // keep local defaults if fetch fails
+      } finally {
+        if (!cancelled) setCaseStatusLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
+
+  useEffect(() => {
+    return () => {
+      const rec = recordingRef.current;
+      recordingRef.current = null;
+      if (rec) {
+        rec.stopAndUnloadAsync().catch(() => null);
+      }
+    };
+  }, []);
+
+  const statusControlsDisabled = caseStatusLoading || statusSaving;
+
+  const handleOperationalStatusPress = async (s: (typeof statusOptions)[number]) => {
+    if (!caseId || statusControlsDisabled) return;
+    setActiveStatus(s);
+    setActiveCaseStatus("");
+    try {
+      setStatusSaving(true);
+      await updatePoliceCaseStatus(caseId, mapUiToCaseStatus(s, ""));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not update status";
+      Alert.alert("Error", message);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleOutcomeStatusPress = async (s: (typeof caseStatusOptions)[number]) => {
+    if (!caseId || statusControlsDisabled) return;
+    setActiveCaseStatus(s);
+    try {
+      setStatusSaving(true);
+      await updatePoliceCaseStatus(caseId, mapUiToCaseStatus(activeStatus, s));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not update status";
+      Alert.alert("Error", message);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
 
   const handleSaveNotes = async () => {
     if (!caseId) {
@@ -90,7 +201,76 @@ export default function Investigation() {
     }
   };
 
+  const stopMicRecordingAndUpload = async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    setIsRecordingAudio(false);
+    if (!rec) return;
+    setUploading(true);
+    try {
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+      if (!uri) throw new Error("No audio file produced");
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => null);
+      const ext = uri.split(".").pop()?.toLowerCase();
+      const safeExt = ext && ext.length <= 5 ? ext : "m4a";
+      const mime =
+        safeExt === "m4a" || safeExt === "mp4"
+          ? "audio/mp4"
+          : safeExt === "caf"
+            ? "audio/x-caf"
+            : safeExt === "3gp"
+              ? "audio/3gpp"
+              : "audio/m4a";
+      const fileName = `field-audio-${Date.now()}.${safeExt}`;
+      await uploadPickedAsset(uri, mime, fileName);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not save recording";
+      Alert.alert("Error", message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const startMicRecording = async () => {
+    const perm = await Audio.requestPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission required", "Microphone access is needed to record audio evidence.");
+      return;
+    }
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
+    const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+    recordingRef.current = recording;
+    setIsRecordingAudio(true);
+  };
+
+  const handleAudioQuickCapture = async () => {
+    if (uploading && !isRecordingAudio) return;
+    if (isRecordingAudio) {
+      await stopMicRecordingAndUpload();
+      return;
+    }
+    try {
+      await startMicRecording();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not start recording";
+      Alert.alert("Error", message);
+    }
+  };
+
   const handleQuickCapture = async (label: string) => {
+    if (uploading && label !== "Audio") return;
+    if (label === "Audio") {
+      await handleAudioQuickCapture();
+      return;
+    }
+    if (isRecordingAudio) {
+      Alert.alert("Recording in progress", "Stop the audio recording first (tap Audio again).");
+      return;
+    }
     if (uploading) return;
     if (label === "Photo") {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -180,13 +360,21 @@ export default function Investigation() {
           </TouchableOpacity>
 
           <Text style={styles.sectionLabel}>Case Status</Text>
+          {caseStatusLoading ? (
+            <Text style={styles.statusLoadingText}>Loading case status…</Text>
+          ) : null}
           <View style={styles.statusRow}>
             {statusOptions.map((s) => (
               <TouchableOpacity
                 key={s}
-                style={[styles.statusChip, activeStatus === s && styles.statusChipActive]}
-                onPress={() => setActiveStatus(s)}
+                style={[
+                  styles.statusChip,
+                  activeStatus === s && styles.statusChipActive,
+                  statusControlsDisabled && styles.statusChipDisabled,
+                ]}
+                onPress={() => handleOperationalStatusPress(s)}
                 activeOpacity={0.85}
+                disabled={statusControlsDisabled}
               >
                 <Text style={[styles.statusChipText, activeStatus === s && styles.statusChipTextActive]}>{s}</Text>
               </TouchableOpacity>
@@ -196,14 +384,20 @@ export default function Investigation() {
             {caseStatusOptions.map((s) => (
               <TouchableOpacity
                 key={s}
-                style={[styles.caseChip, activeCaseStatus === s && styles.caseChipActive]}
-                onPress={() => setActiveCaseStatus(s)}
+                style={[
+                  styles.caseChip,
+                  activeCaseStatus === s && styles.caseChipActive,
+                  statusControlsDisabled && styles.statusChipDisabled,
+                ]}
+                onPress={() => handleOutcomeStatusPress(s)}
                 activeOpacity={0.85}
+                disabled={statusControlsDisabled}
               >
                 <Text style={[styles.caseChipText, activeCaseStatus === s && styles.caseChipTextActive]}>{s}</Text>
               </TouchableOpacity>
             ))}
           </View>
+          {statusSaving ? <Text style={styles.statusSavingHint}>Updating status…</Text> : null}
 
           <Text style={styles.sectionLabel}>Field Notes</Text>
           <TextInput
@@ -222,16 +416,33 @@ export default function Investigation() {
             {quickCapture.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={[styles.captureBtn, uploading && styles.btnDisabled]}
+                style={[
+                  styles.captureBtn,
+                  (uploading || isRecordingAudio) && item.label !== "Audio" && styles.btnDisabled,
+                  item.label === "Audio" && isRecordingAudio && styles.captureBtnRecording,
+                ]}
                 activeOpacity={0.85}
                 onPress={() => handleQuickCapture(item.label)}
-                disabled={uploading}
+                disabled={Boolean(
+                  (uploading && !isRecordingAudio && item.label !== "Audio") ||
+                    (isRecordingAudio && item.label !== "Audio")
+                )}
               >
-                <Ionicons name={item.icon} size={22} color="#4B5563" style={styles.captureIcon} />
-                <Text style={styles.captureLabel}>{item.label}</Text>
+                <Ionicons
+                  name={item.label === "Audio" && isRecordingAudio ? "stop-circle" : item.icon}
+                  size={22}
+                  color={item.label === "Audio" && isRecordingAudio ? "#DC2626" : "#4B5563"}
+                  style={styles.captureIcon}
+                />
+                <Text style={styles.captureLabel}>
+                  {item.label === "Audio" && isRecordingAudio ? "Stop" : item.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
+          {isRecordingAudio ? (
+            <Text style={styles.recordingHint}>Recording… Tap Stop (Audio) again to upload.</Text>
+          ) : null}
           {uploading ? <Text style={styles.helperText}>Uploading evidence...</Text> : null}
 
           <Text style={styles.sectionLabel}>Suspect Tags</Text>
@@ -254,9 +465,9 @@ export default function Investigation() {
           </View>
 
           <TouchableOpacity
-            style={[styles.saveBtn, (saving || uploading) && styles.saveBtnDisabled]}
+            style={[styles.saveBtn, (saving || uploading || isRecordingAudio) && styles.saveBtnDisabled]}
             activeOpacity={0.9}
-            disabled={saving || uploading}
+            disabled={saving || uploading || isRecordingAudio}
             onPress={handleSaveNotes}
           >
             <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save Investigation Notes"}</Text>
@@ -296,7 +507,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   timelineBtnText: { color: "#1D4ED8", fontSize: 12, fontWeight: "700" },
-  statusRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  statusLoadingText: { fontSize: 12, color: "#64748B", marginBottom: 8 },
+  statusSavingHint: { fontSize: 12, color: "#64748B", marginTop: -12, marginBottom: 14 },
+  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8, marginBottom: 8 },
   statusChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -306,19 +519,30 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   statusChipActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  statusChipDisabled: { opacity: 0.55 },
   statusChipText: { fontSize: 12, fontWeight: "600", color: "#6B7280" },
   statusChipTextActive: { color: "#FFFFFF" },
-  caseStatusRow: { flexDirection: "row", gap: 8, marginBottom: 22 },
+  caseStatusRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    rowGap: 10,
+    marginBottom: 22,
+  },
   caseChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    flexGrow: 1,
+    flexBasis: "46%",
+    minWidth: 140,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "#F1F5F9",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    alignItems: "center",
   },
   caseChipActive: { backgroundColor: "#EFF6FF", borderColor: "#2563EB" },
-  caseChipText: { fontSize: 12, fontWeight: "600", color: "#6B7280" },
+  caseChipText: { fontSize: 12, fontWeight: "600", color: "#6B7280", textAlign: "center" },
   caseChipTextActive: { color: "#2563EB" },
   notesInput: {
     borderWidth: 1,
@@ -343,6 +567,17 @@ const styles = StyleSheet.create({
   },
   captureIcon: { marginBottom: 4 },
   captureLabel: { fontSize: 11, fontWeight: "600", color: "#4B5563" },
+  captureBtnRecording: {
+    borderColor: "#FECACA",
+    backgroundColor: "#FEF2F2",
+  },
+  recordingHint: {
+    color: "#B91C1C",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: -14,
+    marginBottom: 14,
+  },
   suspectRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   suspectInput: {
     flex: 1,

@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import {
@@ -35,6 +36,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [savingHome, setSavingHome] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<CitizenProfilePayload | null>(null);
 
@@ -108,24 +111,53 @@ export default function ProfileScreen() {
     }
   };
 
-  const onSave = async () => {
+  const parseHomeCoords = (): { homeLatitude: number | null; homeLongitude: number | null } | null => {
     const latTrim = homeLat.trim();
     const lngTrim = homeLng.trim();
-    let homeLatitude: number | null | undefined;
-    let homeLongitude: number | null | undefined;
-    if (latTrim !== "" || lngTrim !== "") {
-      const la = parseFloat(latTrim);
-      const lo = parseFloat(lngTrim);
-      if (Number.isNaN(la) || Number.isNaN(lo)) {
-        Alert.alert("Location", "Enter valid home latitude and longitude, or leave both blank.");
-        return;
-      }
-      homeLatitude = la;
-      homeLongitude = lo;
-    } else {
-      homeLatitude = null;
-      homeLongitude = null;
+    if (latTrim === "" && lngTrim === "") {
+      return { homeLatitude: null, homeLongitude: null };
     }
+    const la = parseFloat(latTrim);
+    const lo = parseFloat(lngTrim);
+    if (Number.isNaN(la) || Number.isNaN(lo)) {
+      return null;
+    }
+    return { homeLatitude: la, homeLongitude: lo };
+  };
+
+  const onSaveHomeLocation = async () => {
+    const coords = parseHomeCoords();
+    if (coords === null) {
+      Alert.alert("Location", "Enter valid home latitude and longitude, or leave both blank to clear.");
+      return;
+    }
+    try {
+      setSavingHome(true);
+      const res = await updateCitizenProfile({
+        homeAddress: homeAddress.trim() || null,
+        homeLatitude: coords.homeLatitude,
+        homeLongitude: coords.homeLongitude,
+      });
+      setProfile(res.profile);
+      const cp = res.profile.citizenProfile;
+      setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
+      setHomeLng(cp?.homeLongitude != null ? String(cp.homeLongitude) : "");
+      await refreshUser();
+      Alert.alert("Saved", "Home location has been updated.");
+    } catch (e) {
+      Alert.alert("Save failed", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setSavingHome(false);
+    }
+  };
+
+  const onSave = async () => {
+    const coords = parseHomeCoords();
+    if (coords === null) {
+      Alert.alert("Location", "Enter valid home latitude and longitude, or leave both blank.");
+      return;
+    }
+    const { homeLatitude, homeLongitude } = coords;
 
     try {
       setSaving(true);
@@ -256,6 +288,55 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
+              <TouchableOpacity
+                style={[styles.useCurrentBtn, gpsLoading && styles.useCurrentBtnDisabled]}
+                disabled={gpsLoading || savingHome}
+                activeOpacity={0.85}
+                onPress={async () => {
+                  setGpsLoading(true);
+                  try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status !== "granted") {
+                      Alert.alert(
+                        "Location permission",
+                        "Allow location access to fill your home coordinates, or enter them manually."
+                      );
+                      return;
+                    }
+                    const pos = await Location.getCurrentPositionAsync({
+                      accuracy: Location.Accuracy.High,
+                    });
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    setHomeLat(lat.toFixed(6));
+                    setHomeLng(lng.toFixed(6));
+                  } catch {
+                    Alert.alert("Location", "Could not fetch your current location. Try again.");
+                  } finally {
+                    setGpsLoading(false);
+                  }
+                }}
+              >
+                {gpsLoading ? (
+                  <ActivityIndicator size="small" color="#1D4ED8" />
+                ) : (
+                  <Text style={styles.useCurrentText}>Use my current location</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.saveHomeBtn, (savingHome || gpsLoading) && styles.saveHomeBtnDisabled]}
+                onPress={onSaveHomeLocation}
+                disabled={savingHome || gpsLoading}
+                activeOpacity={0.9}
+              >
+                {savingHome ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveHomeBtnText}>Save home location</Text>
+                )}
+              </TouchableOpacity>
+
               <Text style={styles.section}>More</Text>
               <Text style={styles.label}>Occupation</Text>
               <TextInput style={styles.input} value={occupation} onChangeText={setOccupation} placeholder="Occupation" />
@@ -366,6 +447,30 @@ const styles = StyleSheet.create({
   },
   row2: { flexDirection: "row", gap: 12 },
   row2Item: { flex: 1 },
+  useCurrentBtn: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    backgroundColor: "#EFF6FF",
+  },
+  useCurrentBtnDisabled: { opacity: 0.65 },
+  useCurrentText: { fontSize: 13, fontWeight: "600", color: "#1D4ED8" },
+  saveHomeBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: "#0F766E",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 180,
+    alignItems: "center",
+  },
+  saveHomeBtnDisabled: { opacity: 0.65 },
+  saveHomeBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   saveBtn: {
     marginTop: 24,
     backgroundColor: "#2563EB",

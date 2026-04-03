@@ -11,6 +11,7 @@ import {
   PoliceIncidentForMap,
   PoliceCaseTimelinePayload,
   PoliceCaseItem,
+  PoliceCaseDetail,
   ReportDetailPayload,
   VerificationSubmitBody,
 } from "./types";
@@ -279,6 +280,19 @@ export function fetchFeedReports() {
 export function fetchPoliceCases() {
   return requestAuthenticated<{ cases: PoliceCaseItem[] }>("/api/police/cases", {
     method: "GET",
+  });
+}
+
+export function fetchPoliceCase(caseId: string) {
+  return requestAuthenticated<{ case: PoliceCaseDetail }>(`/api/police/cases/${caseId}`, {
+    method: "GET",
+  });
+}
+
+export function updatePoliceCaseStatus(caseId: string, status: string) {
+  return requestAuthenticated<{ case: { id: string; status: string } }>(`/api/police/cases/${caseId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 

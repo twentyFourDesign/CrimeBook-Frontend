@@ -110,6 +110,14 @@ export type PoliceCaseItem = {
   };
 };
 
+/** Single-case detail from GET /api/police/cases/[id] */
+export type PoliceCaseDetail = {
+  id: string;
+  caseNumber: string;
+  status: string;
+  reportId: string;
+};
+
 export type CitizenProfilePayload = {
   id: string;
   email: string;
