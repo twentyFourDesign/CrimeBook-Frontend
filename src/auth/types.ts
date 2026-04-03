@@ -72,6 +72,24 @@ export type CitizenProfilePayload = {
   } | null;
 };
 
+export type OfficerProfilePayload = {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  officerProfile: {
+    badgeNumber: string;
+    rank: string;
+    department: string;
+    precinct: string;
+    unitCode: string | null;
+    isCommandStaff: boolean;
+    patrolStatus: string;
+  };
+};
+
 export type ReportMediaItem = {
   id: string;
   mediaType: string;

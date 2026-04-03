@@ -5,6 +5,7 @@ import {
   CitizenProfilePayload,
   CrimeMediaUploadResult,
   MyReportItem,
+  OfficerProfilePayload,
   OnboardingIntent,
   ReportDetailPayload,
   VerificationSubmitBody,
@@ -206,6 +207,12 @@ export function updateCitizenProfile(body: {
   return requestAuthenticated<{ user: AppUser; profile: CitizenProfilePayload }>("/api/citizen/profile", {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export function fetchOfficerProfile() {
+  return requestAuthenticated<{ profile: OfficerProfilePayload }>("/api/police/profile", {
+    method: "GET",
   });
 }
 

@@ -3,52 +3,51 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useReportDraft } from "../../report/ReportDraftContext";
 
-const ROUTE_HOME = "/(police)/home";
-const ROUTE_MAP = "/(police)/map";
+const ROUTE_DASHBOARD = "/(police)/home";
+const ROUTE_INCIDENTS = "/(police)/incidents";
 const ROUTE_FEED = "/(police)/community";
-const ROUTE_PROFILE = "/(police)/profile";
-const ROUTE_REPORT_START = "/(citizen)/report-step1";
+const ROUTE_MAP = "/(police)/map";
+const ROUTE_CASES = "/(police)/cases";
 
 const ACTIVE = "#2563EB";
 const INACTIVE = "#94A3B8";
 
 export function PoliceTabBar() {
   const insets = useSafeAreaInsets();
-  const { resetDraft } = useReportDraft();
   const segments = useSegments();
   const leaf = String(segments[segments.length - 1] ?? "");
 
-  const inReportFlow =
-    leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
+  const onDashboard = leaf === "home";
+  const onIncidents = leaf === "incidents";
+  const onFeed = leaf === "community";
+  const onMap = leaf === "map";
+  const onCases = leaf === "cases";
 
-  const onHome = leaf === "home" && !inReportFlow;
-  const onMap = leaf === "map" && !inReportFlow;
-  const onFeed = leaf === "community" && !inReportFlow;
-  const onProfile = leaf === "profile" && !inReportFlow;
-  const fabActive = inReportFlow;
-
-  const goHome = () => router.replace(ROUTE_HOME);
-  const goMap = () => router.replace(ROUTE_MAP);
+  const goDashboard = () => router.replace(ROUTE_DASHBOARD);
+  const goIncidents = () => router.replace(ROUTE_INCIDENTS);
   const goFeed = () => router.replace(ROUTE_FEED);
-  const goProfile = () => router.replace(ROUTE_PROFILE);
-
-  const goNewReport = () => {
-    resetDraft();
-    router.push(ROUTE_REPORT_START);
-  };
+  const goMap = () => router.replace(ROUTE_MAP);
+  const goCases = () => router.replace(ROUTE_CASES);
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <View style={styles.row}>
         <TabButton
-          label="Home"
+          label="Dashboard"
           icon="home-outline"
           iconFocused="home"
-          active={onHome}
-          onPress={goHome}
-          a11y="Home"
+          active={onDashboard}
+          onPress={goDashboard}
+          a11y="Dashboard"
+        />
+        <TabButton
+          label="Incidents"
+          icon="alert-circle-outline"
+          iconFocused="alert-circle"
+          active={onIncidents}
+          onPress={goIncidents}
+          a11y="Incidents"
         />
         <TabButton
           label="Map"
@@ -59,8 +58,6 @@ export function PoliceTabBar() {
           a11y="Map"
         />
 
-        <View style={styles.fabPlaceholder} />
-
         <TabButton
           label="Feed"
           icon="newspaper-outline"
@@ -70,24 +67,13 @@ export function PoliceTabBar() {
           a11y="Feed"
         />
         <TabButton
-          label="Profile"
-          icon="person-outline"
-          iconFocused="person"
-          active={onProfile}
-          onPress={goProfile}
-          a11y="Profile"
+          label="Cases"
+          icon="briefcase-outline"
+          iconFocused="briefcase"
+          active={onCases}
+          onPress={goCases}
+          a11y="Cases"
         />
-      </View>
-
-      <View style={styles.fabOverlay} pointerEvents="box-none">
-        <Pressable
-          style={[styles.fab, fabActive && styles.fabActive]}
-          onPress={goNewReport}
-          accessibilityRole="button"
-          accessibilityLabel="New report"
-        >
-          <Ionicons name="add" size={30} color="#fff" />
-        </Pressable>
       </View>
     </View>
   );
@@ -146,35 +132,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minHeight: 48,
   },
-  fabPlaceholder: {
-    flex: 1,
-    minHeight: 48,
-  },
-  fabOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: -15,
-    alignItems: "center",
-    zIndex: 30,
-  },
   label: { fontSize: 10, color: INACTIVE, fontWeight: "600", marginTop: 4 },
   labelActive: { color: ACTIVE },
-  fab: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: ACTIVE,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: ACTIVE,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 14,
-  },
-  fabActive: {
-    borderWidth: 3,
-    borderColor: "#93C5FD",
-  },
 });
