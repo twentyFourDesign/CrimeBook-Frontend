@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { fetchMyReports } from "../../src/auth/api";
 import type { MyReportItem } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function formatEnum(value: string) {
   return value.replace(/_/g, " ");
@@ -12,22 +21,32 @@ function formatEnum(value: string) {
 
 export default function CitizenHome() {
   const router = useRouter();
-  const [reports, setReports] = useState<MyReportItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { citizenReports, setCitizenReports } = useAppDataCache();
+  const cacheRef = useRef(citizenReports);
+  cacheRef.current = citizenReports;
+  const [loading, setLoading] = useState(() => citizenReports === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const reports = citizenReports ?? [];
+
+  const load = useCallback(async (mode?: "refresh") => {
     setError(null);
-    setLoading(true);
+    if (mode === "refresh") {
+      setRefreshing(true);
+    } else if (cacheRef.current === null) {
+      setLoading(true);
+    }
     try {
       const data = await fetchMyReports();
-      setReports(data.reports ?? []);
+      setCitizenReports(data.reports ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load dashboard");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [setCitizenReports]);
 
   useEffect(() => {
     load();
@@ -45,7 +64,11 @@ export default function CitizenHome() {
   return (
     <CitizenShell>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+      >
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Track your reports and latest police progress in one place.</Text>
 
@@ -58,7 +81,7 @@ export default function CitizenHome() {
         {error ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={load}>
+            <TouchableOpacity onPress={() => load()}>
               <Text style={styles.link}>Retry</Text>
             </TouchableOpacity>
           </View>

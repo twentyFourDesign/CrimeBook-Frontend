@@ -4,6 +4,7 @@ import {
   Image,
   Linking,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +12,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
@@ -55,14 +56,16 @@ export default function IncidentReport() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [incident, setIncident] = useState<ReportDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [taking, setTaking] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (mode?: "refresh") => {
       if (!id) return;
       setError(null);
-      setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      else setLoading(true);
       try {
         const res = await fetchPoliceIncidentDetail(String(id));
         setIncident(res.report);
@@ -70,11 +73,15 @@ export default function IncidentReport() {
         setError(e instanceof Error ? e.message : "Could not load incident");
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [id]
+  );
 
+  useEffect(() => {
     load();
-  }, [id]);
+  }, [load]);
 
   const title =
     incident?.title?.trim() ||
@@ -84,7 +91,11 @@ export default function IncidentReport() {
     <PoliceShell>
       <StatusBar style="dark" />
       <View style={styles.wrapper}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        >
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
               <Ionicons name="chevron-back" size={20} color="#111827" />

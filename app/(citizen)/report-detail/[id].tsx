@@ -244,15 +244,17 @@ export default function ReportDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [report, setReport] = useState<ReportDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>(defaultExpanded);
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
   const audioRef = useRef<Audio.Sound | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (mode?: "refresh") => {
     if (!id) return;
     setError(null);
-    setLoading(true);
+    if (mode === "refresh") setRefreshing(true);
+    else setLoading(true);
     try {
       const data = await fetchReportDetail(id);
       setReport(data.report);
@@ -260,6 +262,7 @@ export default function ReportDetailScreen() {
       setError(e instanceof Error ? e.message : "Could not load report");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [id]);
 
@@ -331,7 +334,7 @@ export default function ReportDetailScreen() {
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
       >
         <View style={styles.header}>
           <ScreenBackButton />
@@ -349,7 +352,7 @@ export default function ReportDetailScreen() {
         {error && (
           <View style={styles.errBox}>
             <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={load} style={styles.retry}>
+            <TouchableOpacity onPress={() => load()} style={styles.retry}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.replace("/(citizen)/my-reports")} style={styles.retry}>

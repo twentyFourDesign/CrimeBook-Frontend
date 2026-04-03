@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { fetchMyReports } from "../../src/auth/api";
-import type { MyReportItem } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function formatCategory(cat: string) {
   return cat.replace(/_/g, " ");
@@ -20,32 +20,31 @@ function formatCategory(cat: string) {
 
 export default function MyReportsScreen() {
   const router = useRouter();
-  const [reports, setReports] = useState<MyReportItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { citizenReports, setCitizenReports } = useAppDataCache();
+  const cacheRef = useRef(citizenReports);
+  cacheRef.current = citizenReports;
+  const reports = citizenReports ?? [];
+  const [loading, setLoading] = useState(() => citizenReports === null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async (opts?: { asRefresh?: boolean }) => {
-    const asRefresh = opts?.asRefresh ?? false;
+  const load = useCallback(async (mode?: "refresh") => {
     setError(null);
-    if (asRefresh) {
+    if (mode === "refresh") {
       setRefreshing(true);
-    } else {
+    } else if (cacheRef.current === null) {
       setLoading(true);
     }
     try {
       const data = await fetchMyReports();
-      setReports(data.reports);
+      setCitizenReports(data.reports);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load reports");
     } finally {
-      if (asRefresh) {
-        setRefreshing(false);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [setCitizenReports]);
 
   useEffect(() => {
     load();
@@ -56,9 +55,7 @@ export default function MyReportsScreen() {
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load({ asRefresh: true })} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
       >
         <View style={styles.header}>
           <ScreenBackButton />
@@ -74,7 +71,7 @@ export default function MyReportsScreen() {
         {error && (
           <View style={styles.errBox}>
             <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={load} style={styles.retry}>
+            <TouchableOpacity onPress={() => load()} style={styles.retry}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>

@@ -1,33 +1,43 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MapView, { Heatmap, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
 import type { PoliceIncidentForMap } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 export default function PoliceMapScreen() {
-  const [incidents, setIncidents] = useState<PoliceIncidentForMap[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { policeIncidents, setPoliceIncidents } = useAppDataCache();
+  const cacheRef = useRef(policeIncidents);
+  cacheRef.current = policeIncidents;
+  const incidents = policeIncidents;
+  const [loading, setLoading] = useState(() => policeIncidents === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (mode?: "refresh") => {
       setError(null);
-      setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      else if (cacheRef.current === null) setLoading(true);
       try {
-        const { incidents } = await fetchPoliceIncidentsForMap();
-        setIncidents(incidents);
+        const { incidents: list } = await fetchPoliceIncidentsForMap();
+        setPoliceIncidents(list);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load incidents");
-        setIncidents([]);
+        setPoliceIncidents([]);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [setPoliceIncidents]
+  );
 
+  useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const initialRegion = useMemo(() => {
     if (!incidents || incidents.length === 0) {
@@ -62,7 +72,11 @@ export default function PoliceMapScreen() {
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+      >
         <View style={styles.mapWrapper}>
           <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>
             {heatmapPoints.length > 0 && <Heatmap points={heatmapPoints} radius={40} opacity={0.7} />}
@@ -92,13 +106,14 @@ export default function PoliceMapScreen() {
             </Text>
           )}
         </View>
-      </View>
+      </ScrollView>
     </PoliceShell>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  scrollContent: { paddingBottom: 24 },
   mapWrapper: {
     height: 320,
     marginHorizontal: 16,

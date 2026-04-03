@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
@@ -71,33 +71,36 @@ export default function Investigation() {
   const [uploading, setUploading] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [caseStatusLoading, setCaseStatusLoading] = useState(true);
+  const [refreshingCase, setRefreshingCase] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
 
-  useEffect(() => {
-    if (!caseId) {
-      setCaseStatusLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
+  const loadCaseStatus = useCallback(
+    async (mode?: "refresh") => {
+      if (!caseId) {
+        setCaseStatusLoading(false);
+        return;
+      }
+      if (mode === "refresh") setRefreshingCase(true);
+      else setCaseStatusLoading(true);
       try {
-        setCaseStatusLoading(true);
         const { case: c } = await fetchPoliceCase(caseId);
-        if (cancelled) return;
         const mapped = mapCaseStatusFromDb(c.status);
         setActiveStatus(mapped.top);
         setActiveCaseStatus(mapped.bottom);
       } catch {
         // keep local defaults if fetch fails
       } finally {
-        if (!cancelled) setCaseStatusLoading(false);
+        setCaseStatusLoading(false);
+        setRefreshingCase(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [caseId]);
+    },
+    [caseId]
+  );
+
+  useEffect(() => {
+    loadCaseStatus();
+  }, [loadCaseStatus]);
 
   useEffect(() => {
     return () => {
@@ -332,7 +335,13 @@ export default function Investigation() {
     <PoliceShell>
       <StatusBar style="dark" />
       <View style={styles.wrapper}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshingCase} onRefresh={() => loadCaseStatus("refresh")} />
+          }
+        >
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
               <Ionicons name="chevron-back" size={20} color="#111827" />

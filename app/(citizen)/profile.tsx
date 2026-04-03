@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +24,7 @@ import {
 } from "../../src/auth/api";
 import type { CitizenProfilePayload } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -33,13 +35,17 @@ function initials(name: string) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, refreshUser } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { citizenProfile, setCitizenProfile } = useAppDataCache();
+  const cacheRef = useRef(citizenProfile);
+  cacheRef.current = citizenProfile;
+  const [loading, setLoading] = useState(() => citizenProfile === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [savingHome, setSavingHome] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<CitizenProfilePayload | null>(null);
+  const [profile, setProfile] = useState<CitizenProfilePayload | null>(() => citizenProfile);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -50,27 +56,37 @@ export default function ProfileScreen() {
   const [occupation, setOccupation] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState("en");
 
-  const load = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const { profile: p } = await fetchCitizenProfile();
-      setProfile(p);
-      setName(p.name);
-      setPhone(p.phone ?? "");
-      setCity(p.city ?? "");
-      const cp = p.citizenProfile;
-      setHomeAddress(cp?.homeAddress ?? "");
-      setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
-      setHomeLng(cp?.homeLongitude != null ? String(cp.homeLongitude) : "");
-      setOccupation(cp?.occupation ?? "");
-      setPreferredLanguage(cp?.preferredLanguage ?? "en");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load profile");
-    } finally {
-      setLoading(false);
-    }
+  const applyProfileToForm = useCallback((p: CitizenProfilePayload) => {
+    setProfile(p);
+    setName(p.name);
+    setPhone(p.phone ?? "");
+    setCity(p.city ?? "");
+    const cp = p.citizenProfile;
+    setHomeAddress(cp?.homeAddress ?? "");
+    setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
+    setHomeLng(cp?.homeLongitude != null ? String(cp.homeLongitude) : "");
+    setOccupation(cp?.occupation ?? "");
+    setPreferredLanguage(cp?.preferredLanguage ?? "en");
   }, []);
+
+  const load = useCallback(
+    async (mode?: "refresh") => {
+      setError(null);
+      if (mode === "refresh") setRefreshing(true);
+      else if (cacheRef.current === null) setLoading(true);
+      try {
+        const { profile: p } = await fetchCitizenProfile();
+        setCitizenProfile(p);
+        applyProfileToForm(p);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not load profile");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [applyProfileToForm, setCitizenProfile]
+  );
 
   useEffect(() => {
     load();
@@ -102,6 +118,7 @@ export default function ProfileScreen() {
         folder: "avatars",
       });
       const res = await updateCitizenProfile({ avatarUrl: uploaded.url });
+      setCitizenProfile(res.profile);
       setProfile(res.profile);
       await refreshUser();
     } catch (e) {
@@ -138,6 +155,7 @@ export default function ProfileScreen() {
         homeLatitude: coords.homeLatitude,
         homeLongitude: coords.homeLongitude,
       });
+      setCitizenProfile(res.profile);
       setProfile(res.profile);
       const cp = res.profile.citizenProfile;
       setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
@@ -171,6 +189,7 @@ export default function ProfileScreen() {
         occupation: occupation.trim() || null,
         preferredLanguage: preferredLanguage.trim() || "en",
       });
+      setCitizenProfile(res.profile);
       setProfile(res.profile);
       await refreshUser();
       Alert.alert("Saved", "Your profile has been updated.");
@@ -190,7 +209,11 @@ export default function ProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={88}
       >
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        >
           <Text style={styles.title}>Profile</Text>
 
           {loading && (
@@ -202,7 +225,7 @@ export default function ProfileScreen() {
           {error && (
             <View style={styles.errBox}>
               <Text style={styles.errText}>{error}</Text>
-              <TouchableOpacity onPress={load} style={styles.retry}>
+              <TouchableOpacity onPress={() => load()} style={styles.retry}>
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>

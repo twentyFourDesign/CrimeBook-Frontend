@@ -1,28 +1,35 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { fetchMyReports } from "../../src/auth/api";
 import type { MyReportItem } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 export default function MapScreen() {
-  const [reports, setReports] = useState<MyReportItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { citizenReports, setCitizenReports } = useAppDataCache();
+  const cacheRef = useRef(citizenReports);
+  cacheRef.current = citizenReports;
+  const reports = citizenReports ?? [];
+  const [loading, setLoading] = useState(() => citizenReports === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (mode?: "refresh") => {
     setError(null);
-    setLoading(true);
+    if (mode === "refresh") setRefreshing(true);
+    else if (cacheRef.current === null) setLoading(true);
     try {
       const data = await fetchMyReports();
-      setReports(data.reports ?? []);
+      setCitizenReports(data.reports ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load map");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [setCitizenReports]);
 
   useEffect(() => {
     load();
@@ -58,35 +65,42 @@ export default function MapScreen() {
   return (
     <CitizenShell>
       <StatusBar style="dark" />
-      <View style={styles.hero}>
-        <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>
-          {points.map((report) => (
-            <Marker
-              key={report.id}
-              coordinate={{ latitude: report.latitude, longitude: report.longitude }}
-              title={report.title?.trim() || report.crimeCategory.replace(/_/g, " ")}
-              description={`${report.status.replace(/_/g, " ")} • ${new Date(
-                report.createdAt
-              ).toLocaleDateString()}`}
-            />
-          ))}
-        </MapView>
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.title}>Safety map</Text>
-        {loading ? <ActivityIndicator style={{ marginTop: 8 }} /> : null}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {!loading && !error ? (
-          <Text style={styles.subtitle}>
-            Showing {points.length} mapped incidents from your reports ({reports.length} total reports).
-          </Text>
-        ) : null}
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+      >
+        <View style={styles.hero}>
+          <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>
+            {points.map((report) => (
+              <Marker
+                key={report.id}
+                coordinate={{ latitude: report.latitude, longitude: report.longitude }}
+                title={report.title?.trim() || report.crimeCategory.replace(/_/g, " ")}
+                description={`${report.status.replace(/_/g, " ")} • ${new Date(
+                  report.createdAt
+                ).toLocaleDateString()}`}
+              />
+            ))}
+          </MapView>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.title}>Safety map</Text>
+          {loading ? <ActivityIndicator style={{ marginTop: 8 }} /> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {!loading && !error ? (
+            <Text style={styles.subtitle}>
+              Showing {points.length} mapped incidents from your reports ({reports.length} total reports).
+            </Text>
+          ) : null}
+        </View>
+      </ScrollView>
     </CitizenShell>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingBottom: 32 },
   hero: { paddingHorizontal: 20, paddingTop: 8 },
   map: {
     height: 220,

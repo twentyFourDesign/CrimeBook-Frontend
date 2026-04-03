@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
 import type { PoliceIncidentForMap } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function levelFromStatus(status: string): "critical" | "high" | "medium" | "low" {
   const s = status.toUpperCase();
@@ -32,27 +41,36 @@ const levelBg: Record<string, string> = {
 export default function PoliceIncidentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [incidents, setIncidents] = useState<PoliceIncidentForMap[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { policeIncidents, setPoliceIncidents } = useAppDataCache();
+  const cacheRef = useRef(policeIncidents);
+  cacheRef.current = policeIncidents;
+  const incidents = policeIncidents;
+  const [loading, setLoading] = useState(() => policeIncidents === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (mode?: "refresh") => {
       setError(null);
-      setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      else if (cacheRef.current === null) setLoading(true);
       try {
-        const { incidents } = await fetchPoliceIncidentsForMap();
-        setIncidents(incidents);
+        const { incidents: list } = await fetchPoliceIncidentsForMap();
+        setPoliceIncidents(list);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load incidents");
-        setIncidents([]);
+        setPoliceIncidents([]);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [setPoliceIncidents]
+  );
 
+  useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const officerLat = user?.officerLocation?.latitude ?? null;
   const officerLng = user?.officerLocation?.longitude ?? null;
@@ -81,7 +99,11 @@ export default function PoliceIncidentsScreen() {
     <PoliceShell>
       <StatusBar style="dark" />
       <View style={styles.wrapper}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View>

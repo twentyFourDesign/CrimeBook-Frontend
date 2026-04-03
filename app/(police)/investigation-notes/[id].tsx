@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -39,14 +40,16 @@ export default function InvestigationNotesScreen() {
   const caseId = Array.isArray(id) ? id[0] : id;
   const [timeline, setTimeline] = useState<PoliceCaseTimelinePayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playingEvidenceId, setPlayingEvidenceId] = useState<string | null>(null);
   const audioRef = useRef<Audio.Sound | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (mode?: "refresh") => {
     if (!caseId) return;
     setError(null);
-    setLoading(true);
+    if (mode === "refresh") setRefreshing(true);
+    else setLoading(true);
     try {
       const res = await fetchPoliceCaseTimeline(caseId);
       setTimeline(res);
@@ -54,6 +57,7 @@ export default function InvestigationNotesScreen() {
       setError(e instanceof Error ? e.message : "Could not load investigation timeline");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [caseId]);
 
@@ -100,7 +104,11 @@ export default function InvestigationNotesScreen() {
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.85}>
             <Ionicons name="chevron-back" size={18} color="#111827" />

@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceCases } from "../../src/auth/api";
 import type { PoliceCaseItem } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 const statusConfig: Record<
   string,
@@ -21,33 +30,46 @@ const statusConfig: Record<
 
 export default function PoliceCasesScreen() {
   const router = useRouter();
-  const [cases, setCases] = useState<PoliceCaseItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { policeCases, setPoliceCases } = useAppDataCache();
+  const cacheRef = useRef(policeCases);
+  cacheRef.current = policeCases;
+  const cases = policeCases;
+  const [loading, setLoading] = useState(() => policeCases === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (mode?: "refresh") => {
       setError(null);
-      setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      else if (cacheRef.current === null) setLoading(true);
       try {
-        const { cases } = await fetchPoliceCases();
-        setCases(cases);
+        const { cases: list } = await fetchPoliceCases();
+        setPoliceCases(list);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load cases");
-        setCases([]);
+        setPoliceCases([]);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [setPoliceCases]
+  );
 
+  useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <PoliceShell>
       <StatusBar style="dark" />
       <View style={styles.wrapper}>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        >
           <View style={styles.header}>
             <View style={styles.headerIcon}>
               <Text style={{ fontSize: 20 }}>📋</Text>

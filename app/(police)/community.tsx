@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchFeedReports } from "../../src/auth/api";
 import type { FeedReportItem } from "../../src/auth/types";
+import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -13,27 +22,36 @@ function formatEnum(s: string) {
 
 export default function PoliceFeedScreen() {
   const router = useRouter();
-  const [reports, setReports] = useState<FeedReportItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { feedReports, setFeedReports } = useAppDataCache();
+  const cacheRef = useRef(feedReports);
+  cacheRef.current = feedReports;
+  const reports = feedReports;
+  const [loading, setLoading] = useState(() => feedReports === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(
+    async (mode?: "refresh") => {
       setError(null);
-      setLoading(true);
+      if (mode === "refresh") setRefreshing(true);
+      else if (cacheRef.current === null) setLoading(true);
       try {
-        const { reports } = await fetchFeedReports();
-        setReports(reports);
+        const { reports: list } = await fetchFeedReports();
+        setFeedReports(list);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load feed");
-        setReports([]);
+        setFeedReports([]);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [setFeedReports]
+  );
 
+  useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const total = reports?.length ?? 0;
   const verifiedCount = useMemo(
@@ -44,7 +62,12 @@ export default function PoliceFeedScreen() {
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+      >
         <Text style={styles.title}>Feed</Text>
         <Text style={styles.subtitle}>Live citizen reports and alerts across your jurisdiction.</Text>
 
