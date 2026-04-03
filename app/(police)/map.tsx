@@ -1,40 +1,123 @@
-import { View, Text, StyleSheet } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import MapView, { Heatmap, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
+import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
+import type { PoliceIncidentForMap } from "../../src/auth/types";
 
 export default function PoliceMapScreen() {
+  const [incidents, setIncidents] = useState<PoliceIncidentForMap[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const { incidents } = await fetchPoliceIncidentsForMap();
+        setIncidents(incidents);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not load incidents");
+        setIncidents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const initialRegion = useMemo(() => {
+    if (!incidents || incidents.length === 0) {
+      return {
+        latitude: 6.5244,
+        longitude: 3.3792,
+        latitudeDelta: 0.2,
+        longitudeDelta: 0.2,
+      };
+    }
+    const first = incidents[0];
+    return {
+      latitude: first.latitude,
+      longitude: first.longitude,
+      latitudeDelta: 0.1,
+      longitudeDelta: 0.1,
+    };
+  }, [incidents]);
+
+  const heatmapPoints = useMemo(
+    () =>
+      (incidents ?? []).map((i) => ({
+        latitude: i.latitude,
+        longitude: i.longitude,
+        weight: 1,
+      })),
+    [incidents]
+  );
+
+  const total = incidents?.length ?? 0;
+
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <View style={styles.hero}>
-        <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapLabel}>Operations map</Text>
-          <Text style={styles.mapHint}>Incident pins and units will appear here.</Text>
+      <View style={styles.container}>
+        <View style={styles.mapWrapper}>
+          <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>
+            {heatmapPoints.length > 0 && <Heatmap points={heatmapPoints} radius={40} opacity={0.7} />}
+            {(incidents ?? []).slice(0, 50).map((i) => (
+              <Marker
+                key={i.id}
+                coordinate={{ latitude: i.latitude, longitude: i.longitude }}
+                title={i.locationLabel ?? undefined}
+                description={i.locationAddress ?? undefined}
+              />
+            ))}
+          </MapView>
         </View>
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.title}>Map</Text>
-        <Text style={styles.subtitle}>Live overview for your precinct — same layout as the citizen app.</Text>
+
+        <View style={styles.bottomPanel}>
+          <Text style={styles.title}>Incident heatmap</Text>
+          {loading ? (
+            <View style={styles.row}>
+              <ActivityIndicator size="small" />
+              <Text style={styles.subtitle}>Loading incidents…</Text>
+            </View>
+          ) : error ? (
+            <Text style={styles.error}>{error}</Text>
+          ) : (
+            <Text style={styles.subtitle}>
+              Showing {total} recent incident{total === 1 ? "" : "s"} in your jurisdiction.
+            </Text>
+          )}
+        </View>
       </View>
     </PoliceShell>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 20, paddingTop: 8 },
-  mapPlaceholder: {
-    height: 220,
+  container: { flex: 1 },
+  mapWrapper: {
+    height: 320,
+    marginHorizontal: 16,
+    marginTop: 12,
     borderRadius: 16,
-    backgroundColor: "#E8EEF9",
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#C7D7F0",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
   },
-  mapLabel: { fontSize: 16, fontWeight: "700", color: "#1E3A5F", marginBottom: 6 },
-  mapHint: { fontSize: 13, color: "#64748B", textAlign: "center", lineHeight: 20 },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-  title: { fontSize: 22, fontWeight: "700", color: "#111" },
-  subtitle: { fontSize: 14, color: "#64748B", marginTop: 8, lineHeight: 22 },
+  map: {
+    flex: 1,
+  },
+  bottomPanel: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+  title: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 4 },
+  subtitle: { fontSize: 14, color: "#64748B" },
+  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  error: { fontSize: 13, color: "#DC2626" },
 });

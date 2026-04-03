@@ -1,20 +1,46 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
+import { fetchFeedReports } from "../../src/auth/api";
+import type { FeedReportItem } from "../../src/auth/types";
 
-const incidents = [
-  { id: "1", title: "Armed Robbery Alert", location: "Main St & 5th Ave", time: "8 min ago", distance: "0.3 mi", confidence: 72 },
-  { id: "2", title: "Assault", location: "Broadway & 42nd", time: "22 min ago", distance: "0.8 mi", confidence: 85 },
-  { id: "3", title: "Suspicious Activity", location: "Central park West", time: "45 min ago", distance: "1.2 mi", confidence: 54 },
-];
-
-const alerts = [{ id: "1", title: "Suspicious vehical near Central Park", location: "Main G.", time: "1 hr ago" }];
+function formatEnum(s: string) {
+  return s.replace(/_/g, " ");
+}
 
 export default function Community() {
   const router = useRouter();
   const { resetDraft } = useReportDraft();
+  const [reports, setReports] = useState<FeedReportItem[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const { reports } = await fetchFeedReports();
+        setReports(reports);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not load community feed");
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const total = reports?.length ?? 0;
+  const verifiedCount = useMemo(
+    () => (reports ?? []).filter((r) => r.isPoliceVerified).length,
+    [reports]
+  );
 
   return (
     <CitizenShell>
@@ -46,59 +72,63 @@ export default function Community() {
         </View>
 
         <View style={styles.statsRow}>
-          {[
-            { icon: "🔔", value: "3", label: "Pending" },
-            { icon: "✅", value: "28", label: "Alerts" },
-            { icon: "❌", value: "4", label: "Disputed" },
-          ].map((s, i) => (
-            <View key={i} style={styles.statCard}>
-              <Text style={styles.statIcon}>{s.icon}</Text>
-              <Text style={styles.statValue}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>📡</Text>
+            <Text style={styles.statValue}>{total}</Text>
+            <Text style={styles.statLabel}>Reports</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>✅</Text>
+            <Text style={styles.statValue}>{verifiedCount}</Text>
+            <Text style={styles.statLabel}>Police verified</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>👥</Text>
+            <Text style={styles.statValue}>{Math.max(total - verifiedCount, 0)}</Text>
+            <Text style={styles.statLabel}>Awaiting review</Text>
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Incident Validation</Text>
-        {incidents.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.incidentCard}
-            onPress={() =>
-              router.push({ pathname: "/(citizen)/incident-review", params: { id: item.id } })
-            }
-          >
-            <View style={styles.incidentLeft}>
-              <View style={styles.alertDot} />
-              <View style={styles.incidentInfo}>
-                <Text style={styles.incidentTitle}>{item.title}</Text>
-                <Text style={styles.incidentLocation}>📍 {item.location}</Text>
-                <View style={styles.incidentMeta}>
-                  <Text style={styles.metaText}>
-                    🕐 {item.time} {item.distance}
+        <Text style={styles.sectionTitle}>Live incident feed</Text>
+
+        {loading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" />
+            <Text style={styles.loadingText}>Loading reports…</Text>
+          </View>
+        )}
+
+        {error && !loading && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+
+        {!loading &&
+          (reports ?? []).map((item) => (
+            <View key={item.id} style={styles.incidentCard}>
+              <View style={styles.incidentLeft}>
+                <View style={[styles.alertDot, item.isPoliceVerified && styles.alertDotVerified]} />
+                <View style={styles.incidentInfo}>
+                  <Text style={styles.incidentTitle}>
+                    {item.title?.trim() || formatEnum(item.crimeCategory)}
                   </Text>
-                  <Text style={styles.confidence}>● {item.confidence}% confidence</Text>
+                  {item.locationLabel || item.locationAddress ? (
+                    <Text style={styles.incidentLocation}>
+                      📍 {item.locationLabel || item.locationAddress}
+                    </Text>
+                  ) : null}
+                  <View style={styles.incidentMeta}>
+                    <Text style={styles.metaText}>
+                      🕐 {new Date(item.createdAt).toLocaleString()}
+                    </Text>
+                    <Text style={styles.confidence}>
+                      ● {item.communityConfirmCount} confirmations
+                    </Text>
+                  </View>
                 </View>
               </View>
+              {item.isPoliceVerified && <Text style={styles.verifiedPill}>Police verified</Text>}
             </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        ))}
-
-        <Text style={styles.sectionTitle}>Community Alerts</Text>
-        {alerts.map((alert) => (
-          <View key={alert.id} style={styles.alertCard}>
-            <View style={styles.alertIcon}>
-              <Text style={{ fontSize: 16 }}>🔔</Text>
-            </View>
-            <View>
-              <Text style={styles.alertTitle}>{alert.title}</Text>
-              <Text style={styles.alertMeta}>
-                📍 {alert.location} {alert.time}
-              </Text>
-            </View>
-          </View>
-        ))}
+          ))}
       </ScrollView>
     </CitizenShell>
   );
@@ -177,7 +207,16 @@ const styles = StyleSheet.create({
   incidentMeta: { flexDirection: "row", justifyContent: "space-between" },
   metaText: { fontSize: 11, color: "#AAA" },
   confidence: { fontSize: 11, color: "#22C55E", fontWeight: "600" },
-  chevron: { fontSize: 20, color: "#CBD5E1", marginLeft: 8 },
+  verifiedPill: {
+    fontSize: 11,
+    color: "#16A34A",
+    fontWeight: "600",
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginLeft: 8,
+  },
   alertCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -201,4 +240,10 @@ const styles = StyleSheet.create({
   },
   alertTitle: { fontSize: 13, fontWeight: "600", color: "#111" },
   alertMeta: { fontSize: 11, color: "#AAA", marginTop: 2 },
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  loadingText: { fontSize: 12, color: "#64748B" },
+  errorText: { fontSize: 12, color: "#DC2626", marginBottom: 12 },
+  alertDotVerified: {
+    backgroundColor: "#BBF7D0",
+  },
 });

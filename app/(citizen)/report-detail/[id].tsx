@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
@@ -141,6 +142,21 @@ export default function ReportDetailScreen() {
             <Text style={styles.coords}>
               {report.latitude.toFixed(5)}, {report.longitude.toFixed(5)}
             </Text>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                provider={PROVIDER_GOOGLE}
+                pointerEvents="none"
+                initialRegion={{
+                  latitude: report.latitude,
+                  longitude: report.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+              >
+                <Marker coordinate={{ latitude: report.latitude, longitude: report.longitude }} />
+              </MapView>
+            </View>
             <TouchableOpacity style={styles.mapBtn} onPress={() => openMaps(report.latitude, report.longitude)}>
               <Text style={styles.mapBtnText}>Open in Maps</Text>
             </TouchableOpacity>
@@ -205,6 +221,18 @@ const styles = StyleSheet.create({
   section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8, marginBottom: 10 },
   bodyText: { fontSize: 14, color: "#334155", lineHeight: 22, marginBottom: 6 },
   coords: { fontSize: 12, color: "#64748B", fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }) },
+  mapContainer: {
+    height: 180,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  map: {
+    flex: 1,
+  },
   mapBtn: {
     alignSelf: "flex-start",
     marginTop: 10,

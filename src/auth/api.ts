@@ -4,9 +4,12 @@ import {
   AuthTokens,
   CitizenProfilePayload,
   CrimeMediaUploadResult,
+  FeedReportItem,
   MyReportItem,
   OfficerProfilePayload,
   OnboardingIntent,
+  PoliceIncidentForMap,
+  PoliceCaseItem,
   ReportDetailPayload,
   VerificationSubmitBody,
 } from "./types";
@@ -216,9 +219,32 @@ export function fetchOfficerProfile() {
   });
 }
 
+export function updateOfficerProfile(body: {
+  avatarUrl?: string | null;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
+}) {
+  return requestAuthenticated<{ profile: OfficerProfilePayload }>("/api/police/profile", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
 export function fetchReportDetail(reportId: string) {
   return requestAuthenticated<{ report: ReportDetailPayload }>(`/api/citizen/my-reports/${reportId}`, {
     method: "GET",
+  });
+}
+
+export function fetchPoliceIncidentDetail(reportId: string) {
+  return requestAuthenticated<{ report: ReportDetailPayload }>(`/api/police/incidents/${reportId}`, {
+    method: "GET",
+  });
+}
+
+export function takePoliceIncident(reportId: string) {
+  return requestAuthenticated<{ caseId: string; caseNumber: string }>(`/api/police/incidents/${reportId}/take`, {
+    method: "POST",
   });
 }
 
@@ -235,4 +261,22 @@ export function uploadCrimeMediaFile(input: {
     { uri: input.uri, name: input.name, type: input.mimeType } as unknown as Blob
   );
   return requestAuthenticatedMultipart<CrimeMediaUploadResult>("/api/media/upload", form);
+}
+
+export function fetchPoliceIncidentsForMap() {
+  return requestAuthenticated<{ incidents: PoliceIncidentForMap[] }>("/api/police/incidents", {
+    method: "GET",
+  });
+}
+
+export function fetchFeedReports() {
+  return requestAuthenticated<{ reports: FeedReportItem[] }>("/api/feed", {
+    method: "GET",
+  });
+}
+
+export function fetchPoliceCases() {
+  return requestAuthenticated<{ cases: PoliceCaseItem[] }>("/api/police/cases", {
+    method: "GET",
+  });
 }

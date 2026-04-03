@@ -27,6 +27,10 @@ export type AppUser = {
     status: "PENDING" | "APPROVED" | "REJECTED";
     submittedAt: string;
   } | null;
+  officerLocation?: {
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
 };
 
 export type IdDocumentType = "national_id" | "passport" | "drivers_license";
@@ -51,6 +55,54 @@ export type MyReportItem = {
   createdAt: string;
   locationAddress: string | null;
   locationLabel: string | null;
+};
+
+export type PoliceIncidentForMap = {
+  id: string;
+  crimeCategory: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  locationAddress: string | null;
+  locationLabel: string | null;
+  createdAt: string;
+  description?: string;
+  communityConfirmCount?: number;
+  isPoliceVerified?: boolean;
+};
+
+export type FeedReportItem = {
+  id: string;
+  crimeCategory: string;
+  title: string | null;
+  status: string;
+  description: string;
+  createdAt: string;
+  locationAddress: string | null;
+  locationLabel: string | null;
+  latitude: number;
+  longitude: number;
+  communityConfirmCount: number;
+  isPoliceVerified: boolean;
+};
+
+export type PoliceCaseItem = {
+  id: string;
+  caseNumber: string;
+  status: string;
+  priority: number;
+  notes: string | null;
+  createdAt: string;
+  report: {
+    id: string;
+    crimeCategory: string;
+    title: string | null;
+    locationAddress: string | null;
+    locationLabel: string | null;
+    latitude: number;
+    longitude: number;
+    incidentTime: string;
+  };
 };
 
 export type CitizenProfilePayload = {
@@ -87,6 +139,8 @@ export type OfficerProfilePayload = {
     unitCode: string | null;
     isCommandStaff: boolean;
     patrolStatus: string;
+    currentLatitude?: number | null;
+    currentLongitude?: number | null;
   };
 };
 
@@ -123,6 +177,7 @@ export type ReportDetailPayload = {
   createdAt: string;
   updatedAt: string;
   media: ReportMediaItem[];
+  caseNumber?: string | null;
 };
 
 /** Matches POST /api/media/upload response & Prisma `MediaType` */
