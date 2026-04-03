@@ -198,6 +198,15 @@ export type PoliceCaseTimelinePayload = {
   suspects: SuspectTagItem[];
 };
 
+/** GET/POST /api/citizen/my-reports/[id]/messages — same shape as police case messages */
+export type ReportMessageItem = {
+  id: string;
+  body: string;
+  createdAt: string;
+  senderName: string;
+  senderRole: string;
+};
+
 export type ReportDetailPayload = {
   id: string;
   caseId: string | null;

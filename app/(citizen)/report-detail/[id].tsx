@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Platform,
@@ -8,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -17,8 +19,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
-import { fetchReportDetail } from "../../../src/auth/api";
-import type { PoliceMediaItem, ReportDetailPayload, ReportMediaItem } from "../../../src/auth/types";
+import { fetchReportDetail, fetchReportMessages, sendReportMessage } from "../../../src/auth/api";
+import type {
+  PoliceMediaItem,
+  ReportDetailPayload,
+  ReportMediaItem,
+  ReportMessageItem,
+} from "../../../src/auth/types";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -43,6 +50,10 @@ function isLikelyImage(urlOrName: string) {
 
 function isLikelyAudio(urlOrName: string) {
   return /\.(m4a|mp3|wav|aac|caf|3gp)$/i.test(urlOrName);
+}
+
+function isPoliceSenderRole(role: string) {
+  return role === "POLICE_OFFICER" || role === "POLICE_COMMAND";
 }
 
 type SectionKey = "status" | "details" | "content" | "police" | "messages";
@@ -249,6 +260,11 @@ export default function ReportDetailScreen() {
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>(defaultExpanded);
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
   const audioRef = useRef<Audio.Sound | null>(null);
+  const [threadMessages, setThreadMessages] = useState<ReportMessageItem[]>([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadSending, setThreadSending] = useState(false);
+  const [threadInput, setThreadInput] = useState("");
+  const [threadError, setThreadError] = useState<string | null>(null);
 
   const load = useCallback(async (mode?: "refresh") => {
     if (!id) return;
@@ -258,6 +274,15 @@ export default function ReportDetailScreen() {
     try {
       const data = await fetchReportDetail(id);
       setReport(data.report);
+      if (mode === "refresh") {
+        try {
+          const { messages } = await fetchReportMessages(id);
+          setThreadMessages(messages);
+          setThreadError(null);
+        } catch {
+          /* keep existing thread on refresh failure */
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load report");
     } finally {
@@ -269,6 +294,45 @@ export default function ReportDetailScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!id || !expanded.messages) return;
+    let cancelled = false;
+    (async () => {
+      setThreadError(null);
+      setThreadLoading(true);
+      try {
+        const { messages } = await fetchReportMessages(id);
+        if (!cancelled) setThreadMessages(messages);
+      } catch (e) {
+        if (!cancelled) {
+          setThreadError(e instanceof Error ? e.message : "Could not load messages");
+          setThreadMessages([]);
+        }
+      } finally {
+        if (!cancelled) setThreadLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, expanded.messages]);
+
+  const sendThreadMessage = async () => {
+    const text = threadInput.trim();
+    if (!text || !id || threadSending) return;
+    setThreadSending(true);
+    setThreadError(null);
+    try {
+      const { message } = await sendReportMessage(id, text);
+      setThreadMessages((prev) => [...prev, message]);
+      setThreadInput("");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not send");
+    } finally {
+      setThreadSending(false);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -328,6 +392,13 @@ export default function ReportDetailScreen() {
         report.locationLabel || report.locationAddress || "Map & address",
       ].join(" · ")
     : "";
+
+  const messagesSummary =
+    threadMessages.length > 0
+      ? `${threadMessages.length} message${threadMessages.length === 1 ? "" : "s"}`
+      : report?.caseId
+        ? "Chat with officers on this case"
+        : "Messages — officers see this after a case is opened";
 
   return (
     <CitizenShell>
@@ -550,17 +621,62 @@ export default function ReportDetailScreen() {
               sectionKey="messages"
               icon="chatbubbles-outline"
               title="Messages"
-              subtitle="Conversation with police about this report"
+              subtitle="Chat with officers assigned to your case"
               expanded={expanded.messages}
               onToggle={toggleSection}
-              summary="Messaging not available yet"
+              summary={messagesSummary}
             >
-              <View style={styles.chatPlaceholderRow}>
-                <Ionicons name="mail-outline" size={22} color="#94A3B8" />
-                <Text style={styles.chatPlaceholderText}>
-                  In-app messaging is not available for this report yet. Check back for updates from your assigned
-                  officer, or refer to investigation notes above.
-                </Text>
+              <Text style={styles.threadHint}>
+                {report?.caseId
+                  ? "Assigned officers can reply here. Messages are tied to this report."
+                  : "You can leave messages now; assigned officers will see them once they open a case."}
+              </Text>
+              {threadLoading ? (
+                <ActivityIndicator style={{ marginVertical: 12 }} />
+              ) : null}
+              {threadError ? <Text style={styles.threadError}>{threadError}</Text> : null}
+              <View style={styles.threadList}>
+                {threadMessages.map((m) => {
+                  const fromPolice = isPoliceSenderRole(m.senderRole);
+                  return (
+                    <View
+                      key={m.id}
+                      style={[styles.msgRow, fromPolice ? styles.msgRowPolice : styles.msgRowYou]}
+                    >
+                      <View style={[styles.msgBubble, fromPolice ? styles.msgBubblePolice : styles.msgBubbleYou]}>
+                        <Text style={styles.msgSender}>
+                          {fromPolice ? m.senderName : "You"} · {formatEnum(m.senderRole)}
+                        </Text>
+                        <Text style={styles.msgBody}>{m.body}</Text>
+                        <Text style={styles.msgTime}>{new Date(m.createdAt).toLocaleString()}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+              <View style={styles.threadComposer}>
+                <TextInput
+                  style={styles.threadInput}
+                  placeholder="Write a message…"
+                  placeholderTextColor="#9CA3AF"
+                  value={threadInput}
+                  onChangeText={setThreadInput}
+                  multiline
+                  maxLength={8000}
+                  editable={!threadSending}
+                />
+                <TouchableOpacity
+                  style={[styles.threadSendBtn, threadSending && styles.threadSendBtnDisabled]}
+                  onPress={sendThreadMessage}
+                  disabled={threadSending || !threadInput.trim()}
+                  activeOpacity={0.85}
+                >
+                  {threadSending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="send" size={18} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
               </View>
             </CollapsibleSection>
           </>
@@ -747,6 +863,44 @@ const styles = StyleSheet.create({
   noteAuthor: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
   noteContent: { fontSize: 14, color: "#334155", marginTop: 8, lineHeight: 22 },
   noteMeta: { fontSize: 11, color: "#64748B", marginTop: 10 },
-  chatPlaceholderRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  chatPlaceholderText: { flex: 1, fontSize: 14, color: "#64748B", lineHeight: 21 },
+  threadHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
+  threadError: { fontSize: 12, color: "#B91C1C", marginBottom: 8 },
+  threadList: { marginBottom: 12 },
+  msgRow: { marginBottom: 8, flexDirection: "row" },
+  msgRowYou: { justifyContent: "flex-end" },
+  msgRowPolice: { justifyContent: "flex-start" },
+  msgBubble: {
+    maxWidth: "88%",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  msgBubbleYou: { backgroundColor: "#DBEAFE", borderWidth: 1, borderColor: "#BFDBFE" },
+  msgBubblePolice: { backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
+  msgSender: { fontSize: 11, fontWeight: "700", color: "#475569", marginBottom: 4 },
+  msgBody: { fontSize: 14, color: "#0F172A", lineHeight: 20 },
+  msgTime: { fontSize: 10, color: "#94A3B8", marginTop: 6 },
+  threadComposer: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  threadInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
+  },
+  threadSendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  threadSendBtnDisabled: { opacity: 0.6 },
 });

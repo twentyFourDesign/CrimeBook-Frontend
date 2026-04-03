@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
@@ -9,11 +19,22 @@ import { PoliceShell } from "../../../src/components/police/PoliceShell";
 import {
   addCaseEvidence,
   addCaseSuspect,
+  fetchCaseMessages,
   fetchPoliceCase,
   saveCaseNote,
+  sendCaseMessage,
   updatePoliceCaseStatus,
   uploadCrimeMediaFile,
 } from "../../../src/auth/api";
+import type { ReportMessageItem } from "../../../src/auth/types";
+
+function formatEnum(s: string) {
+  return s.replace(/_/g, " ");
+}
+
+function isPoliceSenderRole(role: string) {
+  return role === "POLICE_OFFICER" || role === "POLICE_COMMAND";
+}
 
 const statusOptions = ["Responding", "On Scene", "Investigation"] as const;
 const caseStatusOptions = ["Suspect Detailed", "Case Resolved"] as const;
@@ -73,6 +94,11 @@ export default function Investigation() {
   const [caseStatusLoading, setCaseStatusLoading] = useState(true);
   const [refreshingCase, setRefreshingCase] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [threadMessages, setThreadMessages] = useState<ReportMessageItem[]>([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadSending, setThreadSending] = useState(false);
+  const [threadInput, setThreadInput] = useState("");
+  const [threadError, setThreadError] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
 
   const loadCaseStatus = useCallback(
@@ -88,6 +114,15 @@ export default function Investigation() {
         const mapped = mapCaseStatusFromDb(c.status);
         setActiveStatus(mapped.top);
         setActiveCaseStatus(mapped.bottom);
+        if (mode === "refresh") {
+          try {
+            const { messages } = await fetchCaseMessages(caseId);
+            setThreadMessages(messages);
+            setThreadError(null);
+          } catch {
+            /* keep existing thread on refresh failure */
+          }
+        }
       } catch {
         // keep local defaults if fetch fails
       } finally {
@@ -101,6 +136,29 @@ export default function Investigation() {
   useEffect(() => {
     loadCaseStatus();
   }, [loadCaseStatus]);
+
+  useEffect(() => {
+    if (!caseId) return;
+    let cancelled = false;
+    setThreadError(null);
+    setThreadLoading(true);
+    fetchCaseMessages(caseId)
+      .then(({ messages }) => {
+        if (!cancelled) setThreadMessages(messages);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setThreadError(e instanceof Error ? e.message : "Could not load messages");
+          setThreadMessages([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setThreadLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
 
   useEffect(() => {
     return () => {
@@ -309,6 +367,22 @@ export default function Investigation() {
     );
   };
 
+  const sendReporterMessage = async () => {
+    const text = threadInput.trim();
+    if (!text || !caseId || threadSending) return;
+    setThreadSending(true);
+    setThreadError(null);
+    try {
+      const { message } = await sendCaseMessage(caseId, text);
+      setThreadMessages((prev) => [...prev, message]);
+      setThreadInput("");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not send");
+    } finally {
+      setThreadSending(false);
+    }
+  };
+
   const handleAddTag = async () => {
     if (!caseId) {
       Alert.alert("Missing case", "No case ID in the URL.");
@@ -407,6 +481,56 @@ export default function Investigation() {
             ))}
           </View>
           {statusSaving ? <Text style={styles.statusSavingHint}>Updating status…</Text> : null}
+
+          <Text style={styles.sectionLabel}>Reporter chat</Text>
+          <Text style={styles.threadHint}>
+            Same thread the reporter sees on their report. Messages are tied to the underlying incident report.
+          </Text>
+          {threadLoading ? <ActivityIndicator style={{ marginVertical: 12 }} /> : null}
+          {threadError ? <Text style={styles.threadError}>{threadError}</Text> : null}
+          <View style={styles.threadList}>
+            {threadMessages.map((m) => {
+              const fromOfficer = isPoliceSenderRole(m.senderRole);
+              return (
+                <View
+                  key={m.id}
+                  style={[styles.msgRow, fromOfficer ? styles.msgRowYou : styles.msgRowOther]}
+                >
+                  <View style={[styles.msgBubble, fromOfficer ? styles.msgBubbleYou : styles.msgBubbleOther]}>
+                    <Text style={styles.msgSender}>
+                      {fromOfficer ? "You" : m.senderName} · {formatEnum(m.senderRole)}
+                    </Text>
+                    <Text style={styles.msgBody}>{m.body}</Text>
+                    <Text style={styles.msgTime}>{new Date(m.createdAt).toLocaleString()}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.threadComposer}>
+            <TextInput
+              style={styles.threadInput}
+              placeholder="Message the reporter…"
+              placeholderTextColor="#9CA3AF"
+              value={threadInput}
+              onChangeText={setThreadInput}
+              multiline
+              maxLength={8000}
+              editable={!threadSending}
+            />
+            <TouchableOpacity
+              style={[styles.threadSendBtn, threadSending && styles.threadSendBtnDisabled]}
+              onPress={sendReporterMessage}
+              disabled={threadSending || !threadInput.trim()}
+              activeOpacity={0.85}
+            >
+              {threadSending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="send" size={18} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.sectionLabel}>Field Notes</Text>
           <TextInput
@@ -626,5 +750,45 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   saveBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  threadHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
+  threadError: { fontSize: 12, color: "#B91C1C", marginBottom: 8 },
+  threadList: { marginBottom: 12 },
+  msgRow: { marginBottom: 8, flexDirection: "row" },
+  msgRowYou: { justifyContent: "flex-end" },
+  msgRowOther: { justifyContent: "flex-start" },
+  msgBubble: {
+    maxWidth: "88%",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  msgBubbleYou: { backgroundColor: "#DBEAFE", borderWidth: 1, borderColor: "#BFDBFE" },
+  msgBubbleOther: { backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
+  msgSender: { fontSize: 11, fontWeight: "700", color: "#475569", marginBottom: 4 },
+  msgBody: { fontSize: 14, color: "#0F172A", lineHeight: 20 },
+  msgTime: { fontSize: 10, color: "#94A3B8", marginTop: 6 },
+  threadComposer: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 22 },
+  threadInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
+  },
+  threadSendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  threadSendBtnDisabled: { opacity: 0.6 },
 });
 

@@ -13,6 +13,7 @@ import {
   PoliceCaseItem,
   PoliceCaseDetail,
   ReportDetailPayload,
+  ReportMessageItem,
   VerificationSubmitBody,
 } from "./types";
 import { readTokens, saveTokens } from "./storage";
@@ -235,6 +236,32 @@ export function updateOfficerProfile(body: {
 export function fetchReportDetail(reportId: string) {
   return requestAuthenticated<{ report: ReportDetailPayload }>(`/api/citizen/my-reports/${reportId}`, {
     method: "GET",
+  });
+}
+
+export function fetchReportMessages(reportId: string) {
+  return requestAuthenticated<{ messages: ReportMessageItem[] }>(`/api/citizen/my-reports/${reportId}/messages`, {
+    method: "GET",
+  });
+}
+
+export function sendReportMessage(reportId: string, content: string) {
+  return requestAuthenticated<{ message: ReportMessageItem }>(`/api/citizen/my-reports/${reportId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function fetchCaseMessages(caseId: string) {
+  return requestAuthenticated<{ messages: ReportMessageItem[] }>(`/api/police/cases/${caseId}/messages`, {
+    method: "GET",
+  });
+}
+
+export function sendCaseMessage(caseId: string, content: string) {
+  return requestAuthenticated<{ message: ReportMessageItem }>(`/api/police/cases/${caseId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
   });
 }
 
