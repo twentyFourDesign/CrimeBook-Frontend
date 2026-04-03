@@ -156,6 +156,16 @@ export default function PoliceHome() {
             ))}
           </View>
 
+          <TouchableOpacity
+            style={styles.sosLink}
+            activeOpacity={0.85}
+            onPress={() => router.push("/(police)/sos-active")}
+          >
+            <Ionicons name="warning-outline" size={18} color="#B91C1C" />
+            <Text style={styles.sosLinkText}>Active SOS alerts</Text>
+            <Ionicons name="chevron-forward" size={18} color="#B91C1C" />
+          </TouchableOpacity>
+
           <Text style={styles.sectionTitle}>Priority Alerts</Text>
           {loading && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -333,6 +343,19 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 22, fontWeight: "700", color: "#111" },
   statLabel: { fontSize: 11, color: "#888", marginTop: 2, textAlign: "center" },
+  sosLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 18,
+  },
+  sosLinkText: { flex: 1, fontSize: 14, fontWeight: "700", color: "#B91C1C" },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: "#111", marginBottom: 10 },
   alertCard: {
     flexDirection: "row",

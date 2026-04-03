@@ -128,6 +128,22 @@ export default function InvestigationNotesScreen() {
 
         {!loading && timeline && (
           <>
+            {timeline.caseStatusHistory && timeline.caseStatusHistory.length > 0 ? (
+              <>
+                <Text style={styles.section}>Case status history ({timeline.caseStatusHistory.length})</Text>
+                {timeline.caseStatusHistory.map((h) => (
+                  <View key={h.id} style={styles.card}>
+                    <Text style={styles.cardText}>
+                      {h.fromStatus ? `${formatEnum(h.fromStatus)} → ` : ""}
+                      {formatEnum(h.toStatus)}
+                    </Text>
+                    {h.notes ? <Text style={styles.cardMeta}>{h.notes}</Text> : null}
+                    <Text style={styles.cardMeta}>{new Date(h.createdAt).toLocaleString()}</Text>
+                  </View>
+                ))}
+              </>
+            ) : null}
+
             <Text style={styles.section}>Field notes ({timeline.notes.length})</Text>
             {timeline.notes.map((n) => (
               <View key={n.id} style={styles.card}>

@@ -4,14 +4,19 @@ import {
   AuthTokens,
   CitizenProfilePayload,
   CrimeMediaUploadResult,
+  CommunityReportPayload,
   FeedReportItem,
   MyReportItem,
+  ReportConfirmationListItem,
   OfficerProfilePayload,
   OnboardingIntent,
   PoliceIncidentForMap,
   PoliceCaseTimelinePayload,
   PoliceCaseItem,
   PoliceCaseDetail,
+  PoliceSosActiveItem,
+  PublicAppealItem,
+  UserBadgeEntry,
   ReportDetailPayload,
   ReportMessageItem,
   VerificationSubmitBody,
@@ -239,6 +244,33 @@ export function fetchReportDetail(reportId: string) {
   });
 }
 
+/** Community feed drill-down: report summary + my confirmation state */
+export function fetchCommunityReport(reportId: string) {
+  return requestAuthenticated<{ report: CommunityReportPayload }>(`/api/citizen/reports/${reportId}`, {
+    method: "GET",
+  });
+}
+
+export function fetchReportConfirmations(reportId: string) {
+  return requestAuthenticated<{ items: ReportConfirmationListItem[] }>(
+    `/api/citizen/reports/${reportId}/confirmations`,
+    { method: "GET" }
+  );
+}
+
+export function submitReportConfirmation(
+  reportId: string,
+  body: { isConfirmed: boolean; comment?: string }
+) {
+  return requestAuthenticated<{ communityConfirmCount: number }>(
+    `/api/citizen/reports/${reportId}/confirmations`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
 export function fetchReportMessages(reportId: string) {
   return requestAuthenticated<{ messages: ReportMessageItem[] }>(`/api/citizen/my-reports/${reportId}/messages`, {
     method: "GET",
@@ -367,5 +399,159 @@ export function addCaseEvidence(input: {
 export function fetchPoliceCaseTimeline(caseId: string) {
   return requestAuthenticated<PoliceCaseTimelinePayload>(`/api/police/cases/${caseId}/notes`, {
     method: "GET",
+  });
+}
+
+export function fetchCommunityGroups(query?: { lat?: number; lng?: number; radiusKm?: number }) {
+  const q = new URLSearchParams();
+  if (query?.lat !== undefined) q.set("lat", String(query.lat));
+  if (query?.lng !== undefined) q.set("lng", String(query.lng));
+  if (query?.radiusKm !== undefined) q.set("radiusKm", String(query.radiusKm));
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return requestAuthenticated<{
+    groups: {
+      id: string;
+      name: string;
+      description: string | null;
+      memberCount: number;
+      latitude: number;
+      longitude: number;
+      radiusKm: number;
+      createdAt: string;
+    }[];
+  }>(`/api/community/groups${suffix}`, { method: "GET" });
+}
+
+export function fetchMyBadgesAndPoints() {
+  return requestAuthenticated<{ userBadges: UserBadgeEntry[]; reputationPoints: number }>(
+    "/api/citizen/me/badges",
+    { method: "GET" }
+  );
+}
+
+export function fetchPrivacySettings() {
+  return requestAuthenticated<{
+    settings: {
+      defaultAnonymousReporting: boolean;
+      locationSharingEnabled: boolean;
+      locationPrecision: string;
+      profileVisibility: string;
+      dataRetentionConsentAt: string | null;
+    };
+  }>("/api/citizen/privacy-settings", { method: "GET" });
+}
+
+export function updatePrivacySettings(body: {
+  defaultAnonymousReporting?: boolean;
+  locationSharingEnabled?: boolean;
+  locationPrecision?: "exact" | "approximate";
+  profileVisibility?: "public" | "members" | "private";
+}) {
+  return requestAuthenticated<{ settings: Record<string, unknown> }>("/api/citizen/privacy-settings", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchSafetyRadius() {
+  return requestAuthenticated<{ radiusKm: number; updatedAt: string }>("/api/citizen/safety-radius", {
+    method: "GET",
+  });
+}
+
+export function updateSafetyRadius(radiusKm: number) {
+  return requestAuthenticated<{ radiusKm: number; updatedAt: string }>("/api/citizen/safety-radius", {
+    method: "PATCH",
+    body: JSON.stringify({ radiusKm }),
+  });
+}
+
+export function fetchCitizenAppeals(query?: { lat?: number; lng?: number; radiusKm?: number }) {
+  const q = new URLSearchParams();
+  if (query?.lat !== undefined) q.set("lat", String(query.lat));
+  if (query?.lng !== undefined) q.set("lng", String(query.lng));
+  if (query?.radiusKm !== undefined) q.set("radiusKm", String(query.radiusKm));
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  return requestAuthenticated<{ appeals: PublicAppealItem[] }>(`/api/citizen/appeals${suffix}`, {
+    method: "GET",
+  });
+}
+
+export function startCitizenSos(body: {
+  latitude: number;
+  longitude: number;
+  isSilent?: boolean;
+  audioClipUrl?: string | null;
+}) {
+  return requestAuthenticated<{ sosId: string; status: string; createdAt: string }>("/api/citizen/sos", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateCitizenSos(sosId: string, status: "CANCELLED" | "RESPONDED") {
+  return requestAuthenticated<{ sosId: string; status: string; resolvedAt: string | null }>(
+    `/api/citizen/sos/${sosId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }
+  );
+}
+
+export function postSosLocation(
+  sosId: string,
+  body: { latitude: number; longitude: number; accuracy?: number | null }
+) {
+  return requestAuthenticated<{ logId: string; loggedAt: string }>(`/api/citizen/sos/${sosId}/location`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function attachSosContacts(
+  sosId: string,
+  contacts: { name: string; phone: string; email?: string | null }[]
+) {
+  return requestAuthenticated<{ contactIds: string[]; notifiedCount: number }>(
+    `/api/citizen/sos/${sosId}/contacts`,
+    {
+      method: "POST",
+      body: JSON.stringify({ contacts }),
+    }
+  );
+}
+
+export function fetchPoliceActiveSos() {
+  return requestAuthenticated<{ alerts: PoliceSosActiveItem[] }>("/api/police/sos/active", {
+    method: "GET",
+  });
+}
+
+export function resolvePoliceSos(sosId: string) {
+  return requestAuthenticated<{ sosId: string; status: string; resolvedAt: string | null }>(
+    `/api/police/sos/${sosId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status: "RESPONDED" }),
+    }
+  );
+}
+
+export function createPoliceCaseAppeal(
+  caseId: string,
+  body: {
+    title: string;
+    description: string;
+    imageUrl?: string | null;
+    latitude: number;
+    longitude: number;
+    radiusKm: number;
+    expiresAt?: string | null;
+  }
+) {
+  return requestAuthenticated<{ appeal: PublicAppealItem }>(`/api/police/cases/${caseId}/appeals`, {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }

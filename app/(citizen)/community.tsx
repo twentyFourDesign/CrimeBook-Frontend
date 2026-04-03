@@ -12,8 +12,8 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
-import { fetchFeedReports } from "../../src/auth/api";
-import type { FeedReportItem } from "../../src/auth/types";
+import { fetchCitizenAppeals, fetchCommunityGroups, fetchFeedReports } from "../../src/auth/api";
+import type { FeedReportItem, PublicAppealItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function formatEnum(s: string) {
@@ -30,18 +30,47 @@ export default function Community() {
   const [loading, setLoading] = useState(() => feedReports === null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appeals, setAppeals] = useState<PublicAppealItem[] | null>(null);
+  const [appealsError, setAppealsError] = useState<string | null>(null);
+  const [groups, setGroups] = useState<
+    {
+      id: string;
+      name: string;
+      description: string | null;
+      memberCount: number;
+      latitude: number;
+      longitude: number;
+      radiusKm: number;
+      createdAt: string;
+    }[]
+  >([]);
 
   const load = useCallback(
     async (mode?: "refresh") => {
       setError(null);
+      setAppealsError(null);
       if (mode === "refresh") setRefreshing(true);
       else if (cacheRef.current === null) setLoading(true);
       try {
-        const { reports: list } = await fetchFeedReports();
+        const [{ reports: list }, appealsRes, groupsRes] = await Promise.all([
+          fetchFeedReports(),
+          fetchCitizenAppeals().catch(() => ({ appeals: [] as PublicAppealItem[] })),
+          fetchCommunityGroups().catch(() => ({ groups: [] })),
+        ]);
         setFeedReports(list);
+        setAppeals(appealsRes.appeals);
+        setGroups(groupsRes.groups);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load community feed");
         setFeedReports([]);
+        try {
+          const { appeals: a } = await fetchCitizenAppeals();
+          setAppeals(a);
+        } catch (ae) {
+          setAppealsError(ae instanceof Error ? ae.message : "Could not load appeals");
+          setAppeals([]);
+          setGroups([]);
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -108,7 +137,43 @@ export default function Community() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Live incident feed</Text>
+        <Text style={styles.sectionTitle}>Neighborhood groups</Text>
+        {!loading && groups.length > 0
+          ? groups.slice(0, 6).map((g) => (
+              <View key={g.id} style={styles.groupCard}>
+                <Text style={styles.groupTitle}>{g.name}</Text>
+                {g.description ? <Text style={styles.groupDesc}>{g.description}</Text> : null}
+                <Text style={styles.groupMeta}>
+                  {g.memberCount} members · radius {g.radiusKm} km
+                </Text>
+              </View>
+            ))
+          : null}
+        {!loading && groups.length === 0 ? (
+          <Text style={styles.mutedAppeals}>No groups yet — create one via the API or wait for neighbors.</Text>
+        ) : null}
+
+        <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Police public appeals</Text>
+        {appealsError ? <Text style={styles.errorText}>{appealsError}</Text> : null}
+        {!loading && appeals && appeals.length > 0
+          ? appeals.slice(0, 8).map((a) => (
+              <View key={a.id} style={styles.appealCard}>
+                <Text style={styles.appealTitle}>{a.title}</Text>
+                <Text style={styles.appealCase}>Case {a.caseNumber}</Text>
+                <Text style={styles.appealBody} numberOfLines={4}>
+                  {a.description}
+                </Text>
+                <Text style={styles.appealMeta}>
+                  Radius {a.radiusKm} km · {new Date(a.createdAt).toLocaleString()}
+                </Text>
+              </View>
+            ))
+          : null}
+        {!loading && appeals && appeals.length === 0 ? (
+          <Text style={styles.mutedAppeals}>No active appeals right now.</Text>
+        ) : null}
+
+        <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Live incident feed</Text>
 
         {loading && (
           <View style={styles.loadingRow}>
@@ -123,7 +188,12 @@ export default function Community() {
 
         {!loading &&
           (reports ?? []).map((item) => (
-            <View key={item.id} style={styles.incidentCard}>
+            <TouchableOpacity
+              key={item.id}
+              style={styles.incidentCard}
+              activeOpacity={0.75}
+              onPress={() => router.push(`/(citizen)/community-report/${item.id}`)}
+            >
               <View style={styles.incidentLeft}>
                 <View style={[styles.alertDot, item.isPoliceVerified && styles.alertDotVerified]} />
                 <View style={styles.incidentInfo}>
@@ -146,7 +216,7 @@ export default function Community() {
                 </View>
               </View>
               {item.isPoliceVerified && <Text style={styles.verifiedPill}>Police verified</Text>}
-            </View>
+            </TouchableOpacity>
           ))}
       </ScrollView>
     </CitizenShell>
@@ -198,6 +268,30 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: "700", color: "#111" },
   statLabel: { fontSize: 11, color: "#888", marginTop: 2 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 12 },
+  appealCard: {
+    backgroundColor: "#FFFBEB",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  appealTitle: { fontSize: 15, fontWeight: "700", color: "#92400E" },
+  appealCase: { fontSize: 12, color: "#B45309", marginTop: 2, marginBottom: 6 },
+  appealBody: { fontSize: 13, color: "#444", lineHeight: 20 },
+  appealMeta: { fontSize: 11, color: "#A8A29E", marginTop: 8 },
+  mutedAppeals: { fontSize: 13, color: "#94A3B8", marginBottom: 12 },
+  groupCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  groupTitle: { fontSize: 15, fontWeight: "700", color: "#111" },
+  groupDesc: { fontSize: 13, color: "#555", marginTop: 4 },
+  groupMeta: { fontSize: 12, color: "#888", marginTop: 6 },
   incidentCard: {
     flexDirection: "row",
     alignItems: "center",

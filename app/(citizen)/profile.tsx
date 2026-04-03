@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -19,10 +20,13 @@ import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import {
   fetchCitizenProfile,
+  fetchMyBadgesAndPoints,
+  fetchPrivacySettings,
   updateCitizenProfile,
+  updatePrivacySettings,
   uploadCrimeMediaFile,
 } from "../../src/auth/api";
-import type { CitizenProfilePayload } from "../../src/auth/types";
+import type { CitizenProfilePayload, UserBadgeEntry } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
@@ -55,6 +59,10 @@ export default function ProfileScreen() {
   const [homeLng, setHomeLng] = useState("");
   const [occupation, setOccupation] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState("en");
+  const [userBadges, setUserBadges] = useState<UserBadgeEntry[]>([]);
+  const [privacyAnonymous, setPrivacyAnonymous] = useState(false);
+  const [privacyApproxLocation, setPrivacyApproxLocation] = useState(false);
+  const [privacyLoading, setPrivacyLoading] = useState(false);
 
   const applyProfileToForm = useCallback((p: CitizenProfilePayload) => {
     setProfile(p);
@@ -75,9 +83,18 @@ export default function ProfileScreen() {
       if (mode === "refresh") setRefreshing(true);
       else if (cacheRef.current === null) setLoading(true);
       try {
-        const { profile: p } = await fetchCitizenProfile();
+        const [{ profile: p }, badgesRes, privRes] = await Promise.all([
+          fetchCitizenProfile(),
+          fetchMyBadgesAndPoints().catch(() => ({ userBadges: [], reputationPoints: 0 })),
+          fetchPrivacySettings().catch(() => null),
+        ]);
         setCitizenProfile(p);
         applyProfileToForm(p);
+        setUserBadges(badgesRes.userBadges);
+        if (privRes?.settings) {
+          setPrivacyAnonymous(privRes.settings.defaultAnonymousReporting);
+          setPrivacyApproxLocation(privRes.settings.locationPrecision === "approximate");
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load profile");
       } finally {
@@ -258,6 +275,62 @@ export default function ProfileScreen() {
               </View>
 
               <Text style={styles.verifyBadge}>Verification: {verifyLabel}</Text>
+
+              <Text style={styles.section}>Badges & points</Text>
+              <Text style={styles.privacyHint}>
+                {userBadges.length} badge{userBadges.length === 1 ? "" : "s"} earned — keep reporting and
+                confirming to earn more.
+              </Text>
+              {userBadges.map((ub) => (
+                <Text key={ub.id} style={styles.badgeLine}>
+                  • {ub.badge.name.replace(/_/g, " ")} — {ub.badge.description}
+                </Text>
+              ))}
+
+              <Text style={styles.section}>Privacy defaults</Text>
+              <Text style={styles.privacyHint}>
+                Applied when you submit reports (you can still override in the form when available).
+              </Text>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Default anonymous reporting</Text>
+                <Switch
+                  value={privacyAnonymous}
+                  onValueChange={async (v) => {
+                    setPrivacyAnonymous(v);
+                    try {
+                      setPrivacyLoading(true);
+                      await updatePrivacySettings({ defaultAnonymousReporting: v });
+                    } catch (e) {
+                      setPrivacyAnonymous(!v);
+                      Alert.alert("Error", e instanceof Error ? e.message : "Could not save");
+                    } finally {
+                      setPrivacyLoading(false);
+                    }
+                  }}
+                  disabled={privacyLoading}
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Approximate location precision</Text>
+                <Switch
+                  value={privacyApproxLocation}
+                  onValueChange={async (v) => {
+                    setPrivacyApproxLocation(v);
+                    try {
+                      setPrivacyLoading(true);
+                      await updatePrivacySettings({
+                        locationPrecision: v ? "approximate" : "exact",
+                      });
+                    } catch (e) {
+                      setPrivacyApproxLocation(!v);
+                      Alert.alert("Error", e instanceof Error ? e.message : "Could not save");
+                    } finally {
+                      setPrivacyLoading(false);
+                    }
+                  }}
+                  disabled={privacyLoading}
+                />
+              </View>
 
               <Text style={styles.section}>Account</Text>
               <Text style={styles.label}>Display name</Text>
@@ -445,6 +518,16 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8, marginBottom: 10 },
+  privacyHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
+  badgeLine: { fontSize: 13, color: "#334155", marginBottom: 6 },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 12,
+  },
+  switchLabel: { flex: 1, fontSize: 14, color: "#111", fontWeight: "600" },
   hint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
   label: { fontSize: 12, fontWeight: "600", color: "#64748B", marginBottom: 6, marginTop: 10 },
   input: {

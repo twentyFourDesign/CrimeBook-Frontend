@@ -463,6 +463,24 @@ export default function ReportDetailScreen() {
               ) : (
                 <Row label="Assigned officer" value="—" />
               )}
+              {report.statusHistory && report.statusHistory.length > 0 ? (
+                <>
+                  <View style={styles.divider} />
+                  <Subheading>Status history</Subheading>
+                  {report.statusHistory.map((h) => (
+                    <View key={h.id} style={styles.historyRow}>
+                      <Text style={styles.historyMeta}>
+                        {new Date(h.createdAt).toLocaleString()}
+                      </Text>
+                      <Text style={styles.historyLine}>
+                        {h.fromStatus ? `${formatEnum(h.fromStatus)} → ` : ""}
+                        {formatEnum(h.toStatus)}
+                      </Text>
+                      {h.notes ? <Text style={styles.historyNotes}>{h.notes}</Text> : null}
+                    </View>
+                  ))}
+                </>
+              ) : null}
             </CollapsibleSection>
 
             <CollapsibleSection
@@ -746,6 +764,10 @@ const styles = StyleSheet.create({
   },
   statusBadgeLargeText: { fontSize: 15, fontWeight: "800", color: "#1D4ED8" },
   mutedInline: { fontSize: 13, color: "#94A3B8", marginBottom: 8 },
+  historyRow: { marginBottom: 12 },
+  historyMeta: { fontSize: 11, color: "#94A3B8" },
+  historyLine: { fontSize: 14, color: "#0F172A", fontWeight: "600", marginTop: 2 },
+  historyNotes: { fontSize: 12, color: "#64748B", marginTop: 4 },
   reportTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A", marginBottom: 6 },
   reportCategory: { fontSize: 14, color: "#64748B", marginBottom: 4 },
   divider: {

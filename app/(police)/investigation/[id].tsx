@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,8 +20,10 @@ import { PoliceShell } from "../../../src/components/police/PoliceShell";
 import {
   addCaseEvidence,
   addCaseSuspect,
+  createPoliceCaseAppeal,
   fetchCaseMessages,
   fetchPoliceCase,
+  fetchPoliceIncidentDetail,
   saveCaseNote,
   sendCaseMessage,
   updatePoliceCaseStatus,
@@ -100,6 +103,12 @@ export default function Investigation() {
   const [threadInput, setThreadInput] = useState("");
   const [threadError, setThreadError] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const [linkedReportId, setLinkedReportId] = useState<string | null>(null);
+  const [appealOpen, setAppealOpen] = useState(false);
+  const [appealTitle, setAppealTitle] = useState("");
+  const [appealDescription, setAppealDescription] = useState("");
+  const [appealRadiusKm, setAppealRadiusKm] = useState("5");
+  const [appealSaving, setAppealSaving] = useState(false);
 
   const loadCaseStatus = useCallback(
     async (mode?: "refresh") => {
@@ -111,6 +120,7 @@ export default function Investigation() {
       else setCaseStatusLoading(true);
       try {
         const { case: c } = await fetchPoliceCase(caseId);
+        setLinkedReportId(c.reportId);
         const mapped = mapCaseStatusFromDb(c.status);
         setActiveStatus(mapped.top);
         setActiveCaseStatus(mapped.bottom);
@@ -171,6 +181,39 @@ export default function Investigation() {
   }, []);
 
   const statusControlsDisabled = caseStatusLoading || statusSaving;
+
+  const submitAppeal = async () => {
+    if (!caseId || !linkedReportId) {
+      Alert.alert("Error", "Case or report not loaded yet.");
+      return;
+    }
+    if (!appealTitle.trim() || !appealDescription.trim()) {
+      Alert.alert("Required", "Enter title and description.");
+      return;
+    }
+    const rKm = Number(appealRadiusKm);
+    if (!Number.isFinite(rKm) || rKm <= 0 || rKm > 500) {
+      Alert.alert("Radius", "Enter a radius between 1 and 500 km.");
+      return;
+    }
+    try {
+      setAppealSaving(true);
+      const { report } = await fetchPoliceIncidentDetail(linkedReportId);
+      await createPoliceCaseAppeal(caseId, {
+        title: appealTitle.trim(),
+        description: appealDescription.trim(),
+        latitude: report.latitude,
+        longitude: report.longitude,
+        radiusKm: rKm,
+      });
+      setAppealOpen(false);
+      Alert.alert("Published", "Public appeal created.");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not create appeal");
+    } finally {
+      setAppealSaving(false);
+    }
+  };
 
   const handleOperationalStatusPress = async (s: (typeof statusOptions)[number]) => {
     if (!caseId || statusControlsDisabled) return;
@@ -442,6 +485,20 @@ export default function Investigation() {
             <Text style={styles.timelineBtnText}>Investigation Notes Tab</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.appealBtn}
+            activeOpacity={0.85}
+            onPress={() => {
+              setAppealTitle("");
+              setAppealDescription("");
+              setAppealRadiusKm("5");
+              setAppealOpen(true);
+            }}
+          >
+            <Ionicons name="megaphone-outline" size={16} color="#B45309" />
+            <Text style={styles.appealBtnText}>Public appeal</Text>
+          </TouchableOpacity>
+
           <Text style={styles.sectionLabel}>Case Status</Text>
           {caseStatusLoading ? (
             <Text style={styles.statusLoadingText}>Loading case status…</Text>
@@ -607,6 +664,59 @@ export default function Investigation() {
           </TouchableOpacity>
         </ScrollView>
       </View>
+
+      <Modal visible={appealOpen} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Public appeal</Text>
+            <Text style={styles.modalHint}>Broadcast to the community near the incident location.</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Title"
+              placeholderTextColor="#9CA3AF"
+              value={appealTitle}
+              onChangeText={setAppealTitle}
+            />
+            <TextInput
+              style={[styles.modalInput, styles.modalInputMultiline]}
+              placeholder="What should the public look for?"
+              placeholderTextColor="#9CA3AF"
+              value={appealDescription}
+              onChangeText={setAppealDescription}
+              multiline
+              textAlignVertical="top"
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Radius (km)"
+              placeholderTextColor="#9CA3AF"
+              value={appealRadiusKm}
+              onChangeText={setAppealRadiusKm}
+              keyboardType="decimal-pad"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnGhost]}
+                onPress={() => setAppealOpen(false)}
+                disabled={appealSaving}
+              >
+                <Text style={styles.modalBtnGhostText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                onPress={submitAppeal}
+                disabled={appealSaving}
+              >
+                {appealSaving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalBtnPrimaryText}>Publish</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </PoliceShell>
   );
 }
@@ -640,6 +750,55 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   timelineBtnText: { color: "#1D4ED8", fontSize: 12, fontWeight: "700" },
+  appealBtn: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FCD34D",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  appealBtnText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 18,
+  },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
+  modalHint: { fontSize: 12, color: "#6B7280", marginTop: 6, marginBottom: 12 },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: "#111827",
+    marginBottom: 10,
+  },
+  modalInputMultiline: { minHeight: 100 },
+  modalActions: { flexDirection: "row", gap: 10, marginTop: 8 },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnGhost: { backgroundColor: "#F3F4F6" },
+  modalBtnGhostText: { fontWeight: "700", color: "#374151" },
+  modalBtnPrimary: { backgroundColor: "#2563EB" },
+  modalBtnPrimaryText: { fontWeight: "700", color: "#fff" },
   statusLoadingText: { fontSize: 12, color: "#64748B", marginBottom: 8 },
   statusSavingHint: { fontSize: 12, color: "#64748B", marginTop: -12, marginBottom: 14 },
   statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8, marginBottom: 8 },

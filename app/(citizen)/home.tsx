@@ -72,6 +72,15 @@ export default function CitizenHome() {
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Track your reports and latest police progress in one place.</Text>
 
+        <TouchableOpacity
+          style={styles.sosBanner}
+          onPress={() => router.push("/(citizen)/sos")}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.sosBannerTitle}>Emergency SOS</Text>
+          <Text style={styles.sosBannerSub}>Share live location with responders</Text>
+        </TouchableOpacity>
+
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator />
@@ -142,6 +151,16 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 28 },
   title: { fontSize: 24, fontWeight: "700", color: "#111", marginBottom: 6, marginTop: 2 },
   subtitle: { fontSize: 14, color: "#64748B", lineHeight: 20, marginBottom: 14 },
+  sosBanner: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 18,
+  },
+  sosBannerTitle: { fontSize: 16, fontWeight: "800", color: "#B91C1C" },
+  sosBannerSub: { fontSize: 13, color: "#991B1B", marginTop: 4 },
   center: { paddingVertical: 24, alignItems: "center" },
   errorBox: { marginVertical: 10 },
   errorText: { color: "#B91C1C", fontSize: 14, marginBottom: 8 },

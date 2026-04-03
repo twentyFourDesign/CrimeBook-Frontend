@@ -91,6 +91,41 @@ export type FeedReportItem = {
   isPoliceVerified: boolean;
 };
 
+/** GET /api/citizen/reports/[id] — community view (any signed-in user) */
+export type CommunityReportPayload = {
+  id: string;
+  isOwnReport: boolean;
+  crimeCategory: string;
+  title: string | null;
+  description: string;
+  status: string;
+  visibility: string;
+  isAnonymous: boolean;
+  latitude: number;
+  longitude: number;
+  locationAddress: string | null;
+  locationLabel: string | null;
+  locationPrecision: string;
+  incidentTime: string;
+  isHappeningNow: boolean;
+  communityConfirmCount: number;
+  isPoliceVerified: boolean;
+  createdAt: string;
+  myConfirmation: {
+    isConfirmed: boolean;
+    comment: string | null;
+    createdAt: string;
+  } | null;
+};
+
+export type ReportConfirmationListItem = {
+  id: string;
+  isConfirmed: boolean;
+  comment: string | null;
+  createdAt: string;
+  user: { id: string; displayName: string };
+};
+
 export type PoliceCaseItem = {
   id: string;
   caseNumber: string;
@@ -192,10 +227,63 @@ export type PoliceNoteItem = {
   createdAt: string;
 };
 
+export type CaseStatusHistoryItem = {
+  id: string;
+  fromStatus: string | null;
+  toStatus: string;
+  notes: string | null;
+  createdAt: string;
+  changedById: string | null;
+};
+
 export type PoliceCaseTimelinePayload = {
   notes: PoliceNoteItem[];
   evidence: PoliceMediaItem[];
   suspects: SuspectTagItem[];
+  caseStatusHistory: CaseStatusHistoryItem[];
+};
+
+export type PublicAppealItem = {
+  id: string;
+  caseId: string;
+  caseNumber: string;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+export type UserBadgeEntry = {
+  id: string;
+  earnedAt: string;
+  badge: {
+    id: string;
+    name: string;
+    description: string;
+    iconUrl: string;
+    pointsValue: number;
+  };
+};
+
+export type PoliceSosActiveItem = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  isSilent: boolean;
+  audioClipUrl: string | null;
+  notifiedCount: number;
+  createdAt: string;
+  user: { id: string; name: string; phone: string | null };
+  latestLocation: {
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+    loggedAt: string;
+  } | null;
 };
 
 /** GET/POST /api/citizen/my-reports/[id]/messages — same shape as police case messages */
@@ -205,6 +293,15 @@ export type ReportMessageItem = {
   createdAt: string;
   senderName: string;
   senderRole: string;
+};
+
+export type ReportStatusHistoryItem = {
+  id: string;
+  fromStatus: string | null;
+  toStatus: string;
+  notes: string | null;
+  createdAt: string;
+  changedById: string | null;
 };
 
 export type ReportDetailPayload = {
@@ -236,6 +333,8 @@ export type ReportDetailPayload = {
   } | null;
   suspectTags?: SuspectTagItem[];
   policeNotes?: PoliceNoteItem[];
+  /** Audit trail from GET citizen/my-reports and GET police/incidents */
+  statusHistory?: ReportStatusHistoryItem[];
 };
 
 /** Matches POST /api/media/upload response & Prisma `MediaType` */
