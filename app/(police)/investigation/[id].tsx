@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { PoliceShell } from "../../../src/components/police/PoliceShell";
+import { addCaseEvidence, addCaseSuspect, saveCaseNote, uploadCrimeMediaFile } from "../../../src/auth/api";
 
 const statusOptions = ["Responding", "On Scene", "Investigation"] as const;
 const caseStatusOptions = ["Suspect Detailed", "Case Resolved"] as const;
@@ -17,11 +19,134 @@ const quickCapture = [
 
 export default function Investigation() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+  const caseId = Array.isArray(id) ? id[0] : id;
   const [activeStatus, setActiveStatus] = useState<(typeof statusOptions)[number]>("On Scene");
   const [activeCaseStatus, setActiveCaseStatus] = useState<(typeof caseStatusOptions)[number] | "">("");
   const [notes, setNotes] = useState("");
   const [suspectTag, setSuspectTag] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savingTag, setSavingTag] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleSaveNotes = async () => {
+    if (!caseId) {
+      Alert.alert("Missing case", "No case ID in the URL.");
+      return;
+    }
+
+    if (!notes.trim()) {
+      Alert.alert("Add some notes", "Please enter a note before saving.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await saveCaseNote(caseId, notes.trim());
+      Alert.alert("Saved", "Investigation notes saved to the case.");
+      setNotes("");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not save notes";
+      Alert.alert("Error", message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inferEvidenceType = (mimeType?: string) => {
+    if (!mimeType) return "OTHER" as const;
+    if (mimeType.startsWith("image/")) return "PHOTO" as const;
+    if (mimeType.startsWith("video/")) return "VIDEO" as const;
+    if (mimeType.startsWith("audio/")) return "STATEMENT" as const;
+    return "DOCUMENT" as const;
+  };
+
+  const uploadPickedAsset = async (uri: string, mimeType: string, fileName: string) => {
+    if (!caseId) {
+      Alert.alert("Missing case", "No case ID in the URL.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await uploadCrimeMediaFile({
+        uri,
+        name: fileName,
+        mimeType,
+        folder: "reports",
+      });
+      await addCaseEvidence({
+        caseId,
+        fileUrl: uploaded.url,
+        fileName: uploaded.fileName,
+        fileSizeBytes: uploaded.fileSizeBytes,
+        evidenceType: inferEvidenceType(uploaded.mimeType),
+      });
+      Alert.alert("Uploaded", "Evidence added to this case.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Upload failed";
+      Alert.alert("Error", message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleQuickCapture = async (label: string) => {
+    if (uploading) return;
+    if (label === "Photo") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission required", "Camera permission is needed to capture a photo.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+      await uploadPickedAsset(
+        asset.uri,
+        asset.mimeType || "image/jpeg",
+        asset.fileName || `photo-${Date.now()}.jpg`
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: 0.9,
+      allowsMultipleSelection: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    await uploadPickedAsset(
+      asset.uri,
+      asset.mimeType || "application/octet-stream",
+      asset.fileName || `evidence-${Date.now()}`
+    );
+  };
+
+  const handleAddTag = async () => {
+    if (!caseId) {
+      Alert.alert("Missing case", "No case ID in the URL.");
+      return;
+    }
+    if (!suspectTag.trim()) {
+      Alert.alert("Add tag", "Enter suspect details before adding.");
+      return;
+    }
+    try {
+      setSavingTag(true);
+      await addCaseSuspect(caseId, suspectTag.trim());
+      setSuspectTag("");
+      Alert.alert("Saved", "Suspect tag added.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Could not save suspect tag";
+      Alert.alert("Error", message);
+    } finally {
+      setSavingTag(false);
+    }
+  };
 
   return (
     <PoliceShell>
@@ -34,9 +159,25 @@ export default function Investigation() {
             </TouchableOpacity>
             <View>
               <Text style={styles.heading}>Investigation</Text>
-              <Text style={styles.subheading}>Case ID: {id ?? "—"}</Text>
+              <Text style={styles.subheading}>Case ID: {caseId ?? "—"}</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.timelineBtn}
+            activeOpacity={0.85}
+            onPress={() =>
+              caseId
+                ? router.push({
+                    pathname: "/(police)/investigation-notes/[id]",
+                    params: { id: caseId },
+                  })
+                : null
+            }
+          >
+            <Ionicons name="list-outline" size={16} color="#1D4ED8" />
+            <Text style={styles.timelineBtnText}>Investigation Notes Tab</Text>
+          </TouchableOpacity>
 
           <Text style={styles.sectionLabel}>Case Status</Text>
           <View style={styles.statusRow}>
@@ -79,12 +220,19 @@ export default function Investigation() {
           <Text style={styles.sectionLabel}>Quick Capture</Text>
           <View style={styles.captureRow}>
             {quickCapture.map((item) => (
-              <TouchableOpacity key={item.label} style={styles.captureBtn} activeOpacity={0.85}>
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.captureBtn, uploading && styles.btnDisabled]}
+                activeOpacity={0.85}
+                onPress={() => handleQuickCapture(item.label)}
+                disabled={uploading}
+              >
                 <Ionicons name={item.icon} size={22} color="#4B5563" style={styles.captureIcon} />
                 <Text style={styles.captureLabel}>{item.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+          {uploading ? <Text style={styles.helperText}>Uploading evidence...</Text> : null}
 
           <Text style={styles.sectionLabel}>Suspect Tags</Text>
           <View style={styles.suspectRow}>
@@ -95,13 +243,23 @@ export default function Investigation() {
               value={suspectTag}
               onChangeText={setSuspectTag}
             />
-            <TouchableOpacity style={styles.addBtn} activeOpacity={0.9}>
+            <TouchableOpacity
+              style={[styles.addBtn, savingTag && styles.btnDisabled]}
+              activeOpacity={0.9}
+              onPress={handleAddTag}
+              disabled={savingTag}
+            >
               <Ionicons name="add" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} activeOpacity={0.9}>
-            <Text style={styles.saveBtnText}>Save Investigation Notes</Text>
+          <TouchableOpacity
+            style={[styles.saveBtn, (saving || uploading) && styles.saveBtnDisabled]}
+            activeOpacity={0.9}
+            disabled={saving || uploading}
+            onPress={handleSaveNotes}
+          >
+            <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save Investigation Notes"}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -124,6 +282,20 @@ const styles = StyleSheet.create({
   heading: { fontSize: 17, fontWeight: "700", color: "#111827" },
   subheading: { fontSize: 12, color: "#6B7280" },
   sectionLabel: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 10 },
+  timelineBtn: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  timelineBtnText: { color: "#1D4ED8", fontSize: 12, fontWeight: "700" },
   statusRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   statusChip: {
     paddingHorizontal: 14,
@@ -196,6 +368,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
+  },
+  btnDisabled: {
+    opacity: 0.6,
+  },
+  helperText: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: -14,
+    marginBottom: 14,
   },
   saveBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

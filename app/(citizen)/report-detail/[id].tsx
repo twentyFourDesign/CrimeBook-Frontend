@@ -4,6 +4,7 @@ import {
   Image,
   Linking,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
 import { fetchReportDetail } from "../../../src/auth/api";
-import type { ReportDetailPayload, ReportMediaItem } from "../../../src/auth/types";
+import type { PoliceMediaItem, ReportDetailPayload, ReportMediaItem } from "../../../src/auth/types";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -55,6 +56,25 @@ function MediaTile({ m }: { m: ReportMediaItem }) {
   );
 }
 
+function PoliceMediaTile({ item }: { item: PoliceMediaItem }) {
+  const label = item.evidenceType.replace(/_/g, " ");
+  return (
+    <TouchableOpacity
+      style={styles.mediaTile}
+      onPress={() => openUrl(item.fileUrl)}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.mediaImg, styles.mediaPlaceholder]}>
+        <Text style={styles.mediaPlaceholderText}>{label}</Text>
+        <Text style={styles.mediaTap}>Added by police · Tap to open</Text>
+      </View>
+      <Text style={styles.mediaCaption} numberOfLines={1}>
+        {item.fileName}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function ReportDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -82,7 +102,13 @@ export default function ReportDetailScreen() {
 
   return (
     <CitizenShell>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={load} />
+        }
+      >
         <View style={styles.header}>
           <ScreenBackButton />
           <Text style={styles.title} numberOfLines={2}>
@@ -134,6 +160,14 @@ export default function ReportDetailScreen() {
               <Row label="Community confirmations" value={String(report.communityConfirmCount)} />
               <Row label="Police verified" value={report.isPoliceVerified ? "Yes" : "No"} />
               <Row label="Location precision" value={formatEnum(report.locationPrecision)} />
+              {report.assignedOfficer ? (
+                <Row
+                  label="Assigned officer"
+                  value={`${report.assignedOfficer.name}${
+                    report.assignedOfficer.badgeNumber ? ` (${report.assignedOfficer.badgeNumber})` : ""
+                  }`}
+                />
+              ) : null}
             </View>
 
             <Text style={styles.section}>Location</Text>
@@ -173,6 +207,48 @@ export default function ReportDetailScreen() {
                   <MediaTile key={m.id} m={m} />
                 ))}
               </View>
+            )}
+
+            {!!report.policeMedia && report.policeMedia.length > 0 && (
+              <>
+                <Text style={styles.section}>Police updates</Text>
+                <Text style={styles.policeCaption}>
+                  Files and attachments added by responding officers.
+                </Text>
+                <View style={styles.mediaGrid}>
+                  {report.policeMedia.map((p) => (
+                    <PoliceMediaTile key={p.id} item={p} />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {!!report.suspectTags?.length && (
+              <>
+                <Text style={styles.section}>Police suspect tags</Text>
+                <View style={styles.tagsWrap}>
+                  {report.suspectTags.map((tag) => (
+                    <View key={tag.id} style={styles.tagChip}>
+                      <Text style={styles.tagText}>{tag.alias || tag.description}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {!!report.policeNotes?.length && (
+              <>
+                <Text style={styles.section}>Investigation notes</Text>
+                {report.policeNotes.map((n) => (
+                  <View key={n.id} style={styles.noteCard}>
+                    <Text style={styles.noteAuthor}>{n.officerName}</Text>
+                    <Text style={styles.noteContent}>{n.content}</Text>
+                    <Text style={styles.noteMeta}>
+                      {formatEnum(n.noteType)} • {new Date(n.createdAt).toLocaleString()}
+                    </Text>
+                  </View>
+                ))}
+              </>
             )}
           </>
         )}
@@ -251,4 +327,19 @@ const styles = StyleSheet.create({
   mediaPlaceholderText: { fontSize: 12, fontWeight: "700", color: "#475569" },
   mediaTap: { fontSize: 10, color: "#2563EB", marginTop: 4 },
   mediaCaption: { fontSize: 10, color: "#64748B", marginTop: 4 },
+  policeCaption: { fontSize: 12, color: "#64748B", marginBottom: 8 },
+  tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  tagChip: { backgroundColor: "#EFF6FF", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  tagText: { fontSize: 12, color: "#1E40AF", fontWeight: "600" },
+  noteCard: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  noteAuthor: { fontSize: 12, fontWeight: "700", color: "#0F172A" },
+  noteContent: { fontSize: 13, color: "#334155", marginTop: 6 },
+  noteMeta: { fontSize: 11, color: "#64748B", marginTop: 8 },
 });

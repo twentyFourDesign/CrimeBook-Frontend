@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,17 +23,27 @@ export default function MyReportsScreen() {
   const [reports, setReports] = useState<MyReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { asRefresh?: boolean }) => {
+    const asRefresh = opts?.asRefresh ?? false;
     setError(null);
-    setLoading(true);
+    if (asRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const data = await fetchMyReports();
       setReports(data.reports);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load reports");
     } finally {
-      setLoading(false);
+      if (asRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -42,7 +53,13 @@ export default function MyReportsScreen() {
 
   return (
     <CitizenShell>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => load({ asRefresh: true })} />
+        }
+      >
         <View style={styles.header}>
           <ScreenBackButton />
           <Text style={styles.title}>My reports</Text>

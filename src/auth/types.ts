@@ -48,13 +48,18 @@ export type VerificationSubmitBody = {
 
 export type MyReportItem = {
   id: string;
+  caseId?: string | null;
   crimeCategory: string;
   title: string | null;
   status: string;
   description: string;
   createdAt: string;
+  updatedAt?: string;
+  latitude?: number;
+  longitude?: number;
   locationAddress: string | null;
   locationLabel: string | null;
+  isPoliceVerified?: boolean;
 };
 
 export type PoliceIncidentForMap = {
@@ -156,6 +161,35 @@ export type ReportMediaItem = {
   createdAt: string;
 };
 
+export type PoliceMediaItem = {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  evidenceType: string;
+  capturedAt: string;
+};
+
+export type SuspectTagItem = {
+  id: string;
+  description: string;
+  alias: string | null;
+  createdAt: string;
+};
+
+export type PoliceNoteItem = {
+  id: string;
+  content: string;
+  noteType: string;
+  officerName: string;
+  createdAt: string;
+};
+
+export type PoliceCaseTimelinePayload = {
+  notes: PoliceNoteItem[];
+  evidence: PoliceMediaItem[];
+  suspects: SuspectTagItem[];
+};
+
 export type ReportDetailPayload = {
   id: string;
   caseId: string | null;
@@ -178,6 +212,13 @@ export type ReportDetailPayload = {
   updatedAt: string;
   media: ReportMediaItem[];
   caseNumber?: string | null;
+  policeMedia?: PoliceMediaItem[];
+  assignedOfficer?: {
+    name: string;
+    badgeNumber: string | null;
+  } | null;
+  suspectTags?: SuspectTagItem[];
+  policeNotes?: PoliceNoteItem[];
 };
 
 /** Matches POST /api/media/upload response & Prisma `MediaType` */

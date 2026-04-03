@@ -82,7 +82,12 @@ export default function PoliceCasesScreen() {
                   key={c.id}
                   style={styles.caseCard}
                   activeOpacity={0.85}
-                  onPress={() => router.push("/(police)/investigation")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(police)/investigation/[id]",
+                      params: { id: c.id },
+                    })
+                  }
                 >
                   <View style={styles.caseLeft}>
                     <View style={styles.caseInfo}>

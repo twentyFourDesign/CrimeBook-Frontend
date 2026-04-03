@@ -9,6 +9,7 @@ import {
   OfficerProfilePayload,
   OnboardingIntent,
   PoliceIncidentForMap,
+  PoliceCaseTimelinePayload,
   PoliceCaseItem,
   ReportDetailPayload,
   VerificationSubmitBody,
@@ -277,6 +278,53 @@ export function fetchFeedReports() {
 
 export function fetchPoliceCases() {
   return requestAuthenticated<{ cases: PoliceCaseItem[] }>("/api/police/cases", {
+    method: "GET",
+  });
+}
+
+export function saveCaseNote(caseId: string, content: string) {
+  return requestAuthenticated<{ noteId: string; createdAt: string }>(
+    `/api/police/cases/${caseId}/notes`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    }
+  );
+}
+
+export function addCaseSuspect(caseId: string, description: string, alias?: string) {
+  return requestAuthenticated<{ suspectId: string; description: string; createdAt: string }>(
+    `/api/police/cases/${caseId}/suspects`,
+    {
+      method: "POST",
+      body: JSON.stringify({ description, alias }),
+    }
+  );
+}
+
+export function addCaseEvidence(input: {
+  caseId: string;
+  fileUrl: string;
+  fileName: string;
+  fileSizeBytes: number;
+  evidenceType: "PHOTO" | "VIDEO" | "DOCUMENT" | "OTHER" | "STATEMENT" | "BODYCAM";
+  description?: string;
+}) {
+  const { caseId, ...body } = input;
+  return requestAuthenticated<{ evidenceId: string; createdAt: string }>(
+    `/api/police/cases/${caseId}/evidence`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+export function fetchPoliceCaseTimeline(caseId: string) {
+  return requestAuthenticated<PoliceCaseTimelinePayload>(`/api/police/cases/${caseId}/notes`, {
     method: "GET",
   });
 }
