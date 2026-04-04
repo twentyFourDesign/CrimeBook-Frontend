@@ -51,45 +51,74 @@ export default function PoliceFeedScreen() {
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
-      >
-        <Text style={styles.title}>Feed</Text>
-        <Text style={styles.subtitle}>Live citizen reports and alerts across your jurisdiction.</Text>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total</Text>
-            <Text style={styles.statValue}>{total}</Text>
+      <View style={styles.wrapper}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={revalidating} 
+              onRefresh={refresh}
+              tintColor="#1D4ED8"
+            />
+          }
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerIcon}>
+                <Ionicons name="chatbubbles" size={24} color="#1D4ED8" />
+              </View>
+              <View>
+                <Text style={styles.heading}>Community Feed</Text>
+                <Text style={styles.subheading}>
+                  Live reports and alerts across your jurisdiction
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={refresh} style={styles.refreshIconBtn}>
+               <Ionicons name="refresh" size={20} color="#64748B" />
+            </TouchableOpacity>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Verified</Text>
-            <Text style={styles.statValue}>{verifiedCount}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Unverified</Text>
-            <Text style={styles.statValue}>{Math.max(total - verifiedCount, 0)}</Text>
-          </View>
-        </View>
 
-        {loading && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" />
-            <Text style={styles.loadingText}>Loading reports…</Text>
+          {/* Stats Bar */}
+          <View style={styles.statsBar}>
+             <View style={styles.statItem}>
+               <Text style={styles.statLabel}>TOTAL</Text>
+               <Text style={styles.statValue}>{total}</Text>
+             </View>
+             <View style={styles.statDivider} />
+             <View style={styles.statItem}>
+               <Text style={styles.statLabel}>VERIFIED</Text>
+               <Text style={[styles.statValue, { color: "#16A34A" }]}>{verifiedCount}</Text>
+             </View>
+             <View style={styles.statDivider} />
+             <View style={styles.statItem}>
+               <Text style={styles.statLabel}>PENDING</Text>
+               <Text style={[styles.statValue, { color: "#D97706" }]}>{Math.max(total - verifiedCount, 0)}</Text>
+             </View>
           </View>
-        )}
 
-        {error && !loading && <Text style={styles.errorText}>{error}</Text>}
+          {loading && !reports.length && (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="small" color="#1D4ED8" />
+              <Text style={styles.loadingText}>Loading jurisdiction feed...</Text>
+            </View>
+          )}
 
-        {!loading &&
-          (reports ?? []).map((r) => (
+          {error && !loading && (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={20} color="#DC2626" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {reports.map((r) => (
             <TouchableOpacity
               key={r.id}
               style={styles.card}
-              activeOpacity={0.88}
+              activeOpacity={0.8}
               onPress={() =>
                 router.push({
                   pathname: "/(police)/incident-report",
@@ -98,84 +127,232 @@ export default function PoliceFeedScreen() {
               }
             >
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>
-                  {r.title?.trim() || formatEnum(r.crimeCategory)}
-                </Text>
-                <View style={styles.cardHeaderRight}>
-                  <Text style={[styles.statusBadge, r.isPoliceVerified && styles.statusBadgeVerified]}>
-                    {formatEnum(r.status)}
+                <View style={[styles.statusBadge, r.isPoliceVerified && styles.statusBadgeVerified]}>
+                  {r.isPoliceVerified && <Ionicons name="shield-checkmark" size={12} color="#166534" style={{ marginRight: 4 }} />}
+                  <Text style={[styles.statusText, r.isPoliceVerified && styles.statusTextVerified]}>
+                    {formatEnum(r.status).toUpperCase()}
                   </Text>
-                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
                 </View>
-              </View>
-              <Text style={styles.cardMeta}>
-                🕐 {new Date(r.createdAt).toLocaleString()}
-              </Text>
-              {r.locationLabel || r.locationAddress ? (
-                <Text style={styles.cardMeta}>
-                  📍 {r.locationLabel || r.locationAddress}
+                <Text style={styles.timeText}>
+                   {new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
-              ) : null}
+              </View>
+
+              <Text style={styles.cardTitle}>
+                {r.title?.trim() || formatEnum(r.crimeCategory)}
+              </Text>
+              
               <Text style={styles.cardBody} numberOfLines={3}>
                 {r.description}
               </Text>
-              <View style={styles.footerRow}>
-                <Text style={styles.footerText}>● {r.communityConfirmCount} confirmations</Text>
-                {r.isPoliceVerified && <Text style={styles.footerVerified}>Police verified</Text>}
+
+              <View style={styles.cardMeta}>
+                 <Ionicons name="location-outline" size={14} color="#64748B" />
+                 <Text style={styles.metaText} numberOfLines={1}>
+                    {r.locationLabel || r.locationAddress || "Unknown location"}
+                 </Text>
+              </View>
+
+              <View style={styles.cardFooter}>
+                <View style={styles.confirmBox}>
+                  <Ionicons name="people" size={14} color="#475569" />
+                  <Text style={styles.confirmText}>{r.communityConfirmCount} confirmations</Text>
+                </View>
+                <View style={styles.viewAction}>
+                   <Text style={styles.viewActionText}>Investigate</Text>
+                   <Ionicons name="arrow-forward" size={14} color="#1D4ED8" />
+                </View>
               </View>
             </TouchableOpacity>
           ))}
-      </ScrollView>
+        </ScrollView>
+      </View>
     </PoliceShell>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
   scroll: { flex: 1 },
-  container: { paddingHorizontal: 20, paddingBottom: 32, paddingTop: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111" },
-  subtitle: { fontSize: 14, color: "#64748B", marginTop: 6, marginBottom: 16 },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: "#0F172A",
+  container: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 40 },
+  
+  // Header
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 24 
   },
-  statLabel: { fontSize: 11, color: "#9CA3AF" },
-  statValue: { fontSize: 17, fontWeight: "700", color: "#E5E7EB", marginTop: 2 },
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  loadingText: { fontSize: 12, color: "#64748B" },
-  errorText: { fontSize: 12, color: "#DC2626", marginBottom: 12 },
-  card: {
-    backgroundColor: "#FFFFFF",
+  headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerIcon: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+  },
+  heading: { fontSize: 22, fontWeight: "800", color: "#111827" },
+  subheading: { fontSize: 13, color: "#64748B", marginTop: 4 },
+  refreshIconBtn: {
+    padding: 8,
+    backgroundColor: "#fff",
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    padding: 14,
-    marginBottom: 10,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  cardHeaderRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardTitle: { fontSize: 15, fontWeight: "700", color: "#111827", flex: 1, marginRight: 8 },
+
+  // Stats Bar
+  statsBar: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    height: "100%",
+    backgroundColor: "#F1F5F9",
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#94A3B8",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+
+  // Loading/Error
+  loadingState: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+  },
+  loadingText: { fontSize: 14, color: "#64748B", marginLeft: 10, fontWeight: "600" },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
+
+  // Card Design
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#92400E",
+    paddingVertical: 4,
+    borderRadius: 6,
     backgroundColor: "#FEF3C7",
-    textTransform: "capitalize",
   },
   statusBadgeVerified: {
-    color: "#166534",
     backgroundColor: "#DCFCE7",
   },
-  cardMeta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  cardBody: { fontSize: 13, color: "#374151", marginTop: 8, lineHeight: 20 },
-  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  footerText: { fontSize: 11, color: "#6B7280" },
-  footerVerified: { fontSize: 11, color: "#16A34A", fontWeight: "600" },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#92400E",
+  },
+  statusTextVerified: {
+    color: "#166534",
+  },
+  timeText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  cardBody: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  cardMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 16,
+  },
+  metaText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+    flex: 1,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F8FAFF",
+  },
+  confirmBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  confirmText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  viewAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  viewActionText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1D4ED8",
+  },
 });

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
 import type { PoliceIncidentForMap } from "../../src/auth/types";
@@ -91,71 +92,114 @@ export default function PoliceIncidentsScreen() {
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
+          refreshControl={
+            <RefreshControl 
+              refreshing={revalidating} 
+              onRefresh={refresh}
+              tintColor="#1D4ED8"
+            />
+          }
         >
           {/* Header */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.heading}>Incidents</Text>
-              <Text style={styles.subheading}>
-                {(incidents ?? []).length} recent reports
-              </Text>
+            <View style={styles.headerContent}>
+              <View style={styles.headerIcon}>
+                <Ionicons name="megaphone" size={24} color="#1D4ED8" />
+              </View>
+              <View>
+                <Text style={styles.heading}>Incident Reports</Text>
+                <Text style={styles.subheading}>
+                  {incidents.length} recent report{incidents.length === 1 ? "" : "s"} in your area
+                </Text>
+              </View>
             </View>
+            <TouchableOpacity onPress={refresh} style={styles.refreshIconBtn}>
+               <Ionicons name="refresh" size={20} color="#64748B" />
+            </TouchableOpacity>
           </View>
 
-          {loading && (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" />
-              <Text style={styles.loadingText}>Loading incidents…</Text>
+          {loading && !incidents.length && (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="small" color="#1D4ED8" />
+              <Text style={styles.loadingText}>Syncing activity feed...</Text>
             </View>
           )}
 
-          {error && !loading && <Text style={styles.errorText}>{error}</Text>}
+          {error && !loading && (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={20} color="#DC2626" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-          {!loading &&
-            (incidents ?? []).map((inc) => {
-              const level = levelFromStatus(inc.status);
-              const bg = levelBg[level];
-              const color = levelColors[level];
-              return (
-                <TouchableOpacity
-                  key={inc.id}
-                  style={styles.incidentCard}
-                  activeOpacity={0.85}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(police)/incident-report",
-                      params: { id: inc.id },
-                    })
-                  }
-                >
-                  <View style={styles.incidentLeft}>
-                    <View style={styles.incidentInfo}>
-                      <View style={styles.titleRow}>
-                        <Text style={styles.incidentTitle}>
-                          {inc.locationLabel || inc.locationAddress || "Unknown location"}
-                        </Text>
-                        <View style={[styles.levelBadge, { backgroundColor: bg }]}>
-                          <Text style={[styles.levelText, { color }]}>
-                            {inc.status.toLowerCase()}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.metaText}>
-                        {formatDistanceKm(inc) ?? "—"} •{" "}
-                        {new Date(inc.createdAt).toLocaleString()}
-                      </Text>
-                    </View>
+          {incidents.map((inc) => {
+            const level = levelFromStatus(inc.status);
+            const bg = levelBg[level];
+            const color = levelColors[level];
+            return (
+              <TouchableOpacity
+                key={inc.id}
+                style={styles.incidentCard}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(police)/incident-report",
+                    params: { id: inc.id },
+                  })
+                }
+              >
+                <View style={styles.cardTop}>
+                  <View style={[styles.levelBadge, { backgroundColor: bg }]}>
+                    <View style={[styles.levelDot, { backgroundColor: color }]} />
+                    <Text style={[styles.levelText, { color }]}>
+                      {inc.status.replace(/_/g, " ").toUpperCase()}
+                    </Text>
                   </View>
-                  <View style={styles.incidentRight}>
+                  <View style={styles.timeTag}>
+                    <Ionicons name="time-outline" size={12} color="#94A3B8" />
+                    <Text style={styles.timeText}>
+                      {new Date(inc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.incidentTitle}>
+                  {inc.locationLabel || inc.locationAddress || inc.crimeCategory.replace(/_/g, " ")}
+                </Text>
+
+                <View style={styles.cardMeta}>
+                   <View style={styles.metaRow}>
+                     <Ionicons name="location-outline" size={14} color="#64748B" />
+                     <Text style={styles.metaText} numberOfLines={1}>
+                       {inc.locationAddress || "Unknown Location"}
+                     </Text>
+                   </View>
+                   <View style={styles.metaRow}>
+                     <Ionicons name="navigate-circle-outline" size={14} color="#1D4ED8" />
+                     <Text style={[styles.metaText, { color: "#1D4ED8", fontWeight: "600" }]}>
+                       {formatDistanceKm(inc) ?? "—"} away
+                     </Text>
+                   </View>
+                </View>
+
+                <View style={styles.cardFooter}>
+                  <View style={styles.categoryBox}>
+                    <Text style={styles.categoryText}>{inc.crimeCategory.replace(/_/g, " ")}</Text>
+                  </View>
+                  
+                  <View style={styles.footerRight}>
                     {inc.isPoliceVerified && (
-                      <Text style={styles.confirmedText}>✓ Police verified</Text>
+                      <View style={styles.verifiedBadge}>
+                        <Ionicons name="shield-checkmark" size={14} color="#16A34A" />
+                        <Text style={styles.confirmedText}>Verified</Text>
+                      </View>
                     )}
-                    <Text style={styles.chevron}>›</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#CBD5E1" />
                   </View>
-                </TouchableOpacity>
-              );
-            })}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
     </PoliceShell>
@@ -164,47 +208,162 @@ export default function PoliceIncidentsScreen() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
-  container: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 24 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  heading: { fontSize: 20, fontWeight: "700", color: "#111" },
-  subheading: { fontSize: 12, color: "#888", marginTop: 2 },
-  filterBtn: {
-    flexDirection: "row",
+  container: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40 },
+  
+  // Header
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 24 
+  },
+  headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+  },
+  heading: { fontSize: 22, fontWeight: "800", color: "#111827" },
+  subheading: { fontSize: 13, color: "#64748B", marginTop: 4 },
+  refreshIconBtn: {
+    padding: 8,
     backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  filterChevron: { fontSize: 14, color: "#0F172A" },
-  filterText: { fontSize: 13, fontWeight: "600", color: "#333" },
-  incidentCard: {
+
+  // Loading/Error
+  loadingState: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  loadingText: { fontSize: 14, color: "#64748B", marginLeft: 10, fontWeight: "600" },
+  errorBox: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
+    padding: 16,
+    backgroundColor: "#FEF2F2",
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
+
+  // Incident Card
+  incidentCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  incidentLeft: { flex: 1 },
-  incidentInfo: { flex: 1 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" },
-  incidentTitle: { fontSize: 13, fontWeight: "700", color: "#111" },
-  levelBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
-  levelText: { fontSize: 10, fontWeight: "700", textTransform: "capitalize" },
-  metaText: { fontSize: 11, color: "#888" },
-  incidentRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  confirmedText: { fontSize: 11, color: "#22C55E", fontWeight: "600" },
-  chevron: { fontSize: 20, color: "#CBD5E1" },
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  loadingText: { fontSize: 12, color: "#64748B" },
-  errorText: { fontSize: 12, color: "#DC2626", marginBottom: 12 },
+  cardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  levelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+  },
+  levelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  levelText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  timeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  incidentTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 12,
+  },
+  cardMeta: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  metaText: {
+    fontSize: 13,
+    color: "#64748B",
+    flex: 1,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F8FAFF",
+  },
+  categoryBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#F8FAFF",
+    borderRadius: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+    textTransform: "capitalize",
+  },
+  footerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  confirmedText: { 
+    fontSize: 11, 
+    color: "#16A34A", 
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
 });

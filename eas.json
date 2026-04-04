@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 12.5.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://crimebook.vercel.app",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://crimebook.vercel.app",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://crimebook.vercel.app",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

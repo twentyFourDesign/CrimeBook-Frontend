@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,12 +12,13 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { useAuth } from "../../src/auth/AuthContext";
 import { fetchOfficerProfile, updateOfficerProfile, uploadCrimeMediaFile } from "../../src/auth/api";
-import type { OfficerProfilePayload } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
 
@@ -52,32 +53,37 @@ export default function PoliceProfileScreen() {
     setOfficerProfile
   );
 
+  useEffect(() => {
+    if (profile?.officerProfile?.currentLatitude) {
+      setLatInput(profile.officerProfile.currentLatitude.toString());
+    }
+    if (profile?.officerProfile?.currentLongitude) {
+      setLngInput(profile.officerProfile.currentLongitude.toString());
+    }
+  }, [profile]);
+
   const pickAvatar = async () => {
     if (!profile) return;
-
     const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!lib.granted) {
       Alert.alert("Permission needed", "Photo library access is required.");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.85,
+      quality: 0.8,
     });
     if (result.canceled || !result.assets[0]) return;
 
     setUploadingAvatar(true);
     try {
       const asset = result.assets[0];
-      const fileName = asset.fileName ?? `avatar_${Date.now()}.jpg`;
-      const mime = asset.mimeType ?? "image/jpeg";
       const uploaded = await uploadCrimeMediaFile({
         uri: asset.uri,
-        name: fileName,
-        mimeType: mime,
+        name: `avatar_${Date.now()}.jpg`,
+        mimeType: asset.mimeType || "image/jpeg",
         folder: "avatars",
       });
       const res = await updateOfficerProfile({ avatarUrl: uploaded.url });
@@ -90,301 +96,431 @@ export default function PoliceProfileScreen() {
     }
   };
 
+  const handleSaveLocation = async () => {
+    const la = parseFloat(latInput.trim());
+    const lo = parseFloat(lngInput.trim());
+    if (Number.isNaN(la) || Number.isNaN(lo)) {
+      Alert.alert("Invalid Input", "Please enter valid coordinates.");
+      return;
+    }
+    try {
+      const res = await updateOfficerProfile({
+        currentLatitude: la,
+        currentLongitude: lo,
+      });
+      setOfficerProfile(res.profile);
+      await refreshUser();
+      Alert.alert("Success", "Patrol location updated.");
+    } catch (e) {
+      Alert.alert("Update failed", "Could not save location.");
+    }
+  };
+
   return (
     <PoliceShell>
       <StatusBar style="dark" />
       <ScrollView
-        contentContainerStyle={styles.wrap}
+        contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={revalidating} 
+            onRefresh={refresh}
+            tintColor="#1D4ED8"
+          />
+        }
       >
-        <Text style={styles.title}>Profile</Text>
-
-        {loading && (
-          <View style={styles.centerRow}>
-            <ActivityIndicator />
-          </View>
-        )}
-
-        {error && (
-          <View style={styles.errBox}>
-            <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={refresh} style={styles.retry}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!loading && profile && (
-          <>
-            <View style={styles.avatarRow}>
-              <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} disabled={uploadingAvatar}>
-                {uploadingAvatar ? (
-                  <ActivityIndicator style={styles.avatarLoader} />
-                ) : profile.avatarUrl ? (
-                  <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
-                ) : (
-                  <View style={styles.avatarFallback}>
-                    <Text style={styles.avatarInitials}>{initials(profile.name)}</Text>
-                  </View>
-                )}
-                <View style={styles.avatarEditBadge}>
-                  <Text style={styles.avatarEditText}>Edit</Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.avatarMeta}>
-                <Text style={styles.name}>{profile.name}</Text>
-                <Text style={styles.email}>{profile.email}</Text>
-                {profile.officerProfile.badgeNumber ? (
-                  <Text style={styles.badgeLine}>
-                    Badge <Text style={styles.badgeMono}>{profile.officerProfile.badgeNumber}</Text>
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.statusCard}>
-              <Text style={styles.statusTitle}>Account status</Text>
-              {user && (
-                <>
-                  <Text style={styles.statusLine}>Role: {user.role.replace(/_/g, " ")}</Text>
-                  <Text style={styles.statusLine}>
-                    Police approval:{" "}
-                    {user.role === "POLICE_OFFICER" || user.role === "POLICE_COMMAND"
-                      ? "Approved"
-                      : user.role.replace(/_/g, " ")}
-                  </Text>
-                </>
+        {/* Profile Card */}
+        <View style={styles.headerCard}>
+          <TouchableOpacity 
+            style={styles.avatarWrapper} 
+            onPress={pickAvatar}
+            disabled={uploadingAvatar}
+          >
+            <View style={styles.avatarCircle}>
+              {uploadingAvatar ? (
+                <ActivityIndicator color="#fff" />
+              ) : profile?.avatarUrl ? (
+                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarInitial}>
+                  {profile?.name ? initials(profile.name) : "P"}
+                </Text>
               )}
             </View>
-
-            <View style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Officer details</Text>
-              <Text style={styles.detailsLine}>Rank: {profile.officerProfile.rank}</Text>
-              <Text style={styles.detailsLine}>Department: {profile.officerProfile.department}</Text>
-              <Text style={styles.detailsLine}>Precinct: {profile.officerProfile.precinct}</Text>
-              {profile.officerProfile.unitCode ? (
-                <Text style={styles.detailsLine}>Unit: {profile.officerProfile.unitCode}</Text>
-              ) : null}
-              <Text style={styles.detailsLine}>
-                Patrol status: {profile.officerProfile.patrolStatus.replace(/_/g, " ")}
-              </Text>
+            <View style={styles.editAvatarBtn}>
+              <Ionicons name="camera" size={14} color="#fff" />
             </View>
+          </TouchableOpacity>
+          <Text style={styles.userName}>{profile?.name || "Officer"}</Text>
+          <Text style={styles.userEmail}>{profile?.email}</Text>
+          <View style={styles.badgeTag}>
+             <Ionicons name="shield" size={12} color="#1D4ED8" />
+             <Text style={styles.badgeText}>Badge #{profile?.officerProfile?.badgeNumber || "—"}</Text>
+          </View>
+        </View>
 
-            <View style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Contact</Text>
-              <Text style={styles.detailsLine}>Phone: {profile.phone || "—"}</Text>
-              <Text style={styles.detailsLine}>City: {profile.city || "—"}</Text>
+        {/* Info Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Duty Information</Text>
+          <View style={styles.infoGrid}>
+             <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Rank</Text>
+                <Text style={styles.infoValue}>{profile?.officerProfile?.rank || "—"}</Text>
+             </View>
+             <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Precinct</Text>
+                <Text style={styles.infoValue}>{profile?.officerProfile?.precinct || "—"}</Text>
+             </View>
+             <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Department</Text>
+                <Text style={styles.infoValue}>{profile?.officerProfile?.department || "Police"}</Text>
+             </View>
+             <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Status</Text>
+                <Text style={[styles.infoValue, { color: "#16A34A" }]}>
+                  {profile?.officerProfile?.patrolStatus?.replace(/_/g, " ") || "ACTIVE"}
+                </Text>
+             </View>
+          </View>
+        </View>
+
+        {/* Location Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Patrol Coordinates</Text>
+          <View style={styles.card}>
+            <View style={styles.inputRow}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Latitude</Text>
+                <TextInput
+                  style={styles.input}
+                  value={latInput}
+                  onChangeText={setLatInput}
+                  keyboardType="decimal-pad"
+                  placeholder="0.0000"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Longitude</Text>
+                <TextInput
+                  style={styles.input}
+                  value={lngInput}
+                  onChangeText={setLngInput}
+                  keyboardType="decimal-pad"
+                  placeholder="0.0000"
+                />
+              </View>
             </View>
-
-            <View style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Patrol location (for distance)</Text>
-              <Text style={styles.detailsLine}>
-                Current:{" "}
-                {profile.officerProfile.currentLatitude != null &&
-                profile.officerProfile.currentLongitude != null
-                  ? `${profile.officerProfile.currentLatitude.toFixed(5)}, ${profile.officerProfile.currentLongitude.toFixed(5)}`
-                  : "not set"}
-              </Text>
-              <Text style={styles.detailsLine}>
-                Use Google Maps to pick your on-duty location and paste the coordinates here.
-              </Text>
-              <TouchableOpacity
-                style={[styles.coordUseCurrentBtn, gpsLoading && styles.coordUseCurrentBtnDisabled]}
-                disabled={gpsLoading}
+            
+            <View style={styles.locationActions}>
+              <TouchableOpacity 
+                style={styles.gpsBtn}
                 onPress={async () => {
                   setGpsLoading(true);
                   try {
                     const { status } = await Location.requestForegroundPermissionsAsync();
-                    if (status !== "granted") {
-                      Alert.alert(
-                        "Location permission",
-                        "Allow location access to fetch your patrol coordinates, or enter them manually."
-                      );
-                      return;
-                    }
-                    const pos = await Location.getCurrentPositionAsync({
-                      accuracy: Location.Accuracy.High,
-                    });
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    setLatInput(lat.toString());
-                    setLngInput(lng.toString());
-                  } catch {
-                    Alert.alert("Location", "Could not fetch your current location. Try again.");
+                    if (status !== 'granted') return;
+                    const pos = await Location.getCurrentPositionAsync({});
+                    setLatInput(pos.coords.latitude.toString());
+                    setLngInput(pos.coords.longitude.toString());
                   } finally {
                     setGpsLoading(false);
                   }
                 }}
               >
-                {gpsLoading ? (
-                  <ActivityIndicator size="small" color="#1D4ED8" />
-                ) : (
-                  <Text style={styles.coordUseCurrentText}>Use my current location</Text>
+                {gpsLoading ? <ActivityIndicator size="small" color="#1D4ED8" /> : (
+                  <>
+                    <Ionicons name="locate" size={16} color="#1D4ED8" />
+                    <Text style={styles.gpsBtnText}>Use GPS</Text>
+                  </>
                 )}
               </TouchableOpacity>
-              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.coordLabel}>Latitude</Text>
-                  <TextInput
-                    style={styles.coordInput}
-                    placeholder="e.g. 12.9716"
-                    placeholderTextColor="#9CA3AF"
-                    value={latInput}
-                    onChangeText={setLatInput}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.coordLabel}>Longitude</Text>
-                  <TextInput
-                    style={styles.coordInput}
-                    placeholder="e.g. 77.5946"
-                    placeholderTextColor="#9CA3AF"
-                    value={lngInput}
-                    onChangeText={setLngInput}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.coordSaveBtn}
-                onPress={async () => {
-                  const la = parseFloat(latInput.trim());
-                  const lo = parseFloat(lngInput.trim());
-                  if (Number.isNaN(la) || Number.isNaN(lo)) {
-                    Alert.alert("Location", "Enter valid latitude and longitude.");
-                    return;
-                  }
-                  try {
-                    const res = await updateOfficerProfile({
-                      currentLatitude: la,
-                      currentLongitude: lo,
-                    });
-                    setOfficerProfile(res.profile);
-                    await refreshUser();
-                    Alert.alert("Updated", "Patrol location saved.");
-                  } catch (e) {
-                    Alert.alert("Update failed", e instanceof Error ? e.message : "Try again.");
-                  }
-                }}
-              >
-                <Text style={styles.coordSaveText}>Save patrol location</Text>
+
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveLocation}>
+                <Text style={styles.saveBtnText}>Update Location</Text>
               </TouchableOpacity>
             </View>
-          </>
-        )}
+          </View>
+        </View>
 
-        <TouchableOpacity style={styles.signOut} onPress={() => signOut()} activeOpacity={0.85}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </TouchableOpacity>
+        {/* Menu Section */}
+        <View style={styles.section}>
+           <Text style={styles.sectionTitle}>Account</Text>
+           <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                 <View style={[styles.menuIcon, { backgroundColor: "#EFF6FF" }]}>
+                   <Ionicons name="notifications" size={20} color="#1D4ED8" />
+                 </View>
+                 <Text style={styles.menuText}>Notifications</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+           </TouchableOpacity>
+
+           <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuLeft}>
+                 <View style={[styles.menuIcon, { backgroundColor: "#F0FDF4" }]}>
+                   <Ionicons name="lock-closed" size={20} color="#16A34A" />
+                 </View>
+                 <Text style={styles.menuText}>Privacy & Security</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+           </TouchableOpacity>
+
+           <TouchableOpacity style={styles.signOutBtn} onPress={() => signOut()}>
+              <Ionicons name="log-out" size={20} color="#DC2626" />
+              <Text style={styles.signOutText}>Sign Out Account</Text>
+           </TouchableOpacity>
+        </View>
+
+        <Text style={styles.versionText}>v2.1.0 • Command Intelligence</Text>
       </ScrollView>
     </PoliceShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111", marginBottom: 20 },
-  centerRow: { paddingVertical: 24, alignItems: "center" },
-  errBox: { marginBottom: 12 },
-  errText: { color: "#B91C1C", fontSize: 14 },
-  retry: { marginTop: 8, alignSelf: "flex-start" },
-  retryText: { color: "#2563EB", fontWeight: "600" },
-  avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 16, gap: 16 },
-  avatarWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: "hidden",
-    backgroundColor: "#E2E8F0",
-    position: "relative",
-  },
-  avatarImg: { width: "100%", height: "100%" },
-  avatarFallback: {
-    flex: 1,
+  container: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 60 },
+  
+  // Header Card
+  headerCard: {
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2563EB",
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  avatarInitials: { fontSize: 26, fontWeight: "700", color: "#fff" },
-  avatarLoader: { width: 80, height: 80 },
-  avatarEditBadge: {
+  avatarWrapper: {
+    position: "relative",
+    marginBottom: 16,
+  },
+  avatarCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#1D4ED8",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 4,
+    borderColor: "#EFF6FF",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarInitial: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: "#fff",
+  },
+  editAvatarBtn: {
     position: "absolute",
     bottom: 2,
     right: 2,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1D4ED8",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
   },
-  avatarEditText: { color: "#fff", fontSize: 11, fontWeight: "600" },
-  avatarMeta: { flex: 1 },
-  name: { fontSize: 18, fontWeight: "700", color: "#111" },
-  email: { fontSize: 14, color: "#64748B", marginTop: 4 },
-  badgeLine: { fontSize: 13, color: "#1D4ED8", marginTop: 8 },
-  badgeMono: { fontFamily: "Menlo", fontWeight: "700" },
-  statusCard: {
-    backgroundColor: "#F8FAFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    padding: 14,
-    marginBottom: 16,
+  userName: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1E293B",
   },
-  statusTitle: { fontSize: 13, fontWeight: "700", color: "#111", marginBottom: 4 },
-  statusLine: { fontSize: 12, color: "#475569" },
-  detailsCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    padding: 14,
-    marginBottom: 16,
+  userEmail: {
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 4,
   },
-  detailsTitle: { fontSize: 13, fontWeight: "700", color: "#111", marginBottom: 6 },
-  detailsLine: { fontSize: 12, color: "#475569", marginTop: 2 },
-  coordLabel: { fontSize: 11, color: "#6B7280", marginBottom: 4, marginTop: 4 },
-  coordInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-  },
-  coordSaveBtn: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#2563EB",
-  },
-  coordSaveText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
-  coordUseCurrentBtn: {
-    alignSelf: "flex-start",
-    marginTop: 10,
+  badgeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: "#EFF6FF",
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1D4ED8",
+    letterSpacing: 0.5,
+  },
+
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+
+  // Info Grid
+  infoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  infoBox: {
+    width: "48%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#F1F5F9",
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94A3B8",
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+
+  // Card / Inputs
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  inputRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  inputContainer: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: "#F8FAFF",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  locationActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  gpsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
     backgroundColor: "#EFF6FF",
   },
-  coordUseCurrentBtnDisabled: {
-    opacity: 0.7,
+  gpsBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1D4ED8",
   },
-  coordUseCurrentText: { fontSize: 12, fontWeight: "600", color: "#1D4ED8" },
-  signOut: {
-    backgroundColor: "#DC2626",
-    paddingVertical: 16,
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#1D4ED8",
     borderRadius: 12,
+    justifyContent: "center",
     alignItems: "center",
   },
-  signOutText: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#fff",
+  },
+
+  // Menu Items
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 12,
+    paddingRight: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  menuLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+
+  // Sign out
+  signOutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#DC2626",
+  },
+  versionText: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 32,
+    fontWeight: "700",
+  },
 });
 
 

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "crime-reporting",
+    "name": "CrimeBook",
     "slug": "crime-reporting",
     "scheme": "crime-reporting",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,15 +14,23 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.crimebook.app"
     },
     "android": {
+      "package": "com.crimebook.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/images/logo.png"
@@ -46,7 +54,13 @@
         {
           "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to set your home coordinates for safety features."
         }
-      ]
-    ]
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "db96c2b3-4e0e-4e3b-b80f-31dacf1b8cd9"
+      }
+    }
   }
 }

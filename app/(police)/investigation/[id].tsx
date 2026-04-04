@@ -11,6 +11,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -76,16 +78,17 @@ function mapUiToCaseStatus(
 }
 
 const quickCapture = [
-  { icon: "camera-outline" as const, label: "Photo" },
-  { icon: "mic-outline" as const, label: "Audio" },
-  { icon: "document-text-outline" as const, label: "Document" },
-  { icon: "cloud-upload-outline" as const, label: "Upload" },
+  { icon: "camera-outline" as const, label: "Photo", color: "#1D4ED8" },
+  { icon: "mic-outline" as const, label: "Audio", color: "#EF4444" },
+  { icon: "document-text-outline" as const, label: "Note", color: "#F59E0B" },
+  { icon: "cloud-upload-outline" as const, label: "Upload", color: "#10B981" },
 ];
 
-export default function Investigation() {
+export default function InvestigationDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const caseId = Array.isArray(id) ? id[0] : id;
+  
   const [activeStatus, setActiveStatus] = useState<(typeof statusOptions)[number]>("On Scene");
   const [activeCaseStatus, setActiveCaseStatus] = useState<(typeof caseStatusOptions)[number] | "">("");
   const [notes, setNotes] = useState("");
@@ -94,8 +97,8 @@ export default function Investigation() {
   const [savingTag, setSavingTag] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
-  const [caseStatusLoading, setCaseStatusLoading] = useState(true);
-  const [refreshingCase, setRefreshingCase] = useState(false);
+  const [caseLoading, setCaseLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [threadMessages, setThreadMessages] = useState<ReportMessageItem[]>([]);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -104,850 +107,653 @@ export default function Investigation() {
   const [threadError, setThreadError] = useState<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [linkedReportId, setLinkedReportId] = useState<string | null>(null);
+  const [caseNumber, setCaseNumber] = useState("");
+  
   const [appealOpen, setAppealOpen] = useState(false);
   const [appealTitle, setAppealTitle] = useState("");
   const [appealDescription, setAppealDescription] = useState("");
   const [appealRadiusKm, setAppealRadiusKm] = useState("5");
   const [appealSaving, setAppealSaving] = useState(false);
 
-  const loadCaseStatus = useCallback(
+  const load = useCallback(
     async (mode?: "refresh") => {
-      if (!caseId) {
-        setCaseStatusLoading(false);
-        return;
-      }
-      if (mode === "refresh") setRefreshingCase(true);
-      else setCaseStatusLoading(true);
+      if (!caseId) return;
+      if (mode === "refresh") setRefreshing(true);
+      else setCaseLoading(true);
       try {
         const { case: c } = await fetchPoliceCase(caseId);
         setLinkedReportId(c.reportId);
+        setCaseNumber(c.caseNumber || caseId.slice(-8).toUpperCase());
         const mapped = mapCaseStatusFromDb(c.status);
         setActiveStatus(mapped.top);
         setActiveCaseStatus(mapped.bottom);
-        if (mode === "refresh") {
-          try {
-            const { messages } = await fetchCaseMessages(caseId);
-            setThreadMessages(messages);
-            setThreadError(null);
-          } catch {
-            /* keep existing thread on refresh failure */
-          }
-        }
-      } catch {
-        // keep local defaults if fetch fails
+        
+        const { messages } = await fetchCaseMessages(caseId);
+        setThreadMessages(messages);
+      } catch (e) {
+        console.error(e);
       } finally {
-        setCaseStatusLoading(false);
-        setRefreshingCase(false);
+        setCaseLoading(false);
+        setRefreshing(false);
       }
     },
     [caseId]
   );
 
   useEffect(() => {
-    loadCaseStatus();
-  }, [loadCaseStatus]);
-
-  useEffect(() => {
-    if (!caseId) return;
-    let cancelled = false;
-    setThreadError(null);
-    setThreadLoading(true);
-    fetchCaseMessages(caseId)
-      .then(({ messages }) => {
-        if (!cancelled) setThreadMessages(messages);
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setThreadError(e instanceof Error ? e.message : "Could not load messages");
-          setThreadMessages([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setThreadLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [caseId]);
-
-  useEffect(() => {
-    return () => {
-      const rec = recordingRef.current;
-      recordingRef.current = null;
-      if (rec) {
-        rec.stopAndUnloadAsync().catch(() => null);
-      }
-    };
-  }, []);
-
-  const statusControlsDisabled = caseStatusLoading || statusSaving;
-
-  const submitAppeal = async () => {
-    if (!caseId || !linkedReportId) {
-      Alert.alert("Error", "Case or report not loaded yet.");
-      return;
-    }
-    if (!appealTitle.trim() || !appealDescription.trim()) {
-      Alert.alert("Required", "Enter title and description.");
-      return;
-    }
-    const rKm = Number(appealRadiusKm);
-    if (!Number.isFinite(rKm) || rKm <= 0 || rKm > 500) {
-      Alert.alert("Radius", "Enter a radius between 1 and 500 km.");
-      return;
-    }
-    try {
-      setAppealSaving(true);
-      const { report } = await fetchPoliceIncidentDetail(linkedReportId);
-      await createPoliceCaseAppeal(caseId, {
-        title: appealTitle.trim(),
-        description: appealDescription.trim(),
-        latitude: report.latitude,
-        longitude: report.longitude,
-        radiusKm: rKm,
-      });
-      setAppealOpen(false);
-      Alert.alert("Published", "Public appeal created.");
-    } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "Could not create appeal");
-    } finally {
-      setAppealSaving(false);
-    }
-  };
+    load();
+  }, [load]);
 
   const handleOperationalStatusPress = async (s: (typeof statusOptions)[number]) => {
-    if (!caseId || statusControlsDisabled) return;
+    if (!caseId || statusSaving) return;
     setActiveStatus(s);
     setActiveCaseStatus("");
     try {
       setStatusSaving(true);
       await updatePoliceCaseStatus(caseId, mapUiToCaseStatus(s, ""));
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not update status";
-      Alert.alert("Error", message);
+      Alert.alert("Error", e instanceof Error ? e.message : "Status update failed");
     } finally {
       setStatusSaving(false);
     }
   };
 
   const handleOutcomeStatusPress = async (s: (typeof caseStatusOptions)[number]) => {
-    if (!caseId || statusControlsDisabled) return;
+    if (!caseId || statusSaving) return;
     setActiveCaseStatus(s);
     try {
       setStatusSaving(true);
       await updatePoliceCaseStatus(caseId, mapUiToCaseStatus(activeStatus, s));
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not update status";
-      Alert.alert("Error", message);
+      Alert.alert("Error", e instanceof Error ? e.message : "Status update failed");
     } finally {
       setStatusSaving(false);
     }
   };
 
-  const handleSaveNotes = async () => {
-    if (!caseId) {
-      Alert.alert("Missing case", "No case ID in the URL.");
+  const submitAppeal = async () => {
+    if (!caseId || !linkedReportId) return;
+    if (!appealTitle.trim() || !appealDescription.trim()) {
+      Alert.alert("Required", "Please fill title and description");
       return;
     }
-
-    if (!notes.trim()) {
-      Alert.alert("Add some notes", "Please enter a note before saving.");
-      return;
-    }
-
+    setAppealSaving(true);
     try {
-      setSaving(true);
-      await saveCaseNote(caseId, notes.trim());
-      Alert.alert("Saved", "Investigation notes saved to the case.");
-      setNotes("");
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not save notes";
-      Alert.alert("Error", message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const inferEvidenceType = (mimeType?: string) => {
-    if (!mimeType) return "OTHER" as const;
-    if (mimeType.startsWith("image/")) return "PHOTO" as const;
-    if (mimeType.startsWith("video/")) return "VIDEO" as const;
-    if (mimeType.startsWith("audio/")) return "STATEMENT" as const;
-    return "DOCUMENT" as const;
-  };
-
-  const uploadPickedAsset = async (uri: string, mimeType: string, fileName: string) => {
-    if (!caseId) {
-      Alert.alert("Missing case", "No case ID in the URL.");
-      return;
-    }
-    setUploading(true);
-    try {
-      const uploaded = await uploadCrimeMediaFile({
-        uri,
-        name: fileName,
-        mimeType,
-        folder: "reports",
+      const { report } = await fetchPoliceIncidentDetail(linkedReportId);
+      await createPoliceCaseAppeal(caseId, {
+        title: appealTitle.trim(),
+        description: appealDescription.trim(),
+        latitude: report.latitude,
+        longitude: report.longitude,
+        radiusKm: Number(appealRadiusKm) || 5,
       });
-      await addCaseEvidence({
-        caseId,
-        fileUrl: uploaded.url,
-        fileName: uploaded.fileName,
-        fileSizeBytes: uploaded.fileSizeBytes,
-        evidenceType: inferEvidenceType(uploaded.mimeType),
-      });
-      Alert.alert("Uploaded", "Evidence added to this case.");
+      setAppealOpen(false);
+      Alert.alert("Success", "Public appeal broadcasted.");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Upload failed";
-      Alert.alert("Error", message);
+      Alert.alert("Error", e instanceof Error ? e.message : "Failed to create appeal");
     } finally {
-      setUploading(false);
+      setAppealSaving(false);
     }
-  };
-
-  const stopMicRecordingAndUpload = async () => {
-    const rec = recordingRef.current;
-    recordingRef.current = null;
-    setIsRecordingAudio(false);
-    if (!rec) return;
-    setUploading(true);
-    try {
-      await rec.stopAndUnloadAsync();
-      const uri = rec.getURI();
-      if (!uri) throw new Error("No audio file produced");
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => null);
-      const ext = uri.split(".").pop()?.toLowerCase();
-      const safeExt = ext && ext.length <= 5 ? ext : "m4a";
-      const mime =
-        safeExt === "m4a" || safeExt === "mp4"
-          ? "audio/mp4"
-          : safeExt === "caf"
-            ? "audio/x-caf"
-            : safeExt === "3gp"
-              ? "audio/3gpp"
-              : "audio/m4a";
-      const fileName = `field-audio-${Date.now()}.${safeExt}`;
-      await uploadPickedAsset(uri, mime, fileName);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not save recording";
-      Alert.alert("Error", message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const startMicRecording = async () => {
-    const perm = await Audio.requestPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert("Permission required", "Microphone access is needed to record audio evidence.");
-      return;
-    }
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-    });
-    const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-    recordingRef.current = recording;
-    setIsRecordingAudio(true);
-  };
-
-  const handleAudioQuickCapture = async () => {
-    if (uploading && !isRecordingAudio) return;
-    if (isRecordingAudio) {
-      await stopMicRecordingAndUpload();
-      return;
-    }
-    try {
-      await startMicRecording();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not start recording";
-      Alert.alert("Error", message);
-    }
-  };
-
-  const handleQuickCapture = async (label: string) => {
-    if (uploading && label !== "Audio") return;
-    if (label === "Audio") {
-      await handleAudioQuickCapture();
-      return;
-    }
-    if (isRecordingAudio) {
-      Alert.alert("Recording in progress", "Stop the audio recording first (tap Audio again).");
-      return;
-    }
-    if (uploading) return;
-    if (label === "Photo") {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Permission required", "Camera permission is needed to capture a photo.");
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        quality: 0.85,
-      });
-      if (result.canceled || !result.assets[0]) return;
-      const asset = result.assets[0];
-      await uploadPickedAsset(
-        asset.uri,
-        asset.mimeType || "image/jpeg",
-        asset.fileName || `photo-${Date.now()}.jpg`
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      quality: 0.9,
-      allowsMultipleSelection: false,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    await uploadPickedAsset(
-      asset.uri,
-      asset.mimeType || "application/octet-stream",
-      asset.fileName || `evidence-${Date.now()}`
-    );
   };
 
   const sendReporterMessage = async () => {
     const text = threadInput.trim();
     if (!text || !caseId || threadSending) return;
     setThreadSending(true);
-    setThreadError(null);
     try {
       const { message } = await sendCaseMessage(caseId, text);
       setThreadMessages((prev) => [...prev, message]);
       setThreadInput("");
     } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "Could not send");
+      Alert.alert("Error", e instanceof Error ? e.message : "Failed to send");
     } finally {
       setThreadSending(false);
     }
   };
 
-  const handleAddTag = async () => {
-    if (!caseId) {
-      Alert.alert("Missing case", "No case ID in the URL.");
-      return;
+  const handleQuickCapture = async (label: string) => {
+    if (uploading) return;
+    if (label === "Photo") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) return;
+      const res = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
+      if (res.canceled) return;
+      await uploadEvidence(res.assets[0].uri, res.assets[0].mimeType || "image/jpeg", "field_photo.jpg");
+    } else if (label === "Upload") {
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], quality: 0.8 });
+      if (res.canceled) return;
+      await uploadEvidence(res.assets[0].uri, res.assets[0].mimeType || "image/jpeg", "uploaded_evidence");
+    } else if (label === "Audio") {
+      if (isRecordingAudio) {
+        await stopRecording();
+      } else {
+        await startRecording();
+      }
+    } else if (label === "Note") {
+      // Focus notes input or open note modal
     }
-    if (!suspectTag.trim()) {
-      Alert.alert("Add tag", "Enter suspect details before adding.");
-      return;
-    }
+  };
+
+  const startRecording = async () => {
     try {
-      setSavingTag(true);
-      await addCaseSuspect(caseId, suspectTag.trim());
-      setSuspectTag("");
-      Alert.alert("Saved", "Suspect tag added.");
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) return;
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecordingAudio(true);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not save suspect tag";
-      Alert.alert("Error", message);
+      console.error(e);
+    }
+  };
+
+  const stopRecording = async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    setIsRecordingAudio(false);
+    if (!rec) return;
+    try {
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+      if (uri) await uploadEvidence(uri, "audio/m4a", "audio_statement.m4a");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const uploadEvidence = async (uri: string, mime: string, name: string) => {
+    if (!caseId) return;
+    setUploading(true);
+    try {
+      const uploaded = await uploadCrimeMediaFile({ uri, name, mimeType: mime, folder: "reports" });
+      await addCaseEvidence({
+        caseId,
+        fileUrl: uploaded.url,
+        fileName: uploaded.fileName,
+        fileSizeBytes: uploaded.fileSizeBytes,
+        evidenceType: mime.startsWith("image") ? "PHOTO" : "OTHER",
+      });
+      Alert.alert("Success", "Evidence recorded.");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Upload failed");
     } finally {
-      setSavingTag(false);
+      setUploading(false);
     }
   };
 
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <View style={styles.wrapper}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={styles.wrapper}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Case Investigation</Text>
+            <Text style={styles.subTitle}>#{caseNumber}</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.actionBtn} 
+            onPress={() => caseId && router.push({ pathname: "/(police)/investigation-notes/[id]", params: { id: caseId } })}
+          >
+            <Ionicons name="journal-outline" size={20} color="#1D4ED8" />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshingCase} onRefresh={() => loadCaseStatus("refresh")} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
         >
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.8}>
-              <Ionicons name="chevron-back" size={20} color="#111827" />
-            </TouchableOpacity>
-            <View>
-              <Text style={styles.heading}>Investigation</Text>
-              <Text style={styles.subheading}>Case ID: {caseId ?? "—"}</Text>
+          {caseLoading && !refreshing ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator color="#1D4ED8" />
+              <Text style={styles.loadingText}>Accessing secure case files...</Text>
             </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.timelineBtn}
-            activeOpacity={0.85}
-            onPress={() =>
-              caseId
-                ? router.push({
-                    pathname: "/(police)/investigation-notes/[id]",
-                    params: { id: caseId },
-                  })
-                : null
-            }
-          >
-            <Ionicons name="list-outline" size={16} color="#1D4ED8" />
-            <Text style={styles.timelineBtnText}>Investigation Notes Tab</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.appealBtn}
-            activeOpacity={0.85}
-            onPress={() => {
-              setAppealTitle("");
-              setAppealDescription("");
-              setAppealRadiusKm("5");
-              setAppealOpen(true);
-            }}
-          >
-            <Ionicons name="megaphone-outline" size={16} color="#B45309" />
-            <Text style={styles.appealBtnText}>Public appeal</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.sectionLabel}>Case Status</Text>
-          {caseStatusLoading ? (
-            <Text style={styles.statusLoadingText}>Loading case status…</Text>
-          ) : null}
-          <View style={styles.statusRow}>
-            {statusOptions.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[
-                  styles.statusChip,
-                  activeStatus === s && styles.statusChipActive,
-                  statusControlsDisabled && styles.statusChipDisabled,
-                ]}
-                onPress={() => handleOperationalStatusPress(s)}
-                activeOpacity={0.85}
-                disabled={statusControlsDisabled}
-              >
-                <Text style={[styles.statusChipText, activeStatus === s && styles.statusChipTextActive]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.caseStatusRow}>
-            {caseStatusOptions.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[
-                  styles.caseChip,
-                  activeCaseStatus === s && styles.caseChipActive,
-                  statusControlsDisabled && styles.statusChipDisabled,
-                ]}
-                onPress={() => handleOutcomeStatusPress(s)}
-                activeOpacity={0.85}
-                disabled={statusControlsDisabled}
-              >
-                <Text style={[styles.caseChipText, activeCaseStatus === s && styles.caseChipTextActive]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {statusSaving ? <Text style={styles.statusSavingHint}>Updating status…</Text> : null}
-
-          <Text style={styles.sectionLabel}>Reporter chat</Text>
-          <Text style={styles.threadHint}>
-            Same thread the reporter sees on their report. Messages are tied to the underlying incident report.
-          </Text>
-          {threadLoading ? <ActivityIndicator style={{ marginVertical: 12 }} /> : null}
-          {threadError ? <Text style={styles.threadError}>{threadError}</Text> : null}
-          <View style={styles.threadList}>
-            {threadMessages.map((m) => {
-              const fromOfficer = isPoliceSenderRole(m.senderRole);
-              return (
-                <View
-                  key={m.id}
-                  style={[styles.msgRow, fromOfficer ? styles.msgRowYou : styles.msgRowOther]}
-                >
-                  <View style={[styles.msgBubble, fromOfficer ? styles.msgBubbleYou : styles.msgBubbleOther]}>
-                    <Text style={styles.msgSender}>
-                      {fromOfficer ? "You" : m.senderName} · {formatEnum(m.senderRole)}
-                    </Text>
-                    <Text style={styles.msgBody}>{m.body}</Text>
-                    <Text style={styles.msgTime}>{new Date(m.createdAt).toLocaleString()}</Text>
-                  </View>
+          ) : (
+            <>
+              {/* Status Section */}
+              <View style={styles.card}>
+                <View style={styles.sectionHeader}>
+                   <Ionicons name="shield-outline" size={18} color="#1D4ED8" />
+                   <Text style={styles.sectionTitle}>Operational Status</Text>
                 </View>
-              );
-            })}
-          </View>
-          <View style={styles.threadComposer}>
-            <TextInput
-              style={styles.threadInput}
-              placeholder="Message the reporter…"
-              placeholderTextColor="#9CA3AF"
-              value={threadInput}
-              onChangeText={setThreadInput}
-              multiline
-              maxLength={8000}
-              editable={!threadSending}
-            />
-            <TouchableOpacity
-              style={[styles.threadSendBtn, threadSending && styles.threadSendBtnDisabled]}
-              onPress={sendReporterMessage}
-              disabled={threadSending || !threadInput.trim()}
-              activeOpacity={0.85}
-            >
-              {threadSending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="send" size={18} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
-          </View>
+                <View style={styles.statusGrid}>
+                  {statusOptions.map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.statusChip, activeStatus === s && styles.statusChipActive]}
+                      onPress={() => handleOperationalStatusPress(s)}
+                      disabled={statusSaving}
+                    >
+                      <Text style={[styles.statusChipText, activeStatus === s && styles.statusChipTextActive]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={[styles.statusGrid, { marginTop: 12 }]}>
+                  {caseStatusOptions.map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.outcomeChip, activeCaseStatus === s && styles.outcomeChipActive]}
+                      onPress={() => handleOutcomeStatusPress(s)}
+                      disabled={statusSaving}
+                    >
+                      <Text style={[styles.outcomeChipText, activeCaseStatus === s && styles.outcomeChipTextActive]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-          <Text style={styles.sectionLabel}>Field Notes</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Add investigation notes..."
-            placeholderTextColor="#9CA3AF"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+              {/* Quick Actions */}
+              <View style={styles.card}>
+                <View style={styles.sectionHeader}>
+                   <Ionicons name="flash-outline" size={18} color="#F59E0B" />
+                   <Text style={styles.sectionTitle}>Quick Capture</Text>
+                </View>
+                <View style={styles.actionRow}>
+                  {quickCapture.map((item) => (
+                    <TouchableOpacity
+                      key={item.label}
+                      style={styles.captureBtn}
+                      onPress={() => handleQuickCapture(item.label)}
+                      disabled={uploading}
+                    >
+                      <View style={[styles.captureIconBox, { backgroundColor: item.color + "1A" }]}>
+                        <Ionicons 
+                          name={item.label === "Audio" && isRecordingAudio ? "stop-circle" : item.icon} 
+                          size={24} 
+                          color={item.label === "Audio" && isRecordingAudio ? "#EF4444" : item.color} 
+                        />
+                      </View>
+                      <Text style={styles.captureLabel}>{item.label === "Audio" && isRecordingAudio ? "Recording" : item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-          <Text style={styles.sectionLabel}>Quick Capture</Text>
-          <View style={styles.captureRow}>
-            {quickCapture.map((item) => (
-              <TouchableOpacity
-                key={item.label}
-                style={[
-                  styles.captureBtn,
-                  (uploading || isRecordingAudio) && item.label !== "Audio" && styles.btnDisabled,
-                  item.label === "Audio" && isRecordingAudio && styles.captureBtnRecording,
-                ]}
-                activeOpacity={0.85}
-                onPress={() => handleQuickCapture(item.label)}
-                disabled={Boolean(
-                  (uploading && !isRecordingAudio && item.label !== "Audio") ||
-                    (isRecordingAudio && item.label !== "Audio")
-                )}
+              {/* Chat Section */}
+              <View style={styles.card}>
+                <View style={styles.sectionHeader}>
+                   <Ionicons name="chatbubbles-outline" size={18} color="#10B981" />
+                   <Text style={styles.sectionTitle}>Reporter Communication</Text>
+                </View>
+                <View style={styles.chatBox}>
+                  {threadMessages.length === 0 ? (
+                    <Text style={styles.emptyChat}>Start a secure thread with the reporter.</Text>
+                  ) : (
+                    threadMessages.map((m) => {
+                      const isMe = isPoliceSenderRole(m.senderRole);
+                      return (
+                        <View key={m.id} style={[styles.messageRow, isMe ? styles.messageMe : styles.messageOther]}>
+                          <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
+                            <Text style={[styles.senderName, isMe ? styles.senderMe : styles.senderOther]}>
+                              {isMe ? "YOU" : m.senderName.toUpperCase()}
+                            </Text>
+                            <Text style={[styles.messageText, isMe ? styles.messageTextMe : styles.messageTextOther]}>{m.body}</Text>
+                            <Text style={styles.messageTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+                <View style={styles.chatInputRow}>
+                   <TextInput
+                     style={styles.chatInput}
+                     placeholder="Type intelligence..."
+                     value={threadInput}
+                     onChangeText={setThreadInput}
+                     multiline
+                   />
+                   <TouchableOpacity 
+                     style={[styles.sendBtn, !threadInput.trim() && styles.sendBtnDisabled]}
+                     onPress={sendReporterMessage}
+                     disabled={!threadInput.trim() || threadSending}
+                   >
+                     {threadSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+                   </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Public Appeal */}
+              <TouchableOpacity 
+                style={styles.appealBanner}
+                onPress={() => setAppealOpen(true)}
+                activeOpacity={0.9}
               >
-                <Ionicons
-                  name={item.label === "Audio" && isRecordingAudio ? "stop-circle" : item.icon}
-                  size={22}
-                  color={item.label === "Audio" && isRecordingAudio ? "#DC2626" : "#4B5563"}
-                  style={styles.captureIcon}
+                <View style={styles.appealIconBox}>
+                   <Ionicons name="megaphone" size={24} color="#fff" />
+                </View>
+                <View style={styles.appealContent}>
+                   <Text style={styles.appealTitle}>Broadcast Public Appeal</Text>
+                   <Text style={styles.appealSub}>Request community assistance in this area</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              </TouchableOpacity>
+
+              {/* Field Notes Area */}
+              <View style={styles.card}>
+                <View style={styles.sectionHeader}>
+                   <Ionicons name="create-outline" size={18} color="#475569" />
+                   <Text style={styles.sectionTitle}>Incident Log Notes</Text>
+                </View>
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="Record observations, suspect descriptions, or scene details..."
+                  multiline
+                  value={notes}
+                  onChangeText={setNotes}
+                  textAlignVertical="top"
                 />
-                <Text style={styles.captureLabel}>
-                  {item.label === "Audio" && isRecordingAudio ? "Stop" : item.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {isRecordingAudio ? (
-            <Text style={styles.recordingHint}>Recording… Tap Stop (Audio) again to upload.</Text>
-          ) : null}
-          {uploading ? <Text style={styles.helperText}>Uploading evidence...</Text> : null}
-
-          <Text style={styles.sectionLabel}>Suspect Tags</Text>
-          <View style={styles.suspectRow}>
-            <TextInput
-              style={styles.suspectInput}
-              placeholder="Add suspect description..."
-              placeholderTextColor="#9CA3AF"
-              value={suspectTag}
-              onChangeText={setSuspectTag}
-            />
-            <TouchableOpacity
-              style={[styles.addBtn, savingTag && styles.btnDisabled]}
-              activeOpacity={0.9}
-              onPress={handleAddTag}
-              disabled={savingTag}
-            >
-              <Ionicons name="add" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveBtn, (saving || uploading || isRecordingAudio) && styles.saveBtnDisabled]}
-            activeOpacity={0.9}
-            disabled={saving || uploading || isRecordingAudio}
-            onPress={handleSaveNotes}
-          >
-            <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save Investigation Notes"}</Text>
-          </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.saveBtn, !notes.trim() && styles.saveBtnDisabled]}
+                  onPress={async () => {
+                    if (!caseId || !notes.trim() || saving) return;
+                    setSaving(true);
+                    try {
+                      await saveCaseNote(caseId, notes.trim());
+                      setNotes("");
+                      Alert.alert("Recorded", "Notes added to case log.");
+                    } catch (e) {
+                      Alert.alert("Error", "Failed to save note");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={!notes.trim() || saving}
+                >
+                  {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Record Entry</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+          <View style={{ height: 40 }} />
         </ScrollView>
-      </View>
 
-      <Modal visible={appealOpen} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Public appeal</Text>
-            <Text style={styles.modalHint}>Broadcast to the community near the incident location.</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Title"
-              placeholderTextColor="#9CA3AF"
-              value={appealTitle}
-              onChangeText={setAppealTitle}
-            />
-            <TextInput
-              style={[styles.modalInput, styles.modalInputMultiline]}
-              placeholder="What should the public look for?"
-              placeholderTextColor="#9CA3AF"
-              value={appealDescription}
-              onChangeText={setAppealDescription}
-              multiline
-              textAlignVertical="top"
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Radius (km)"
-              placeholderTextColor="#9CA3AF"
-              value={appealRadiusKm}
-              onChangeText={setAppealRadiusKm}
-              keyboardType="decimal-pad"
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnGhost]}
-                onPress={() => setAppealOpen(false)}
-                disabled={appealSaving}
-              >
-                <Text style={styles.modalBtnGhostText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnPrimary]}
-                onPress={submitAppeal}
-                disabled={appealSaving}
-              >
-                {appealSaving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.modalBtnPrimaryText}>Publish</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        {/* Appeal Modal */}
+        <Modal visible={appealOpen} transparent animationType="slide">
+           <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                 <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Public Appeal</Text>
+                    <TouchableOpacity onPress={() => setAppealOpen(false)}>
+                       <Ionicons name="close" size={24} color="#64748B" />
+                    </TouchableOpacity>
+                 </View>
+                 <Text style={styles.modalLabel}>Broadcast Title</Text>
+                 <TextInput 
+                   style={styles.modalInput} 
+                   value={appealTitle} 
+                   onChangeText={setAppealTitle}
+                   placeholder="e.g. Seeking witnesses for RO-2024..."
+                 />
+                 <Text style={styles.modalLabel}>Description & Instructions</Text>
+                 <TextInput 
+                   style={[styles.modalInput, styles.modalArea]} 
+                   value={appealDescription} 
+                   onChangeText={setAppealDescription}
+                   multiline
+                   placeholder="Describe what the community should report..."
+                 />
+                 <View style={styles.modalFooter}>
+                    <TouchableOpacity style={styles.modalCancel} onPress={() => setAppealOpen(false)}>
+                       <Text style={styles.modalCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.modalSubmit, appealSaving && styles.modalSubmitDisabled]} 
+                      onPress={submitAppeal}
+                      disabled={appealSaving}
+                    >
+                       {appealSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSubmitText}>Broadcast Now</Text>}
+                    </TouchableOpacity>
+                 </View>
+              </View>
+           </View>
+        </Modal>
+      </KeyboardAvoidingView>
     </PoliceShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: "#FFFFFF" },
-  container: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 32 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 22 },
+  wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderColor: "#F1F5F9",
+  },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#F0F4FF",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
   },
-  heading: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  subheading: { fontSize: 12, color: "#6B7280" },
-  sectionLabel: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 10 },
-  timelineBtn: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    alignSelf: "flex-start",
+  headerText: { alignItems: "center" },
+  title: { fontSize: 16, fontWeight: "800", color: "#1E293B" },
+  subTitle: { fontSize: 12, fontWeight: "600", color: "#64748B", marginTop: 2 },
+  actionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: "#EFF6FF",
-    borderColor: "#BFDBFE",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 16,
+    borderColor: "#DBEAFE",
   },
-  timelineBtnText: { color: "#1D4ED8", fontSize: 12, fontWeight: "700" },
-  appealBtn: {
+
+  container: { padding: 20 },
+  loadingBox: { paddingVertical: 100, alignItems: "center", gap: 12 },
+  loadingText: { fontSize: 14, color: "#64748B", fontWeight: "600" },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: "800", color: "#1E293B", letterSpacing: 0.5 },
+
+  statusGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  statusChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  statusChipActive: { backgroundColor: "#1D4ED8", borderColor: "#1D4ED8" },
+  statusChipText: { fontSize: 13, fontWeight: "700", color: "#64748B" },
+  statusChipTextActive: { color: "#fff" },
+
+  outcomeChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#FFFBEB",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  outcomeChipActive: { backgroundColor: "#D97706", borderColor: "#D97706" },
+  outcomeChipText: { fontSize: 13, fontWeight: "700", color: "#B45309" },
+  outcomeChipTextActive: { color: "#fff" },
+
+  actionRow: { flexDirection: "row", justifyContent: "space-between" },
+  captureBtn: { alignItems: "center", gap: 8 },
+  captureIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  captureLabel: { fontSize: 11, fontWeight: "700", color: "#64748B" },
+
+  chatBox: {
+    maxHeight: 300,
+    marginBottom: 16,
+    gap: 12,
+  },
+  emptyChat: { fontSize: 13, color: "#94A3B8", textAlign: "center", fontStyle: "italic", padding: 20 },
+  messageRow: { flexDirection: "row", marginBottom: 8 },
+  messageMe: { justifyContent: "flex-end" },
+  messageOther: { justifyContent: "flex-start" },
+  bubble: {
+    maxWidth: "85%",
+    padding: 12,
+    borderRadius: 16,
+  },
+  bubbleMe: {
+    backgroundColor: "#1D4ED8",
+    borderBottomRightRadius: 4,
+  },
+  bubbleOther: {
+    backgroundColor: "#F1F5F9",
+    borderBottomLeftRadius: 4,
+  },
+  senderName: { fontSize: 9, fontWeight: "900", marginBottom: 4, letterSpacing: 0.5 },
+  senderMe: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
+  senderOther: { color: "#64748B" },
+  messageText: { fontSize: 14, lineHeight: 20 },
+  messageTextMe: { color: "#fff" },
+  messageTextOther: { color: "#1E293B" },
+  messageTime: { fontSize: 9, color: "rgba(0,0,0,0.3)", marginTop: 4, textAlign: "right" },
+
+  chatInputRow: {
     flexDirection: "row",
     gap: 8,
-    alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "#FFFBEB",
-    borderColor: "#FCD34D",
+    alignItems: "flex-end",
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: "#F8FAFF",
+    borderRadius: 20,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    maxHeight: 100,
+    fontSize: 14,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#1D4ED8",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sendBtnDisabled: { backgroundColor: "#94A3B8" },
+
+  appealBanner: {
+    backgroundColor: "#1E293B",
+    borderRadius: 24,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    marginBottom: 20,
+  },
+  appealIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#334155",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  appealContent: { flex: 1 },
+  appealTitle: { fontSize: 15, fontWeight: "800", color: "#fff" },
+  appealSub: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+
+  notesInput: {
+    backgroundColor: "#F8FAFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 16,
+    height: 120,
+    fontSize: 14,
+    color: "#1E293B",
     marginBottom: 16,
   },
-  appealBtnText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
-  modalBackdrop: {
+  saveBtn: {
+    backgroundColor: "#1E293B",
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  saveBtnDisabled: { opacity: 0.5 },
+  saveBtnText: { color: "#fff", fontSize: 14, fontWeight: "800" },
+
+  modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(15, 23, 42, 0.8)",
     justifyContent: "center",
     padding: 20,
   },
   modalCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 32,
+    padding: 24,
   },
-  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  modalHint: { fontSize: 12, color: "#6B7280", marginTop: 6, marginBottom: 12 },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    color: "#111827",
-    marginBottom: 10,
-  },
-  modalInputMultiline: { minHeight: 100 },
-  modalActions: { flexDirection: "row", gap: 10, marginTop: 8 },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalBtnGhost: { backgroundColor: "#F3F4F6" },
-  modalBtnGhostText: { fontWeight: "700", color: "#374151" },
-  modalBtnPrimary: { backgroundColor: "#2563EB" },
-  modalBtnPrimaryText: { fontWeight: "700", color: "#fff" },
-  statusLoadingText: { fontSize: 12, color: "#64748B", marginBottom: 8 },
-  statusSavingHint: { fontSize: 12, color: "#64748B", marginTop: -12, marginBottom: 14 },
-  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8, marginBottom: 8 },
-  statusChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  statusChipActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
-  statusChipDisabled: { opacity: 0.55 },
-  statusChipText: { fontSize: 12, fontWeight: "600", color: "#6B7280" },
-  statusChipTextActive: { color: "#FFFFFF" },
-  caseStatusRow: {
+  modalHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    rowGap: 10,
-    marginBottom: 22,
-  },
-  caseChip: {
-    flexGrow: 1,
-    flexBasis: "46%",
-    minWidth: 140,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 20,
   },
-  caseChipActive: { backgroundColor: "#EFF6FF", borderColor: "#2563EB" },
-  caseChipText: { fontSize: 12, fontWeight: "600", color: "#6B7280", textAlign: "center" },
-  caseChipTextActive: { color: "#2563EB" },
-  notesInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  modalTitle: { fontSize: 20, fontWeight: "800", color: "#1E293B" },
+  modalLabel: { fontSize: 12, fontWeight: "800", color: "#64748B", marginBottom: 8 },
+  modalInput: {
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     padding: 14,
-    fontSize: 14,
-    color: "#111827",
-    height: 110,
-    backgroundColor: "#F9FAFB",
-    marginBottom: 22,
+    fontSize: 15,
+    marginBottom: 16,
+    color: "#1E293B",
   },
-  captureRow: { flexDirection: "row", gap: 10, marginBottom: 22 },
-  captureBtn: {
+  modalArea: { height: 120, textAlignVertical: "top" },
+  modalFooter: { flexDirection: "row", gap: 12, marginTop: 8 },
+  modalCancel: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
     paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    backgroundColor: "#F1F5F9",
   },
-  captureIcon: { marginBottom: 4 },
-  captureLabel: { fontSize: 11, fontWeight: "600", color: "#4B5563" },
-  captureBtnRecording: {
-    borderColor: "#FECACA",
-    backgroundColor: "#FEF2F2",
-  },
-  recordingHint: {
-    color: "#B91C1C",
-    fontSize: 12,
-    fontWeight: "600",
-    marginTop: -14,
-    marginBottom: 14,
-  },
-  suspectRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  suspectInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-  },
-  addBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: "#2563EB",
-    justifyContent: "center",
+  modalCancelText: { fontSize: 14, fontWeight: "700", color: "#64748B" },
+  modalSubmit: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
+    backgroundColor: "#1D4ED8",
   },
-  saveBtn: {
-    backgroundColor: "#2563EB",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  saveBtnDisabled: {
-    opacity: 0.7,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  helperText: {
-    color: "#64748B",
-    fontSize: 12,
-    marginTop: -14,
-    marginBottom: 14,
-  },
-  saveBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  threadHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
-  threadError: { fontSize: 12, color: "#B91C1C", marginBottom: 8 },
-  threadList: { marginBottom: 12 },
-  msgRow: { marginBottom: 8, flexDirection: "row" },
-  msgRowYou: { justifyContent: "flex-end" },
-  msgRowOther: { justifyContent: "flex-start" },
-  msgBubble: {
-    maxWidth: "88%",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  msgBubbleYou: { backgroundColor: "#DBEAFE", borderWidth: 1, borderColor: "#BFDBFE" },
-  msgBubbleOther: { backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
-  msgSender: { fontSize: 11, fontWeight: "700", color: "#475569", marginBottom: 4 },
-  msgBody: { fontSize: 14, color: "#0F172A", lineHeight: 20 },
-  msgTime: { fontSize: 10, color: "#94A3B8", marginTop: 6 },
-  threadComposer: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 22 },
-  threadInput: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-  },
-  threadSendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#2563EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  threadSendBtnDisabled: { opacity: 0.6 },
+  modalSubmitDisabled: { opacity: 0.5 },
+  modalSubmitText: { fontSize: 14, fontWeight: "800", color: "#fff" },
 });
-

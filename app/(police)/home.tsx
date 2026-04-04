@@ -107,169 +107,200 @@ export default function PoliceHome() {
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
+          refreshControl={
+            <RefreshControl 
+              refreshing={revalidating} 
+              onRefresh={refresh}
+              tintColor="#1D4ED8"
+            />
+          }
         >
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <View style={styles.avatarBox}>
-                <Ionicons name="shield-checkmark" size={22} color="#1D4ED8" />
+                <Ionicons name="shield-checkmark" size={24} color="#1D4ED8" />
               </View>
               <View>
-                <Text style={styles.dutyText}>On Duty</Text>
-                <Text style={styles.dashTitle}>Dashboard</Text>
-              </View>
-            </View>
-            <View style={styles.headerRight}>
-              <View style={styles.activeBadge}>
-                <View style={styles.activeDotIcon} />
-                <Text style={styles.activeText}>Active</Text>
-              </View>
-              <TouchableOpacity onPress={() => router.push("/(police)/profile")} activeOpacity={0.85}>
-                <View style={styles.profileIcon}>
-                  <Ionicons name="person-circle-outline" size={22} color="#1F2937" />
+                <View style={styles.dutyBadge}>
+                  <View style={styles.dutyDot} />
+                  <Text style={styles.dutyText}>ON DUTY</Text>
                 </View>
-              </TouchableOpacity>
+                <Text style={styles.dashTitle}>Command Center</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              onPress={() => router.push("/(police)/profile")} 
+              activeOpacity={0.7}
+              style={styles.profileBtn}
+            >
+              <Ionicons name="person-circle-outline" size={32} color="#1F2937" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Stats Grid */}
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, styles.statCardPrimary]}>
+              <View style={styles.statIconBox}>
+                <Ionicons name="radio-outline" size={20} color="#1D4ED8" />
+              </View>
+              <Text style={styles.statValue}>{activeCount}</Text>
+              <Text style={styles.statLabel}>Active Reports</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: "#F1F5F9" }]}>
+                <Ionicons name="list-outline" size={20} color="#475569" />
+              </View>
+              <Text style={styles.statValue}>{total}</Text>
+              <Text style={styles.statLabel}>Total Recent</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: "#DCFCE7" }]}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#16A34A" />
+              </View>
+              <Text style={styles.statValue}>{resolvedToday}</Text>
+              <Text style={styles.statLabel}>Resolved Today</Text>
             </View>
           </View>
 
-          <View style={styles.statsRow}>
-            {[
-              { value: String(activeCount), label: "Active Reports" },
-              { value: String(total), label: "Total Recent" },
-              { value: String(resolvedToday), label: "Resolved Today" },
-            ].map((s) => (
-              <View key={s.label} style={styles.statCard}>
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            ))}
-          </View>
-
+          {/* SOS Banner */}
           <TouchableOpacity
-            style={styles.sosLink}
-            activeOpacity={0.85}
+            style={styles.sosBanner}
+            activeOpacity={0.9}
             onPress={() => router.push("/(police)/sos-active")}
           >
-            <Ionicons name="warning-outline" size={18} color="#B91C1C" />
-            <Text style={styles.sosLinkText}>Active SOS alerts</Text>
-            <Ionicons name="chevron-forward" size={18} color="#B91C1C" />
+            <View style={styles.sosLeft}>
+              <View style={styles.sosIconBox}>
+                <Ionicons name="warning" size={20} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.sosTitle}>Active SOS Alerts</Text>
+                <Text style={styles.sosSub}>Emergency assistance requested</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#B91C1C" />
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Priority Alerts</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Priority Alerts</Text>
+            <TouchableOpacity onPress={refresh}>
+              <Text style={styles.seeAllText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+
           {loading && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <ActivityIndicator size="small" />
-              <Text style={{ fontSize: 12, color: "#64748B" }}>Loading incidents…</Text>
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="small" color="#1D4ED8" />
+              <Text style={styles.loadingText}>Fetching priority dispatches...</Text>
             </View>
           )}
+
           {error && !loading && (
-            <Text style={{ fontSize: 12, color: "#DC2626", marginBottom: 8 }}>{error}</Text>
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={20} color="#DC2626" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
+
           {priorityAlerts.map((alertRaw) => {
             const level = levelFromStatus(alertRaw.status);
-            const alert = { ...alertRaw, level };
             return (
-            <TouchableOpacity
-              key={alert.id}
-              style={styles.alertCard}
-              activeOpacity={0.85}
-              onPress={() =>
-                router.push({
-                  pathname: "/(police)/incident-report",
-                  params: { id: alert.id },
-                })
-              }
-            >
-              <View style={[styles.alertDot, { backgroundColor: levelColors[alert.level] }]} />
-              <View style={styles.alertInfo}>
-                <View style={styles.alertTitleRow}>
-                  <Text style={styles.alertTitle}>
-                    {alert.locationLabel || alert.locationAddress || alert.crimeCategory}
-                  </Text>
-                  <View style={[styles.levelBadge, { backgroundColor: levelBg[alert.level] }]}>
-                    <Text style={[styles.levelText, { color: levelColors[alert.level] }]}>{alert.level}</Text>
-                  </View>
-                </View>
-                <View style={styles.metaRow}>
-                  <View style={styles.metaLeft}>
-                    <Ionicons name="location-outline" size={14} color="#64748B" />
-                    <Text style={styles.alertMetaText}>
-                      {alert.locationLabel || alert.locationAddress || "Unknown location"}
+              <TouchableOpacity
+                key={alertRaw.id}
+                style={styles.priorityCard}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(police)/incident-report",
+                    params: { id: alertRaw.id },
+                  })
+                }
+              >
+                <View style={[styles.priorityIndicator, { backgroundColor: levelColors[level] }]} />
+                <View style={styles.cardContent}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>
+                      {alertRaw.locationLabel || alertRaw.locationAddress || alertRaw.crimeCategory}
                     </Text>
+                    <View style={[styles.levelChip, { backgroundColor: levelBg[level] }]}>
+                      <Text style={[styles.levelText, { color: levelColors[level] }]}>{level.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.cardMeta}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="location-sharp" size={14} color="#64748B" />
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        {alertRaw.locationLabel || "Unknown Area"}
+                      </Text>
+                    </View>
                     <View style={styles.metaDot} />
-                    <Ionicons name="navigate-outline" size={14} color="#64748B" />
-                    <Text style={styles.alertMetaText}>
-                      {formatDistanceKm(alert) ?? "—"}
-                    </Text>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="navigate-circle" size={14} color="#1D4ED8" />
+                      <Text style={[styles.metaText, { color: "#1D4ED8", fontWeight: "600" }]}>
+                        {formatDistanceKm(alertRaw) ?? "—"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardFooter}>
+                    <View style={styles.timeTag}>
+                      <Ionicons name="time-outline" size={12} color="#94A3B8" />
+                      <Text style={styles.timeText}>
+                        {new Date(alertRaw.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={16} color="#CBD5E1" />
                   </View>
                 </View>
-              </View>
-              <View style={styles.timeRow}>
-                <Ionicons name="time-outline" size={14} color="#94A3B8" />
-                <Text style={styles.alertTimeText}>
-                  {new Date(alert.createdAt).toLocaleTimeString()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
+              </TouchableOpacity>
+            );
           })}
 
-          <Text style={styles.sectionTitle}>Nearby Incidents</Text>
+          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+            <Text style={styles.sectionTitle}>Nearby Activity</Text>
+          </View>
+
           {nearbyIncidents.map((incRaw) => {
             const level = levelFromStatus(incRaw.status);
-            const inc = { ...incRaw, level };
             return (
-            <TouchableOpacity
-              key={inc.id}
-              style={styles.incidentCard}
-              activeOpacity={0.85}
-              onPress={() =>
-                router.push({
-                  pathname: "/(police)/incident-report",
-                  params: { id: inc.id },
-                })
-              }
-            >
-              <View style={styles.incidentLeft}>
-                <View style={styles.incidentInfo}>
-                  <View style={styles.incidentTitleRow}>
-                    <Text style={styles.incidentTitle}>
-                      {inc.locationLabel || inc.locationAddress || "Unknown location"}
-                    </Text>
-                    <View style={[styles.levelBadge, { backgroundColor: levelBg[inc.level] }]}>
-                      <Text style={[styles.levelText, { color: levelColors[inc.level] }]}>{inc.level}</Text>
-                    </View>
+              <TouchableOpacity
+                key={incRaw.id}
+                style={styles.activityCard}
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(police)/incident-report",
+                    params: { id: incRaw.id },
+                  })
+                }
+              >
+                <View style={styles.activityLeft}>
+                  <View style={[styles.activityIcon, { backgroundColor: levelBg[level] }]}>
+                    <Ionicons 
+                      name={incRaw.isPoliceVerified ? "shield-checkmark" : "help-buoy-outline"} 
+                      size={18} 
+                      color={levelColors[level]} 
+                    />
                   </View>
-                  <View style={styles.metaRow}>
-                    <View style={styles.metaLeft}>
-                      <Ionicons name="location-outline" size={14} color="#64748B" />
-                      <Text style={styles.incidentMetaText}>
-                        {inc.locationLabel || inc.locationAddress || "Unknown location"}
-                      </Text>
-                      <View style={styles.metaDot} />
-                      <Ionicons name="navigate-outline" size={14} color="#64748B" />
-                      <Text style={styles.incidentMetaText}>
-                        {formatDistanceKm(inc) ?? "—"}
-                      </Text>
-                      <View style={styles.metaDot} />
-                      <Ionicons name="time-outline" size={14} color="#94A3B8" />
-                      <Text style={styles.incidentMetaText}>
-                        {new Date(inc.createdAt).toLocaleTimeString()}
-                      </Text>
-                    </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>
+                      {incRaw.locationLabel || incRaw.crimeCategory}
+                    </Text>
+                    <Text style={styles.activitySub}>
+                      {formatDistanceKm(incRaw)} • {new Date(incRaw.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
                   </View>
                 </View>
-              </View>
-              <Text
-                style={[
-                  styles.verifiedText,
-                  { color: inc.isPoliceVerified ? "#22C55E" : "#EF4444" },
-                ]}
-              >
-                {inc.isPoliceVerified ? "✓ Verified" : "✗ Not-Verified"}
-              </Text>
-            </TouchableOpacity>
-          );
+                <View style={styles.activityRight}>
+                   <View style={[
+                     styles.statusDot, 
+                     { backgroundColor: incRaw.isPoliceVerified ? "#22C55E" : "#E2E8F0" }
+                   ]} />
+                   <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+                </View>
+              </TouchableOpacity>
+            );
           })}
         </ScrollView>
       </View>
@@ -279,333 +310,284 @@ export default function PoliceHome() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
-  container: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 24 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  container: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40 },
+  
+  // Header
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 24 
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: "#E0EAFF",
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#EFF6FF",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
   },
-  avatarText: { fontSize: 22 },
-  dutyText: { fontSize: 11, color: "#888", fontWeight: "500" },
-  dashTitle: { fontSize: 18, fontWeight: "700", color: "#111" },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  activeBadge: {
+  dutyBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#DCFCE7",
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+    marginBottom: 4,
   },
-  activeDotIcon: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#22C55E",
+  dutyDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#16A34A",
+    marginRight: 4,
   },
-  activeText: { fontSize: 11, fontWeight: "600", color: "#16A34A" },
-  profileIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F0F4FF",
-    justifyContent: "center",
-    alignItems: "center",
+  dutyText: { 
+    fontSize: 10, 
+    fontWeight: "800", 
+    color: "#16A34A",
+    letterSpacing: 0.5,
   },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 22 },
+  dashTitle: { fontSize: 22, fontWeight: "800", color: "#111827" },
+  profileBtn: {
+    padding: 2,
+  },
+
+  // Stats Grid
+  statsGrid: { 
+    flexDirection: "row", 
+    gap: 12, 
+    marginBottom: 24 
+  },
   statCard: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
+    borderRadius: 16,
+    padding: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statValue: { fontSize: 22, fontWeight: "700", color: "#111" },
-  statLabel: { fontSize: 11, color: "#888", marginTop: 2, textAlign: "center" },
-  sosLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#FEF2F2",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: "#FECACA",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 18,
+    borderColor: "#F1F5F9",
   },
-  sosLinkText: { flex: 1, fontSize: 14, fontWeight: "700", color: "#B91C1C" },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#111", marginBottom: 10 },
-  alertCard: {
+  statCardPrimary: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#DBEAFE",
+  },
+  statIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#DBEAFE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statValue: { fontSize: 24, fontWeight: "800", color: "#111827" },
+  statLabel: { fontSize: 11, color: "#64748B", marginTop: 4, fontWeight: "600" },
+
+  // SOS Banner
+  sosBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    justifyContent: "space-between",
+    backgroundColor: "#FEF2F2",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+    shadowColor: "#EF4444",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 2,
   },
-  alertDot: { width: 32, height: 32, borderRadius: 16 },
-  alertInfo: { flex: 1 },
-  alertTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  alertTitle: { fontSize: 13, fontWeight: "700", color: "#111", flex: 1 },
-  levelBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
-  levelText: { fontSize: 10, fontWeight: "700", textTransform: "capitalize" },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
-  metaLeft: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
-  metaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "#CBD5F5",
+  sosLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  sosIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  alertMetaText: { fontSize: 11, color: "#64748B" },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  alertTimeText: { fontSize: 11, color: "#94A3B8" },
-  incidentCard: {
+  sosTitle: { fontSize: 16, fontWeight: "800", color: "#991B1B" },
+  sosSub: { fontSize: 12, color: "#B91C1C", marginTop: 2 },
+
+  // Section Headers
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
+  seeAllText: { fontSize: 14, color: "#1D4ED8", fontWeight: "600" },
+
+  // Loading/Error
+  loadingState: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  loadingText: { fontSize: 14, color: "#64748B", marginLeft: 10 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
+
+  // Priority Card
+  priorityCard: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    marginBottom: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  priorityIndicator: {
+    width: 6,
+  },
+  cardContent: {
+    flex: 1,
+    padding: 16,
+  },
+  cardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E293B",
+    flex: 1,
+    marginRight: 10,
+  },
+  levelChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  levelText: {
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  cardMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "60%",
+  },
+  metaText: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  metaDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#CBD5E1",
+    marginHorizontal: 8,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F8FAFF",
+  },
+  timeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F8FAFF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timeText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+
+  // Activity Card
+  activityCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  incidentLeft: { flex: 1 },
-  incidentInfo: { flex: 1 },
-  incidentTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  incidentTitle: { fontSize: 13, fontWeight: "700", color: "#111" },
-  incidentMetaText: { fontSize: 11, color: "#64748B" },
-  verifiedText: { fontSize: 11, fontWeight: "600", marginLeft: 8 },
+  activityLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  activitySub: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  activityRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
 });
-
-
-
-
-// import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-// import { useRouter } from 'expo-router';
-// import { StatusBar } from 'expo-status-bar';
-
-// const priorityAlerts = [
-//   { id: '1', title: 'Armed Robbery Alert', level: 'critical', location: 'Main St & 5th Ave', dist: '1.5 km', time: '2 min ago' },
-//   { id: '2', title: 'Armed Robbery Alert', level: 'high', location: 'Main St & 5th Ave', dist: '1.1 km', time: '5 min ago' },
-// ];
-
-// const nearbyIncidents = [
-//   { id: '1', title: 'Vehicle Break-in', level: 'medium', location: 'Oak Lane', dist: '1.5 km', time: '5 min ago', verified: true },
-//   { id: '2', title: 'Noise Disturbance', level: 'low', location: 'Oak Lane', dist: '1.3 km', time: '6 min ago', verified: false },
-//   { id: '3', title: 'Vehicle Break-in', level: 'medium', location: 'Oak Lane', dist: '1.5 km', time: null, verified: true },
-// ];
-
-// const levelColors: Record<string, string> = {
-//   critical: '#EF4444', high: '#F97316', medium: '#F59E0B', low: '#22C55E',
-// };
-// const levelBg: Record<string, string> = {
-//   critical: '#FEE2E2', high: '#FFEDD5', medium: '#FEF9C3', low: '#DCFCE7',
-// };
-
-// export default function Dashboard() {
-//   const router = useRouter();
-
-//   return (
-//     <View style={styles.wrapper}>
-//       <StatusBar style="dark" />
-//       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-//         {/* Header */}
-//         <View style={styles.header}>
-//           <View style={styles.headerLeft}>
-//             <View style={styles.avatarBox}><Text style={styles.avatarText}>👮</Text></View>
-//             <View>
-//               <Text style={styles.dutyText}>On Duty</Text>
-//               <Text style={styles.dashTitle}>Dashboard</Text>
-//             </View>
-//           </View>
-//           <View style={styles.headerRight}>
-//             <View style={styles.activeBadge}><Text style={styles.activeDot}>●</Text><Text style={styles.activeText}>Active</Text></View>
-//             <TouchableOpacity onPress={() => router.push('/(police)/profile')}>
-//               <View style={styles.profileIcon}><Text style={{ fontSize: 20 }}>👤</Text></View>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-
-//         {/* Stats */}
-//         <View style={styles.statsRow}>
-//           {[
-//             { value: '4', label: 'Active Cases' },
-//             { value: '7', label: 'Nearby' },
-//             { value: '3', label: 'Resolved Today' },
-//           ].map((s, i) => (
-//             <View key={i} style={styles.statCard}>
-//               <Text style={styles.statValue}>{s.value}</Text>
-//               <Text style={styles.statLabel}>{s.label}</Text>
-//             </View>
-//           ))}
-//         </View>
-
-//         {/* Priority Alerts */}
-//         <Text style={styles.sectionTitle}>Priority Alerts</Text>
-//         {priorityAlerts.map((alert) => (
-//           <TouchableOpacity key={alert.id} style={styles.alertCard} onPress={() => router.push('/(police)/incident-report')}>
-//             <View style={[styles.alertDot, { backgroundColor: levelColors[alert.level] }]} />
-//             <View style={styles.alertInfo}>
-//               <View style={styles.alertTitleRow}>
-//                 <Text style={styles.alertTitle}>{alert.title}</Text>
-//                 <View style={[styles.levelBadge, { backgroundColor: levelBg[alert.level] }]}>
-//                   <Text style={[styles.levelText, { color: levelColors[alert.level] }]}>{alert.level}</Text>
-//                 </View>
-//               </View>
-//               <Text style={styles.alertMeta}>📍 {alert.location}  △ {alert.dist}</Text>
-//             </View>
-//             <Text style={styles.alertTime}>🕐 {alert.time}</Text>
-//           </TouchableOpacity>
-//         ))}
-
-//         {/* Nearby Incidents */}
-//         <Text style={styles.sectionTitle}>Nearby Incidents</Text>
-//         {nearbyIncidents.map((inc) => (
-//           <TouchableOpacity key={inc.id} style={styles.incidentCard} onPress={() => router.push('/(police)/incident-report')}>
-//             <View style={styles.incidentLeft}>
-//               <View style={styles.incidentInfo}>
-//                 <View style={styles.incidentTitleRow}>
-//                   <Text style={styles.incidentTitle}>{inc.title}</Text>
-//                   <View style={[styles.levelBadge, { backgroundColor: levelBg[inc.level] }]}>
-//                     <Text style={[styles.levelText, { color: levelColors[inc.level] }]}>{inc.level}</Text>
-//                   </View>
-//                 </View>
-//                 <Text style={styles.incidentMeta}>📍 {inc.location}  △ {inc.dist}{inc.time ? `  🕐 ${inc.time}` : ''}</Text>
-//               </View>
-//             </View>
-//             <Text style={[styles.verifiedText, { color: inc.verified ? '#22C55E' : '#EF4444' }]}>
-//               {inc.verified ? '✓ Verified' : '✗ Not-Verified'}
-//             </Text>
-//           </TouchableOpacity>
-//         ))}
-
-//       </ScrollView>
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   wrapper: { flex: 1, backgroundColor: '#F8FAFF' },
-//   container: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 24 },
-//   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-//   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-//   avatarBox: { width: 42, height: 42, borderRadius: 10, backgroundColor: '#E0EAFF', justifyContent: 'center', alignItems: 'center' },
-//   avatarText: { fontSize: 22 },
-//   dutyText: { fontSize: 11, color: '#888', fontWeight: '500' },
-//   dashTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
-//   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-//   activeBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
-//   activeDot: { fontSize: 8, color: '#22C55E' },
-//   activeText: { fontSize: 11, fontWeight: '600', color: '#16A34A' },
-//   profileIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F4FF', justifyContent: 'center', alignItems: 'center' },
-//   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 22 },
-//   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-//   statValue: { fontSize: 22, fontWeight: '700', color: '#111' },
-//   statLabel: { fontSize: 11, color: '#888', marginTop: 2, textAlign: 'center' },
-//   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 10 },
-//   alertCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, gap: 10, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-//   alertDot: { width: 32, height: 32, borderRadius: 16 },
-//   alertInfo: { flex: 1 },
-//   alertTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-//   alertTitle: { fontSize: 13, fontWeight: '700', color: '#111', flex: 1 },
-//   levelBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
-//   levelText: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
-//   alertMeta: { fontSize: 11, color: '#888' },
-//   alertTime: { fontSize: 11, color: '#AAA' },
-//   incidentCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-//   incidentLeft: { flex: 1 },
-//   incidentInfo: { flex: 1 },
-//   incidentTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-//   incidentTitle: { fontSize: 13, fontWeight: '700', color: '#111' },
-//   incidentMeta: { fontSize: 11, color: '#888' },
-//   verifiedText: { fontSize: 11, fontWeight: '600', marginLeft: 8 },
-// });
-
-
-
-// import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-// import { useRouter } from 'expo-router';
-// import { StatusBar } from 'expo-status-bar';
-
-// const actions = [
-//   { icon: '🧭', label: 'Navigate' },
-//   { icon: '🔍', label: 'Investigate' },
-//   { icon: '🚨', label: 'Priority' },
-// ];
-
-// export default function IncidentReport() {
-//   const router = useRouter();
-
-//   return (
-//     <View style={styles.wrapper}>
-//       <StatusBar style="dark" />
-//       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-//         {/* Header */}
-//         <View style={styles.header}>
-//           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-//             <Text style={styles.backArrow}>←</Text>
-//           </TouchableOpacity>
-//           <Text style={styles.heading}>Incident Report</Text>
-//         </View>
-
-//         {/* Incident Title Card */}
-//         <View style={styles.titleCard}>
-//           <View style={styles.incidentIconBox}><Text style={{ fontSize: 18 }}>🔴</Text></View>
-//           <View>
-//             <Text style={styles.incidentTitle}>Armed Robbery</Text>
-//             <Text style={styles.incidentMeta}>March 16, 2026  •  2:42 PM</Text>
-//           </View>
-//         </View>
-
-//         {/* Location */}
-//         <View style={styles.section}>
-//           <View style={styles.sectionHeader}>
-//             <Text style={styles.sectionIcon}>📍</Text>
-//             <Text style={styles.sectionTitle}>Location</Text>
-//           </View>
-//           <View style={styles.mapBox}>
-//             <Text style={styles.mapEmoji}>🗺️</Text>
-//             <View style={styles.mapPinDot} />
-//           </View>
-//           <View style={styles.locationRow}>
-//             <Text style={styles.locationText}>📍 Main St & 5th Ave</Text>
-//             <Text style={styles.timeText}>🕐 8 min ago</Text>
-//           </View>
-//         </View>
-
-//         {/* Action Buttons */}
-//         <View style={styles.actionRow}>
-//           {actions.map((a, i) => (
-//             <TouchableOpacity
-//               key={i}
-//               style={[styles.actionBtn, i === 0 && styles.actionBtnActive]}
-//               onPress={() => i === 1 && router.push('/(police)/investigation')}
-//             >
-//               <Text style={styles.actionIcon}>{a.icon}</Text>
-//               <Text style={[styles.actionLabel, i === 0 && styles.actionLabelActive]}>{a.label}</Text>
-//             </TouchableOpacity>
 //           ))}
 //         </View>
 
