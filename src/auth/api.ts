@@ -275,6 +275,19 @@ export function submitReportConfirmation(
   );
 }
 
+export function resolveReportIncident(
+  reportId: string,
+  body: { status: "CONFIRMED" | "DISPUTED"; notes?: string }
+) {
+  return requestAuthenticated<{ nextStatus: string }>(
+    `/api/citizen/reports/${reportId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
 export function fetchReportMessages(reportId: string) {
   return requestAuthenticated<{ messages: ReportMessageItem[] }>(`/api/citizen/my-reports/${reportId}/messages`, {
     method: "GET",

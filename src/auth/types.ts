@@ -83,6 +83,7 @@ export type MyReportItem = {
   locationAddress: string | null;
   locationLabel: string | null;
   isPoliceVerified?: boolean;
+  reporterResolutionStatus?: "PENDING" | "CONFIRMED" | "DISPUTED";
 };
 
 export type PoliceIncidentForMap = {
@@ -139,6 +140,9 @@ export type CommunityReportPayload = {
     comment: string | null;
     createdAt: string;
   } | null;
+  reporterResolutionStatus?: "PENDING" | "CONFIRMED" | "DISPUTED";
+  reporterConfirmedAt?: string | null;
+  reporterResolutionNotes?: string | null;
 };
 
 export type ReportConfirmationListItem = {

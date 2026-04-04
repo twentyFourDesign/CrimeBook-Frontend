@@ -17,6 +17,7 @@ import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { fetchCitizenAppeals, fetchCommunityGroups, fetchFeedReports } from "../../src/auth/api";
 import type { CommunityGroup, FeedReportItem, PublicAppealItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -25,60 +26,66 @@ function formatEnum(s: string) {
 export default function Community() {
   const router = useRouter();
   const { resetDraft } = useReportDraft();
-  const { feedReports, setFeedReports } = useAppDataCache();
-  const cacheRef = useRef(feedReports);
-  cacheRef.current = feedReports;
-  const reports = feedReports;
-  const [loading, setLoading] = useState(() => feedReports === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [appeals, setAppeals] = useState<PublicAppealItem[] | null>(null);
-  const [appealsError, setAppealsError] = useState<string | null>(null);
-  const [groups, setGroups] = useState<CommunityGroup[]>([]);
+  const { setFeedReports, setCommunityGroups, setPublicAppeals } = useAppDataCache();
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      setAppealsError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const [{ reports: list }, appealsRes, groupsRes] = await Promise.all([
-          fetchFeedReports(),
-          fetchCitizenAppeals().catch(() => ({ appeals: [] as PublicAppealItem[] })),
-          fetchCommunityGroups().catch(() => ({ groups: [] })),
-        ]);
-        setFeedReports(list);
-        setAppeals(appealsRes.appeals);
-        setGroups(groupsRes.groups);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load community feed");
-        setFeedReports([]);
-        try {
-          const { appeals: a } = await fetchCitizenAppeals();
-          setAppeals(a);
-        } catch (ae) {
-          setAppealsError(ae instanceof Error ? ae.message : "Could not load appeals");
-          setAppeals([]);
-          setGroups([]);
-        }
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  // 1. Incident Feed
+  const {
+    data: reports,
+    loading: reportsLoading,
+    revalidating: reportsRevalidating,
+    error: reportsError,
+    refresh: refreshReports,
+  } = useCachedData(
+    "feedReports",
+    async () => {
+      const res = await fetchFeedReports();
+      return res.reports ?? [];
     },
-    [setFeedReports]
+    setFeedReports
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const total = reports?.length ?? 0;
-  const verifiedCount = useMemo(
-    () => (reports ?? []).filter((r) => r.isPoliceVerified).length,
-    [reports]
+  // 2. Public Appeals
+  const {
+    data: appeals,
+    loading: appealsLoading,
+    revalidating: appealsRevalidating,
+    error: appealsError,
+    refresh: refreshAppeals,
+  } = useCachedData(
+    "publicAppeals",
+    async () => {
+      const res = await fetchCitizenAppeals();
+      return res.appeals ?? [];
+    },
+    setPublicAppeals
   );
+
+  // 3. Community Groups
+  const {
+    data: groupsData,
+    loading: groupsLoading,
+    revalidating: groupsRevalidating,
+    error: groupsError,
+    refresh: refreshGroups,
+  } = useCachedData(
+    "communityGroups",
+    async () => {
+      const res = await fetchCommunityGroups();
+      return res.groups ?? [];
+    },
+    setCommunityGroups
+  );
+
+  const groups = groupsData ?? [];
+  const loading = reportsLoading && appealsLoading && groupsLoading;
+  const isAnyRevalidating = reportsRevalidating || appealsRevalidating || groupsRevalidating;
+
+  const refreshAll = useCallback(() => {
+    refreshReports();
+    refreshAppeals();
+    refreshGroups();
+  }, [refreshReports, refreshAppeals, refreshGroups]);
+
 
   return (
     <CitizenShell>
@@ -87,7 +94,7 @@ export default function Community() {
         style={styles.scroll}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={isAnyRevalidating} onRefresh={refreshAll} />}
       >
         <View style={styles.header}>
           <View>
@@ -99,54 +106,25 @@ export default function Community() {
             </View>
             <Text style={styles.subtitle}>Your Neighborhood hub</Text>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.settingsHeaderBtn}
-              onPress={() => alert("Community settings coming soon")}
-            >
-              <Ionicons name="settings-outline" size={22} color="#475569" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.newAlertBtn}
-              onPress={() => {
-                resetDraft();
-                router.push("/(citizen)/report-step1");
-              }}
-            >
-              <Text style={styles.newAlertText}>🔔 New Alert</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.settingsHeaderBtn}
+            onPress={() => alert("Community settings coming soon")}
+          >
+            <Ionicons name="settings-outline" size={22} color="#475569" />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.statsRow}>
-          {loading ? (
-            [1, 2, 3].map((i) => (
-              <View key={i} style={styles.statCard}>
-                <Skeleton width={24} height={24} style={{ marginBottom: 4 }} />
-                <Skeleton width={30} height={20} style={{ marginBottom: 4 }} />
-                <Skeleton width={60} height={10} />
-              </View>
-            ))
-          ) : (
-            <>
-              <View style={styles.statCard}>
-                <Text style={styles.statIcon}>📡</Text>
-                <Text style={styles.statValue}>{total}</Text>
-                <Text style={styles.statLabel}>Reports</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statIcon}>✅</Text>
-                <Text style={styles.statValue}>{verifiedCount}</Text>
-                <Text style={styles.statLabel}>Police verified</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statIcon}>👥</Text>
-                <Text style={styles.statValue}>{Math.max(total - verifiedCount, 0)}</Text>
-                <Text style={styles.statLabel}>Awaiting review</Text>
-              </View>
-            </>
-          )}
-        </View>
+        <TouchableOpacity
+          style={styles.newAlertBtnFull}
+          onPress={() => {
+            resetDraft();
+            router.push("/(citizen)/report-step1");
+          }}
+        >
+          <Ionicons name="megaphone" size={18} color="#fff" />
+          <Text style={styles.newAlertTextFull}>Report Incident</Text>
+        </TouchableOpacity>
+
 
         {loading && (
           <View style={{ marginBottom: 24 }}>
@@ -215,10 +193,14 @@ export default function Community() {
                 </View>
                 {g.description ? <Text style={styles.groupDesc} numberOfLines={2}>{g.description}</Text> : null}
                 <View style={styles.groupBottom}>
-                  <Text style={styles.groupMeta}>
-                    👥 {g.memberCount} · 📍 {g.radiusKm} km radius
-                  </Text>
-                  <Text style={styles.joinActionText}>View & Join</Text>
+                  <View style={styles.groupMetaInner}>
+                    <Ionicons name="people-outline" size={14} color="#64748B" />
+                    <Text style={styles.groupMetaText}>{g.memberCount}</Text>
+                    <View style={styles.metaDot} />
+                    <Ionicons name="location-outline" size={14} color="#64748B" />
+                    <Text style={styles.groupMetaText}>{g.radiusKm}km</Text>
+                  </View>
+                  <Text style={styles.joinActionText}>View Details</Text>
                 </View>
               </TouchableOpacity>
             ))
@@ -233,14 +215,21 @@ export default function Community() {
         {!loading && appeals && appeals.length > 0
           ? appeals.slice(0, 8).map((a) => (
               <View key={a.id} style={styles.appealCard}>
+                <View style={styles.appealBadge}>
+                  <Ionicons name="alert-circle" size={14} color="#92400E" />
+                  <Text style={styles.appealBadgeText}>POLICE APPEAL</Text>
+                </View>
                 <Text style={styles.appealTitle}>{a.title}</Text>
-                <Text style={styles.appealCase}>Case {a.caseNumber}</Text>
-                <Text style={styles.appealBody} numberOfLines={4}>
+                <Text style={styles.appealCase}>Case #{a.caseNumber}</Text>
+                <Text style={styles.appealBody} numberOfLines={3}>
                   {a.description}
                 </Text>
-                <Text style={styles.appealMeta}>
-                  Radius {a.radiusKm} km · {new Date(a.createdAt).toLocaleString()}
-                </Text>
+                <View style={styles.appealFooter}>
+                  <Ionicons name="time-outline" size={12} color="#A8A29E" />
+                  <Text style={styles.appealMeta}>
+                    {new Date(a.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
               </View>
             ))
           : null}
@@ -254,24 +243,24 @@ export default function Community() {
           <View style={{ gap: 12 }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <View key={i} style={styles.incidentCard}>
-                <View style={styles.incidentLeft}>
-                  <Skeleton width={32} height={32} circle />
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Skeleton width="60%" height={16} />
+                <View style={styles.incidentTop}>
+                  <Skeleton width={40} height={40} borderRadius={10} />
+                  <View style={{ flex: 1, gap: 6, marginLeft: 12 }}>
+                    <Skeleton width="70%" height={16} />
                     <Skeleton width="40%" height={12} />
-                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <Skeleton width="30%" height={10} />
-                      <Skeleton width="25%" height={10} />
-                    </View>
                   </View>
+                </View>
+                <View style={styles.incidentBottom}>
+                   <Skeleton width="40%" height={10} />
+                   <Skeleton width="30%" height={10} />
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {error && !loading && (
-          <Text style={styles.errorText}>{error}</Text>
+        {reportsError && !loading && (
+          <Text style={styles.errorText}>{reportsError}</Text>
         )}
 
         {!loading &&
@@ -279,31 +268,49 @@ export default function Community() {
             <TouchableOpacity
               key={item.id}
               style={styles.incidentCard}
-              activeOpacity={0.75}
+              activeOpacity={0.7}
               onPress={() => router.push(`/(citizen)/community-report/${item.id}`)}
             >
-              <View style={styles.incidentLeft}>
-                <View style={[styles.alertDot, item.isPoliceVerified && styles.alertDotVerified]} />
+              <View style={styles.incidentTop}>
+                <View style={[styles.categoryIcon, { backgroundColor: item.isPoliceVerified ? "#F0FDF4" : "#F8FAFC" }]}>
+                  <Ionicons 
+                    name={item.isPoliceVerified ? "shield-checkmark" : "alert-circle-outline"} 
+                    size={22} 
+                    color={item.isPoliceVerified ? "#16A34A" : "#64748B"} 
+                  />
+                </View>
                 <View style={styles.incidentInfo}>
-                  <Text style={styles.incidentTitle}>
+                  <Text style={styles.incidentTitle} numberOfLines={1}>
                     {item.title?.trim() || formatEnum(item.crimeCategory)}
                   </Text>
                   {item.locationLabel || item.locationAddress ? (
-                    <Text style={styles.incidentLocation}>
-                      📍 {item.locationLabel || item.locationAddress}
-                    </Text>
+                    <View style={styles.incidentLocationRow}>
+                      <Ionicons name="location-outline" size={12} color="#94A3B8" />
+                      <Text style={styles.incidentLocation} numberOfLines={1}>
+                        {item.locationLabel || item.locationAddress}
+                      </Text>
+                    </View>
                   ) : null}
-                  <View style={styles.incidentMeta}>
-                    <Text style={styles.metaText}>
-                      🕐 {new Date(item.createdAt).toLocaleString()}
-                    </Text>
-                    <Text style={styles.confidence}>
-                      ● {item.communityConfirmCount} confirmations
-                    </Text>
-                  </View>
+                </View>
+                {item.isPoliceVerified && <View style={styles.verifiedTag}><Ionicons name="checkmark-circle" size={14} color="#16A34A" /></View>}
+              </View>
+
+              <View style={styles.incidentDivider} />
+
+              <View style={styles.incidentBottom}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={12} color="#94A3B8" />
+                  <Text style={styles.metaText}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={styles.confirmationBadge}>
+                  <View style={styles.confirmationPulse} />
+                  <Text style={styles.confidenceText}>
+                    {item.communityConfirmCount} Confirmations
+                  </Text>
                 </View>
               </View>
-              {item.isPoliceVerified && <Text style={styles.verifiedPill}>Police verified</Text>}
             </TouchableOpacity>
           ))}
       </ScrollView>
@@ -319,11 +326,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
   settingsHeaderBtn: {
     width: 36,
@@ -362,45 +364,66 @@ const styles = StyleSheet.create({
   },
   verifiedText: { fontSize: 11, fontWeight: "700", color: "#2563EB" },
   subtitle: { fontSize: 13, color: "#888", marginTop: 2 },
-  newAlertBtn: {
+  newAlertBtnFull: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#2563EB",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 10,
+    marginBottom: 24,
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  newAlertText: { color: "#fff", fontSize: 12, fontWeight: "600" },
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  statIcon: { fontSize: 20, marginBottom: 4 },
-  statValue: { fontSize: 20, fontWeight: "700", color: "#111" },
-  statLabel: { fontSize: 11, color: "#888", marginTop: 2 },
+  newAlertTextFull: { color: "#fff", fontSize: 15, fontWeight: "700", letterSpacing: 0.3 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 12 },
   appealCard: {
-    backgroundColor: "#FFFBEB",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
+    shadowColor: "#92400E",
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 2,
   },
-  appealTitle: { fontSize: 15, fontWeight: "700", color: "#92400E" },
-  appealCase: { fontSize: 12, color: "#B45309", marginTop: 2, marginBottom: 6 },
-  appealBody: { fontSize: 13, color: "#444", lineHeight: 20 },
-  appealMeta: { fontSize: 11, color: "#A8A29E", marginTop: 8 },
-  mutedAppeals: { fontSize: 13, color: "#94A3B8", marginBottom: 12 },
+  appealBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+    marginBottom: 12,
+  },
+  appealBadgeText: { 
+    fontSize: 10, 
+    fontWeight: "800", 
+    color: "#92400E",
+    letterSpacing: 0.5,
+  },
+  appealTitle: { fontSize: 17, fontWeight: "700", color: "#451a03" },
+  appealCase: { fontSize: 13, fontWeight: "600", color: "#92400E", marginTop: 4, marginBottom: 8 },
+  appealBody: { fontSize: 14, color: "#78350f", lineHeight: 22, opacity: 0.9 },
+  appealFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(146, 64, 14, 0.1)",
+    gap: 6,
+  },
+  appealMeta: { fontSize: 12, fontWeight: "600", color: "#A8A29E" },
+  mutedAppeals: { fontSize: 13, color: "#94A3B8", marginBottom: 12, textAlign: "center" },
   groupCard: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -430,42 +453,64 @@ const styles = StyleSheet.create({
   groupDesc: { fontSize: 13, color: "#555", marginTop: 4 },
   groupMeta: { fontSize: 12, color: "#888", marginTop: 6 },
   incidentCard: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  incidentLeft: { flex: 1, flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  alertDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEE2E2",
+  incidentTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  categoryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 2,
   },
   incidentInfo: { flex: 1 },
-  incidentTitle: { fontSize: 14, fontWeight: "700", color: "#111", marginBottom: 2 },
-  incidentLocation: { fontSize: 12, color: "#888", marginBottom: 6 },
-  incidentMeta: { flexDirection: "row", justifyContent: "space-between" },
-  metaText: { fontSize: 11, color: "#AAA" },
-  confidence: { fontSize: 11, color: "#22C55E", fontWeight: "600" },
-  verifiedPill: {
-    fontSize: 11,
-    color: "#16A34A",
-    fontWeight: "600",
-    backgroundColor: "#DCFCE7",
-    paddingHorizontal: 10,
+  incidentTitle: { fontSize: 15, fontWeight: "700", color: "#0F172A", marginBottom: 4 },
+  incidentLocationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  incidentLocation: { fontSize: 12, color: "#64748B", flex: 1 },
+  incidentDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginVertical: 12,
+  },
+  incidentBottom: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center" 
+  },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 12, fontWeight: "500", color: "#94A3B8" },
+  confirmationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 999,
-    marginLeft: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  confirmationPulse: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#22C55E",
+  },
+  confidenceText: { fontSize: 11, fontWeight: "700", color: "#16A34A" },
+  verifiedTag: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#DCFCE7",
+    justifyContent: "center",
+    alignItems: "center",
   },
   alertCard: {
     flexDirection: "row",
@@ -546,6 +591,15 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
+  },
+  groupMetaInner: { flexDirection: "row", alignItems: "center", flex: 1 },
+  groupMetaText: { fontSize: 12, fontWeight: "600", color: "#64748B", marginLeft: 4 },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "#CBD5E1",
+    marginHorizontal: 8,
   },
   joinActionText: {
     fontSize: 12,

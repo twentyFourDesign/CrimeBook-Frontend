@@ -19,6 +19,7 @@ import { useAuth } from "../../src/auth/AuthContext";
 import { fetchOfficerProfile, updateOfficerProfile, uploadCrimeMediaFile } from "../../src/auth/api";
 import type { OfficerProfilePayload } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -28,42 +29,28 @@ function initials(name: string) {
 
 export default function PoliceProfileScreen() {
   const { user, signOut, refreshUser } = useAuth();
-  const { officerProfile, setOfficerProfile } = useAppDataCache();
-  const cacheRef = useRef(officerProfile);
-  cacheRef.current = officerProfile;
-  const [profile, setProfile] = useState<OfficerProfilePayload | null>(() => officerProfile);
-  const [loading, setLoading] = useState(() => officerProfile === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setOfficerProfile } = useAppDataCache();
+
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [latInput, setLatInput] = useState("");
   const [lngInput, setLngInput] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const { profile: p } = await fetchOfficerProfile();
-        setOfficerProfile(p);
-        setProfile(p);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load profile");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const {
+    data: profile,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "officerProfile",
+    async () => {
+      const { profile: p } = await fetchOfficerProfile();
+      await refreshUser().catch(() => {});
+      return p;
     },
-    [setOfficerProfile]
+    setOfficerProfile
   );
-
-  useEffect(() => {
-    if (user) {
-      load();
-    }
-  }, [load, user]);
 
   const pickAvatar = async () => {
     if (!profile) return;
@@ -95,7 +82,6 @@ export default function PoliceProfileScreen() {
       });
       const res = await updateOfficerProfile({ avatarUrl: uploaded.url });
       setOfficerProfile(res.profile);
-      setProfile(res.profile);
       await refreshUser();
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again.");
@@ -110,7 +96,7 @@ export default function PoliceProfileScreen() {
       <ScrollView
         contentContainerStyle={styles.wrap}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
       >
         <Text style={styles.title}>Profile</Text>
 
@@ -123,7 +109,7 @@ export default function PoliceProfileScreen() {
         {error && (
           <View style={styles.errBox}>
             <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={() => load()} style={styles.retry}>
+            <TouchableOpacity onPress={refresh} style={styles.retry}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -276,7 +262,6 @@ export default function PoliceProfileScreen() {
                       currentLongitude: lo,
                     });
                     setOfficerProfile(res.profile);
-                    setProfile(res.profile);
                     await refreshUser();
                     Alert.alert("Updated", "Patrol location saved.");
                   } catch (e) {

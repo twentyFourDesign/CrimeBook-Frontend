@@ -4,40 +4,28 @@ import { StatusBar } from "expo-status-bar";
 import MapView, { Heatmap, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
-import type { PoliceIncidentForMap } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 export default function PoliceMapScreen() {
-  const { policeIncidents, setPoliceIncidents } = useAppDataCache();
-  const cacheRef = useRef(policeIncidents);
-  cacheRef.current = policeIncidents;
-  const incidents = policeIncidents;
-  const [loading, setLoading] = useState(() => policeIncidents === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setPoliceIncidents } = useAppDataCache();
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const { incidents: list } = await fetchPoliceIncidentsForMap();
-        setPoliceIncidents(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load incidents");
-        setPoliceIncidents([]);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const {
+    data: incidentsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "policeIncidents",
+    async () => {
+      const res = await fetchPoliceIncidentsForMap();
+      return res.incidents ?? [];
     },
-    [setPoliceIncidents]
+    setPoliceIncidents
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const incidents = incidentsData ?? [];
 
   const initialRegion = useMemo(() => {
     if (!incidents || incidents.length === 0) {
@@ -75,7 +63,7 @@ export default function PoliceMapScreen() {
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
       >
         <View style={styles.mapWrapper}>
           <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>

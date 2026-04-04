@@ -5,6 +5,8 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -20,6 +22,7 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { Skeleton } from "../../src/components/common/Skeleton";
+import { useReportDraft } from "../../src/report/ReportDraftContext";
 import {
   fetchCitizenProfile,
   fetchMyBadgesAndPoints,
@@ -29,10 +32,12 @@ import {
   uploadCrimeMediaFile,
   fetchMyInvites,
   respondToGroupInvite,
+  fetchMyReports,
 } from "../../src/auth/api";
-import type { CitizenProfilePayload, UserBadgeEntry, GroupInvite } from "../../src/auth/types";
+import type { CitizenProfilePayload, UserBadgeEntry, GroupInvite, MyReportItem } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -43,18 +48,22 @@ function initials(name: string) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, refreshUser } = useAuth();
-  const { citizenProfile, setCitizenProfile } = useAppDataCache();
-  const cacheRef = useRef(citizenProfile);
-  cacheRef.current = citizenProfile;
-  const [loading, setLoading] = useState(() => citizenProfile === null);
-  const [refreshing, setRefreshing] = useState(false);
+  const { setCitizenProfile } = useAppDataCache();
+  const { resetDraft } = useReportDraft();
+
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [savingHome, setSavingHome] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<CitizenProfilePayload | null>(() => citizenProfile);
+  const [userBadges, setUserBadges] = useState<UserBadgeEntry[]>([]);
+  const [privacyAnonymous, setPrivacyAnonymous] = useState(false);
+  const [privacyApproxLocation, setPrivacyApproxLocation] = useState(false);
+  const [privacyLoading, setPrivacyLoading] = useState(false);
+  const [invites, setInvites] = useState<GroupInvite[]>([]);
+  const [myReports, setMyReports] = useState<MyReportItem[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Form states
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
@@ -63,15 +72,8 @@ export default function ProfileScreen() {
   const [homeLng, setHomeLng] = useState("");
   const [occupation, setOccupation] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState("en");
-  const [userBadges, setUserBadges] = useState<UserBadgeEntry[]>([]);
-  const [privacyAnonymous, setPrivacyAnonymous] = useState(false);
-  const [privacyApproxLocation, setPrivacyApproxLocation] = useState(false);
-  const [privacyLoading, setPrivacyLoading] = useState(false);
-  const [invites, setInvites] = useState<GroupInvite[]>([]);
-  const [invitesLoading, setInvitesLoading] = useState(false);
 
   const applyProfileToForm = useCallback((p: CitizenProfilePayload) => {
-    setProfile(p);
     setName(p.name);
     setPhone(p.phone ?? "");
     setCity(p.city ?? "");
@@ -83,40 +85,38 @@ export default function ProfileScreen() {
     setPreferredLanguage(cp?.preferredLanguage ?? "en");
   }, []);
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const [{ profile: p }, badgesRes, privRes] = await Promise.all([
-          fetchCitizenProfile(),
-          fetchMyBadgesAndPoints().catch(() => ({ userBadges: [], reputationPoints: 0 })),
-          fetchPrivacySettings().catch(() => null),
-        ]);
-        setCitizenProfile(p);
-        applyProfileToForm(p);
-        setUserBadges(badgesRes.userBadges);
-        if (privRes?.settings) {
-          setPrivacyAnonymous(privRes.settings.defaultAnonymousReporting);
-          setPrivacyApproxLocation(privRes.settings.locationPrecision === "approximate");
-        }
-        const invitesRes = await fetchMyInvites().catch(() => ({ invites: [] }));
-        setInvites(invitesRes.invites);
-        await refreshUser().catch(() => {});
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load profile");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [applyProfileToForm, setCitizenProfile]
-  );
+  const {
+    data: profile,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "citizenProfile",
+    async () => {
+      const [{ profile: p }, badgesRes, privRes, invitesRes, reportsRes] = await Promise.all([
+        fetchCitizenProfile(),
+        fetchMyBadgesAndPoints().catch(() => ({ userBadges: [], reputationPoints: 0 })),
+        fetchPrivacySettings().catch(() => null),
+        fetchMyInvites().catch(() => ({ invites: [] })),
+        fetchMyReports().catch(() => ({ reports: [] })),
+      ]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+      // Side effects for non-cached states (UI only)
+      setUserBadges(badgesRes.userBadges);
+      if (privRes?.settings) {
+        setPrivacyAnonymous(privRes.settings.defaultAnonymousReporting);
+        setPrivacyApproxLocation(privRes.settings.locationPrecision === "approximate");
+      }
+      setInvites(invitesRes.invites);
+      setMyReports(reportsRes.reports);
+      applyProfileToForm(p);
+      refreshUser().catch(() => {});
+
+      return p;
+    },
+    setCitizenProfile
+  );
 
   const pickAvatar = async () => {
     const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -145,7 +145,6 @@ export default function ProfileScreen() {
       });
       const res = await updateCitizenProfile({ avatarUrl: uploaded.url });
       setCitizenProfile(res.profile);
-      setProfile(res.profile);
       await refreshUser();
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again.");
@@ -182,7 +181,6 @@ export default function ProfileScreen() {
         homeLongitude: coords.homeLongitude,
       });
       setCitizenProfile(res.profile);
-      setProfile(res.profile);
       const cp = res.profile.citizenProfile;
       setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
       setHomeLng(cp?.homeLongitude != null ? String(cp.homeLongitude) : "");
@@ -216,29 +214,12 @@ export default function ProfileScreen() {
         preferredLanguage: preferredLanguage.trim() || "en",
       });
       setCitizenProfile(res.profile);
-      setProfile(res.profile);
       await refreshUser();
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (e) {
       Alert.alert("Save failed", e instanceof Error ? e.message : "Try again.");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onRespondInvite = async (inviteId: string, accept: boolean) => {
-    try {
-      setInvitesLoading(true);
-      await respondToGroupInvite(inviteId, accept);
-      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
-      if (accept) {
-        Alert.alert("Success", "You have joined the group!");
-        refreshUser();
-      }
-    } catch (e) {
-      Alert.alert("Error", e instanceof Error ? e.message : "Action failed");
-    } finally {
-      setInvitesLoading(false);
     }
   };
 
@@ -251,12 +232,86 @@ export default function ProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={88}
       >
+        <Modal
+          visible={isMenuOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsMenuOpen(false)}
+        >
+          <Pressable style={[styles.menuOverlay, { backgroundColor: "rgba(0,0,0,0.05)" }]} onPress={() => setIsMenuOpen(false)}>
+            <View style={styles.menuContent}>
+              <View style={styles.menuHeader}>
+                <Text style={styles.menuTitle}>Account</Text>
+              </View>
+              
+              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(citizen)/my-reports"); }}>
+                <Ionicons name="document-text-outline" size={20} color="#64748B" />
+                <Text style={styles.menuItemText}>My Reports</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(citizen)/group/joined"); }}>
+                <Ionicons name="people-outline" size={20} color="#64748B" />
+                <Text style={styles.menuItemText}>Community Groups</Text>
+              </TouchableOpacity>
+
+              {user?.identityVerificationStatus !== "approved" && (
+                <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(auth)/verification"); }}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#2563EB" />
+                  <Text style={[styles.menuItemText, { color: "#2563EB" }]}>Identity Verification</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => { 
+                  setIsMenuOpen(false); 
+                  resetDraft();
+                  router.push("/(citizen)/report-step1"); 
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#059669" />
+                <Text style={[styles.menuItemText, { color: "#059669" }]}>Create Report</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => { 
+                  setIsMenuOpen(false); 
+                  router.push("/(citizen)/invites"); 
+                }}
+              >
+                <Ionicons name="people-outline" size={20} color="#1E293B" />
+                <Text style={styles.menuItemText}>Group Invites</Text>
+                {invites.some(i => i.status === "PENDING" || !i.status) && (
+                  <View style={styles.menuBadge} />
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+              
+              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); signOut(); }}>
+                <Ionicons name="log-out-outline" size={20} color="#B91C1C" />
+                <Text style={[styles.menuItemText, { color: "#B91C1C" }]}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
         >
-          <Text style={styles.title}>Profile</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Profile</Text>
+            <TouchableOpacity onPress={() => setIsMenuOpen(true)} style={styles.menuBtn}>
+              <View style={{ position: "relative" }}>
+                <Ionicons name="menu-outline" size={28} color="#1E293B" />
+                {invites.some(i => i.status === "PENDING" || !i.status) && (
+                  <View style={styles.menuBadgeFloating} />
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
 
           {loading && (
             <View style={{ gap: 20 }}>
@@ -281,7 +336,7 @@ export default function ProfileScreen() {
           {error && (
             <View style={styles.errBox}>
               <Text style={styles.errText}>{error}</Text>
-              <TouchableOpacity onPress={() => load()} style={styles.retry}>
+              <TouchableOpacity onPress={refresh} style={styles.retry}>
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -312,106 +367,104 @@ export default function ProfileScreen() {
                     )}
                   </View>
                   <Text style={styles.username}>@{profile.username}</Text>
-                  <Text style={styles.trust}>
-                    Trust {profile.trustScore.toFixed(0)} · {profile.reputationPoints} pts
-                  </Text>
-                </View>
-              </View>
-
-              {/* Verification Status Card */}
-              <View style={[
-                styles.statusCard,
-                user?.identityVerificationStatus === "approved" && styles.statusCardApproved,
-                user?.identityVerificationStatus === "pending" && styles.statusCardPending,
-                user?.identityVerificationStatus === "rejected" && styles.statusCardRejected,
-              ]}>
-                <View style={styles.statusIconWrap}>
-                  <Ionicons 
-                    name={
-                      user?.identityVerificationStatus === "approved" ? "shield-checkmark" : 
-                      user?.identityVerificationStatus === "pending" ? "time" : 
-                      user?.identityVerificationStatus === "rejected" ? "alert-circle" : "shield-outline"
-                    } 
-                    size={16} 
-                    color={
-                      user?.identityVerificationStatus === "approved" ? "#16A34A" : 
-                      user?.identityVerificationStatus === "pending" ? "#D97706" : 
-                      user?.identityVerificationStatus === "rejected" ? "#DC2626" : "#475569"
-                    } 
-                  />
-                </View>
-                <View style={styles.statusInfo}>
-                  <Text style={styles.statusTitle}>
-                    {user?.identityVerificationStatus === "approved" ? "Verified Citizen" : 
-                     user?.identityVerificationStatus === "pending" ? "Verification Pending" : 
-                     user?.identityVerificationStatus === "rejected" ? "Verification Rejected" : "Identity Not Verified"}
-                  </Text>
-                  <Text style={styles.statusDesc}>
-                    {user?.identityVerificationStatus === "approved" ? "Your identity is confirmed. You have full access to community features." : 
-                     user?.identityVerificationStatus === "pending" ? "Our team is reviewing your documents. This usually takes 24-48 hours." : 
-                     user?.identityVerificationStatus === "rejected" ? "Your application was not approved. Please check your email for details." : "Verify your ID to earn trust and unlock premium neighborhood features."}
-                  </Text>
-                  {user?.identityVerificationStatus === "none" && (
-                    <TouchableOpacity style={styles.verifyCTA} onPress={() => router.push("/(auth)/verification")}>
-                      <Text style={styles.verifyCTAText}>Start Verification</Text>
-                      <Ionicons name="arrow-forward" size={14} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              <Text style={styles.section}>Badges & points</Text>
-              <Text style={styles.privacyHint}>
-                {userBadges.length} badge{userBadges.length === 1 ? "" : "s"} earned — keep reporting and
-                confirming to earn more.
-              </Text>
-              {userBadges.map((ub) => (
-                <Text key={ub.id} style={styles.badgeLine}>
-                  • {ub.badge.name.replace(/_/g, " ")} — {ub.badge.description}
-                </Text>
-              ))}
-
-              {invites.length > 0 || invitesLoading ? (
-                <>
-                  <Text style={styles.section}>Group invitations</Text>
-                  <Text style={styles.privacyHint}>Neighbors have invited you to join these groups.</Text>
-                  {invitesLoading ? (
-                    [1, 2].map((i) => (
-                      <View key={i} style={styles.inviteCard}>
-                        <View style={styles.inviteInfo}>
-                          <Skeleton width="60%" height={16} style={{ marginBottom: 4 }} />
-                          <Skeleton width="40%" height={12} />
-                        </View>
-                      </View>
-                    ))
+                  {user?.identityVerificationStatus !== "approved" ? (
+                    <Text style={[styles.miniStatus, user?.identityVerificationStatus === "pending" && styles.miniStatusPending]}>
+                      {user?.identityVerificationStatus === "pending" ? "• Verification in progress" : "• Not Verified"}
+                    </Text>
                   ) : (
-                    invites.map((inv) => (
-                      <View key={inv.id} style={styles.inviteCard}>
-                        <View style={styles.inviteInfo}>
-                          <Text style={styles.inviteGroupName}>{inv.group.name}</Text>
-                          <Text style={styles.inviteMeta}>Invited by @{inv.inviter.username}</Text>
-                        </View>
-                        <View style={styles.inviteActions}>
-                          <TouchableOpacity
-                            style={styles.declineBtn}
-                            disabled={invitesLoading}
-                            onPress={() => onRespondInvite(inv.id, false)}
-                          >
-                            <Text style={styles.declineText}>Decline</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.acceptBtn}
-                            disabled={invitesLoading}
-                            onPress={() => onRespondInvite(inv.id, true)}
-                          >
-                            <Text style={styles.acceptText}>Accept</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))
+                    <Text style={styles.miniStatusVerified}> Verified Citizen</Text>
                   )}
-                </>
-              ) : null}
+                  <View style={styles.scoreRow}>
+                    <View style={styles.scoreChip}>
+                      <Ionicons name="shield-outline" size={12} color="#475569" />
+                      <Text style={styles.scoreText}>Trust {profile.trustScore.toFixed(0)}</Text>
+                    </View>
+                    <View style={[styles.scoreChip, { backgroundColor: "#F0F9FF", borderColor: "#BAE6FD" }]}>
+                      <Ionicons name="flash-outline" size={12} color="#0369A1" />
+                      <Text style={[styles.scoreText, { color: "#0369A1" }]}>{profile.reputationPoints} pts</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Subtle Verification logic moved to miniStatus */}
+
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.section}>Recent Reports</Text>
+                <TouchableOpacity onPress={() => router.push("/(citizen)/my-reports")}>
+                   <Text style={styles.viewAllBtn}>View all</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.reportsScroll}
+                style={styles.reportsScrollContainer}
+              >
+                {loading ? (
+                  [1, 2].map((i) => <View key={i} style={styles.reportCardSkeleton}><Skeleton width={140} height={100} borderRadius={12}/></View>)
+                ) : myReports.length === 0 ? (
+                  <View style={styles.emptyReportCard}>
+                    <Text style={styles.emptyReportText}>No reports yet</Text>
+                  </View>
+                ) : (
+                  myReports.slice(0, 5).map((rep) => (
+                    <TouchableOpacity 
+                      key={rep.id} 
+                      style={styles.reportCard}
+                      onPress={() => router.push(`/(citizen)/report-detail/${rep.id}`)}
+                    >
+                      <View style={[styles.reportStatusDot, { backgroundColor: rep.status === "RESOLVED" ? "#16A34A" : "#F59E0B" }]} />
+                      <Text style={styles.reportCardCategory} numberOfLines={1}>{rep.crimeCategory}</Text>
+                      <Text style={styles.reportCardTitle} numberOfLines={2}>{rep.title || rep.description}</Text>
+                      <Text style={styles.reportCardDate}>{new Date(rep.createdAt).toLocaleDateString()}</Text>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.section}>Achievement Vault</Text>
+                <View style={styles.badgeCountBadge}>
+                  <Text style={styles.badgeCountText}>{userBadges.length}</Text>
+                </View>
+              </View>
+              
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.badgesScroll}
+                style={styles.badgesScrollContainer}
+              >
+                {userBadges.length === 0 ? (
+                  <View style={styles.emptyBadgeCard}>
+                    <Ionicons name="lock-closed-outline" size={24} color="#CBD5E1" />
+                    <Text style={styles.emptyBadgeText}>No badges yet</Text>
+                  </View>
+                ) : (
+                  userBadges.map((ub) => (
+                    <View key={ub.id} style={styles.achievementCard}>
+                      <View style={styles.badgeIconBg}>
+                        <Ionicons name={ub.badge.iconUrl as any || "ribbon-outline"} size={28} color="#2563EB" />
+                      </View>
+                      <Text style={styles.badgeName} numberOfLines={1}>{ub.badge.name}</Text>
+                      <Text style={styles.badgeDesc} numberOfLines={2}>{ub.badge.description}</Text>
+                      <View style={styles.badgePointsPill}>
+                         <Text style={styles.badgePointsText}>+{ub.badge.pointsValue} XP</Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+                {userBadges.length > 0 && (
+                  <TouchableOpacity style={styles.earnMoreCard} onPress={() => Alert.alert("How to earn", "Keep reporting incidents and confirming others' reports to unlock more badges!")}>
+                    <Ionicons name="add-circle-outline" size={24} color="#64748B" />
+                    <Text style={styles.earnMoreText}>Earn More</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+
+              {/* Group Invites moved to its own screen */}
 
               <Text style={styles.section}>Privacy defaults</Text>
               <Text style={styles.privacyHint}>
@@ -576,20 +629,9 @@ export default function ProfileScreen() {
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save profile</Text>}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.reportsBtn}
-                onPress={() => router.push("/(citizen)/my-reports")}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.reportsBtnText}>My reports →</Text>
-                <Text style={styles.reportsBtnSub}>View all submissions with photos, location, and status</Text>
-              </TouchableOpacity>
             </>
           )}
 
-          <TouchableOpacity style={styles.signOut} onPress={() => signOut()}>
-            <Text style={styles.signOutText}>Sign out</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </CitizenShell>
@@ -599,7 +641,16 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { paddingHorizontal: 20, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111", marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: "700", color: "#111" },
+  headerRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center",
+    marginBottom: 16
+  },
+  menuBtn: {
+    padding: 4,
+  },
   centerRow: { paddingVertical: 24, alignItems: "center" },
   errBox: { marginBottom: 12 },
   errText: { color: "#B91C1C", fontSize: 14 },
@@ -631,76 +682,200 @@ const styles = StyleSheet.create({
   avatarMeta: { flex: 1 },
   userName: { fontSize: 20, fontWeight: "700", color: "#111" },
   username: { fontSize: 13, color: "#64748B", marginTop: 2 },
-  trust: { fontSize: 12, color: "#475569", marginTop: 6 },
-  
-  nameRow: {
+  scoreRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  scoreChip: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  statusCard: {
-    backgroundColor: "#F8FAFF",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
-  statusCardApproved: {
-    backgroundColor: "#F0FDF4",
-    borderColor: "#DCFCE7",
-  },
-  statusCardPending: {
-    backgroundColor: "#FFFBEB",
-    borderColor: "#FEF3C7",
-  },
-  statusCardRejected: {
-    backgroundColor: "#FEF2F2",
-    borderColor: "#FEE2E2",
-  },
-  statusIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  statusDesc: {
+  scoreText: { fontSize: 11, fontWeight: "700", color: "#475569" },
+  nameRow: { flexDirection: "row", alignItems: "center" },
+  
+  miniStatus: {
     fontSize: 11,
-    color: "#64748B",
-    lineHeight: 15,
+    color: "#94A3B8",
     marginTop: 2,
+    fontWeight: "500",
   },
-  verifyCTA: {
-    backgroundColor: "#1E293B",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 8,
+  miniStatusPending: {
+    color: "#D97706",
   },
-  verifyCTAText: {
-    color: "#fff",
-    fontSize: 13,
+  miniStatusVerified: {
+    fontSize: 11,
+    color: "#16A34A",
+    marginTop: 2,
     fontWeight: "600",
   },
 
-  section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8, marginBottom: 10 },
+  section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8 },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  viewAllBtn: {
+    fontSize: 13,
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+  reportsScrollContainer: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  reportsScroll: {
+    paddingRight: 40,
+    gap: 12,
+  },
+  reportCard: {
+    width: 160,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+  reportCardSkeleton: { width: 140, marginRight: 12 },
+  reportStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  reportCardCategory: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748B",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  reportCardTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E293B",
+    height: 36,
+    lineHeight: 18,
+  },
+  reportCardDate: {
+    fontSize: 10,
+    color: "#94A3B8",
+    marginTop: 8,
+  },
+  emptyReportCard: {
+    width: 160,
+    height: 100,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyReportText: {
+    fontSize: 12,
+    color: "#94A3B8",
+  },
+
   privacyHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
-  badgeLine: { fontSize: 13, color: "#334155", marginBottom: 6 },
+  badgesScrollContainer: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  badgesScroll: {
+    paddingRight: 40,
+    gap: 12,
+    paddingVertical: 8,
+  },
+  achievementCard: {
+    width: 140,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  badgeIconBg: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  badgeName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  badgeDesc: {
+    fontSize: 10,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 14,
+    height: 28,
+  },
+  badgePointsPill: {
+    marginTop: 10,
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgePointsText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#16A34A",
+  },
+  emptyBadgeCard: {
+    width: 140,
+    height: 140,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  emptyBadgeText: { fontSize: 11, color: "#94A3B8", marginTop: 8 },
+  earnMoreCard: {
+    width: 100,
+    height: 140,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  earnMoreText: { fontSize: 11, fontWeight: "600", color: "#64748B" },
+  badgeCountBadge: {
+    backgroundColor: "#2563EB",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeCountText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -766,24 +941,75 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  reportsBtn: {
-    marginTop: 16,
-    borderWidth: 1.5,
-    borderColor: "#2563EB",
-    borderRadius: 14,
+
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+  },
+  menuContent: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    width: 200,
+    backgroundColor: "#fff",
+    borderRadius: 16,
     padding: 16,
-    backgroundColor: "#EFF6FF",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  reportsBtnText: { fontSize: 17, fontWeight: "700", color: "#1D4ED8" },
-  reportsBtnSub: { fontSize: 12, color: "#64748B", marginTop: 6, lineHeight: 18 },
-  signOut: {
-    marginTop: 28,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 8,
   },
-  signOutText: { fontSize: 16, fontWeight: "600", color: "#475569" },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#64748B",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1E293B",
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginVertical: 4,
+  },
+  menuBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#DC2626",
+    marginLeft: "auto",
+  },
+  menuBadgeFloating: {
+    position: "absolute",
+    top: 2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#DC2626",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
   inviteCard: {
     backgroundColor: "#fff",
     borderRadius: 14,

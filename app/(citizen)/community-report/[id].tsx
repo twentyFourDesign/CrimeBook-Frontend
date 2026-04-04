@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
@@ -18,6 +19,7 @@ import {
   fetchCommunityReport,
   fetchReportConfirmations,
   submitReportConfirmation,
+  resolveReportIncident,
 } from "../../../src/auth/api";
 import type { CommunityReportPayload, ReportConfirmationListItem } from "../../../src/auth/types";
 
@@ -38,6 +40,9 @@ export default function CommunityReportDetail() {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<boolean>(true);
   const [commentDraft, setCommentDraft] = useState("");
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
+  const [resolveStatus, setResolveStatus] = useState<"CONFIRMED" | "DISPUTED">("CONFIRMED");
 
   const load = useCallback(
     async (mode?: "refresh") => {
@@ -87,6 +92,23 @@ export default function CommunityReportDetail() {
       setError(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onResolve = async () => {
+    if (!reportId || isResolving) return;
+    setIsResolving(true);
+    try {
+      await resolveReportIncident(reportId, {
+        status: resolveStatus,
+        notes: commentDraft.trim() || undefined,
+      });
+      setResolveModalOpen(false);
+      await load("refresh");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not process resolution");
+    } finally {
+      setIsResolving(false);
     }
   };
 
@@ -140,6 +162,40 @@ export default function CommunityReportDetail() {
                 ● {report.communityConfirmCount} community confirmations
               </Text>
             </View>
+
+            {report.status === "POLICE_RESOLVED" && report.isOwnReport && (
+              <View style={styles.resolvePromptCard}>
+                <View style={styles.resolveHeader}>
+                  <Ionicons name="information-circle" size={24} color="#0369A1" />
+                  <Text style={styles.resolveTitle}>Police Resolution Pending</Text>
+                </View>
+                <Text style={styles.resolveText}>
+                  The police have marked this incident as resolved. Do you confirm that the situation is settled?
+                </Text>
+                <View style={styles.resolveActions}>
+                  <TouchableOpacity 
+                    style={[styles.resolveBtn, styles.resolveBtnConfirm]} 
+                    onPress={() => {
+                      setResolveStatus("CONFIRMED");
+                      setCommentDraft("");
+                      setResolveModalOpen(true);
+                    }}
+                  >
+                    <Text style={styles.resolveBtnText}>Yes, Resolved</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.resolveBtn, styles.resolveBtnDispute]}
+                    onPress={() => {
+                      setResolveStatus("DISPUTED");
+                      setCommentDraft("");
+                      setResolveModalOpen(true);
+                    }}
+                  >
+                    <Text style={[styles.resolveBtnText, { color: "#1E293B" }]}>Still Ongoing</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {!report.isOwnReport && (
               <View style={styles.actions}>
@@ -222,6 +278,51 @@ export default function CommunityReportDetail() {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.btnPrimaryText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={resolveModalOpen} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {resolveStatus === "CONFIRMED" ? "Confirm Resolution" : "Dispute Resolution"}
+            </Text>
+            <Text style={styles.modalHint}>
+              {resolveStatus === "CONFIRMED" 
+                ? "Excellent. Feel free to add any closing comments." 
+                : "Please explain why you believe the incident is not yet resolved."}
+            </Text>
+            <TextInput
+              style={styles.input}
+              multiline
+              placeholder="Add your notes…"
+              value={commentDraft}
+              onChangeText={setCommentDraft}
+              maxLength={2000}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnOutline, { flex: 1 }]}
+                onPress={() => setResolveModalOpen(false)}
+                disabled={isResolving}
+              >
+                <Text style={styles.btnOutlineText}>Go Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, resolveStatus === "CONFIRMED" ? styles.btnPrimary : { backgroundColor: "#B91C1C" }, { flex: 1 }]}
+                onPress={onResolve}
+                disabled={isResolving}
+              >
+                {isResolving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.btnPrimaryText}>
+                    {resolveStatus === "CONFIRMED" ? "Confirm Solved" : "Send Dispute"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -334,4 +435,27 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   modalActions: { flexDirection: "row", gap: 12, marginTop: 16 },
+  
+  resolvePromptCard: {
+    backgroundColor: "#F0F9FF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+  resolveHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  resolveTitle: { fontSize: 16, fontWeight: "700", color: "#0369A1" },
+  resolveText: { fontSize: 14, color: "#0C4A6E", lineHeight: 20, marginBottom: 16 },
+  resolveActions: { flexDirection: "row", gap: 12 },
+  resolveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resolveBtnConfirm: { backgroundColor: "#0369A1" },
+  resolveBtnDispute: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#E2E8F0" },
+  resolveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 });

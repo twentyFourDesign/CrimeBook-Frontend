@@ -66,6 +66,7 @@ export default function ReportStep6() {
         params: {
           displayCaseId: res.report.displayCaseId,
           status: res.report.status,
+          newBadge: res.newBadge ? JSON.stringify(res.newBadge) : undefined,
         },
       });
     } catch (e: unknown) {

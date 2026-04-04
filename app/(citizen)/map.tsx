@@ -4,36 +4,29 @@ import { StatusBar } from "expo-status-bar";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { fetchMyReports } from "../../src/auth/api";
-import type { MyReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
+import type { MyReportItem } from "../../src/auth/types";
 
 export default function MapScreen() {
-  const { citizenReports, setCitizenReports } = useAppDataCache();
-  const cacheRef = useRef(citizenReports);
-  cacheRef.current = citizenReports;
-  const reports = citizenReports ?? [];
-  const [loading, setLoading] = useState(() => citizenReports === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setCitizenReports } = useAppDataCache();
 
-  const load = useCallback(async (mode?: "refresh") => {
-    setError(null);
-    if (mode === "refresh") setRefreshing(true);
-    else if (cacheRef.current === null) setLoading(true);
-    try {
-      const data = await fetchMyReports();
-      setCitizenReports(data.reports ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load map");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [setCitizenReports]);
+  const {
+    data: reportsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "citizenReports",
+    async () => {
+      const res = await fetchMyReports();
+      return res.reports ?? [];
+    },
+    setCitizenReports
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const reports = reportsData ?? [];
 
   const points = useMemo(
     () =>
@@ -65,50 +58,95 @@ export default function MapScreen() {
   return (
     <CitizenShell>
       <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
-      >
-        <View style={styles.hero}>
-          <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion}>
-            {points.map((report) => (
-              <Marker
-                key={report.id}
-                coordinate={{ latitude: report.latitude, longitude: report.longitude }}
-                title={report.title?.trim() || report.crimeCategory.replace(/_/g, " ")}
-                description={`${report.status.replace(/_/g, " ")} • ${new Date(
-                  report.createdAt
-                ).toLocaleDateString()}`}
-              />
-            ))}
-          </MapView>
-        </View>
-        <View style={styles.content}>
-          <Text style={styles.title}>Safety map</Text>
-          {loading ? <ActivityIndicator style={{ marginTop: 8 }} /> : null}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          {!loading && !error ? (
+      <View style={styles.container}>
+        <MapView
+          style={StyleSheet.absoluteFillObject}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={initialRegion}
+        >
+          {points.map((report) => (
+            <Marker
+              key={report.id}
+              coordinate={{ latitude: report.latitude, longitude: report.longitude }}
+              title={report.title?.trim() || report.crimeCategory.replace(/_/g, " ")}
+              description={`${report.status.replace(/_/g, " ")} • ${new Date(
+                report.createdAt
+              ).toLocaleDateString()}`}
+            />
+          ))}
+        </MapView>
+
+        {/* Floating Header */}
+        <View style={styles.floatingHeader}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Safety Map</Text>
+            {revalidating && <ActivityIndicator size="small" color="#2563EB" style={{ marginLeft: 8 }} />}
+          </View>
+          {!loading && !error && points.length > 0 && (
             <Text style={styles.subtitle}>
-              Showing {points.length} mapped incidents from your reports ({reports.length} total reports).
+              {points.length} incident{points.length === 1 ? "" : "s"} reported by you
             </Text>
-          ) : null}
+          )}
         </View>
-      </ScrollView>
+
+        {error ? (
+          <View style={styles.errorOverlay}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+      </View>
     </CitizenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingBottom: 32 },
-  hero: { paddingHorizontal: 20, paddingTop: 8 },
-  map: {
-    height: 220,
-    borderRadius: 16,
-    overflow: "hidden",
+  container: {
+    flex: 1,
   },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-  title: { fontSize: 22, fontWeight: "700", color: "#111", marginBottom: 8 },
-  subtitle: { fontSize: 14, color: "#64748B", lineHeight: 22 },
-  errorText: { color: "#B91C1C", fontSize: 14, marginTop: 8 },
+  floatingHeader: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    padding: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.8)",
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  subtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 4,
+    fontWeight: "500",
+  },
+  errorOverlay: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    padding: 12,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  errorText: {
+    color: "#B91C1C",
+    fontSize: 13,
+    textAlign: "center",
+  },
 });

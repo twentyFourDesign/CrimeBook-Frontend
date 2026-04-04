@@ -13,7 +13,9 @@ import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { Skeleton } from "../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { fetchMyReports } from "../../src/auth/api";
+import { MyReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function formatCategory(cat: string) {
   return cat.replace(/_/g, " ");
@@ -21,42 +23,31 @@ function formatCategory(cat: string) {
 
 export default function MyReportsScreen() {
   const router = useRouter();
-  const { citizenReports, setCitizenReports } = useAppDataCache();
-  const cacheRef = useRef(citizenReports);
-  cacheRef.current = citizenReports;
-  const reports = citizenReports ?? [];
-  const [loading, setLoading] = useState(() => citizenReports === null);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const { setCitizenReports } = useAppDataCache();
 
-  const load = useCallback(async (mode?: "refresh") => {
-    setError(null);
-    if (mode === "refresh") {
-      setRefreshing(true);
-    } else if (cacheRef.current === null) {
-      setLoading(true);
-    }
-    try {
-      const data = await fetchMyReports();
-      setCitizenReports(data.reports);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load reports");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [setCitizenReports]);
+  const {
+    data: reportsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "citizenReports",
+    async () => {
+      const res = await fetchMyReports();
+      return res.reports ?? [];
+    },
+    setCitizenReports
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const reports = reportsData ?? [];
 
   return (
     <CitizenShell>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
       >
         <View style={styles.header}>
           <ScreenBackButton />
@@ -80,7 +71,7 @@ export default function MyReportsScreen() {
         {error && (
           <View style={styles.errBox}>
             <Text style={styles.errText}>{error}</Text>
-            <TouchableOpacity onPress={() => load()} style={styles.retry}>
+            <TouchableOpacity onPress={refresh} style={styles.retry}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>

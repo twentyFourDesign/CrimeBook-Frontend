@@ -15,6 +15,7 @@ import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchFeedReports } from "../../src/auth/api";
 import type { FeedReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -22,36 +23,24 @@ function formatEnum(s: string) {
 
 export default function PoliceFeedScreen() {
   const router = useRouter();
-  const { feedReports, setFeedReports } = useAppDataCache();
-  const cacheRef = useRef(feedReports);
-  cacheRef.current = feedReports;
-  const reports = feedReports;
-  const [loading, setLoading] = useState(() => feedReports === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setFeedReports } = useAppDataCache();
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const { reports: list } = await fetchFeedReports();
-        setFeedReports(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load feed");
-        setFeedReports([]);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const {
+    data: reportsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "feedReports",
+    async () => {
+      const res = await fetchFeedReports();
+      return res.reports ?? [];
     },
-    [setFeedReports]
+    setFeedReports
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const reports = reportsData ?? [];
 
   const total = reports?.length ?? 0;
   const verifiedCount = useMemo(
@@ -66,7 +55,7 @@ export default function PoliceFeedScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
       >
         <Text style={styles.title}>Feed</Text>
         <Text style={styles.subtitle}>Live citizen reports and alerts across your jurisdiction.</Text>

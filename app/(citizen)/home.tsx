@@ -15,6 +15,7 @@ import { Skeleton } from "../../src/components/common/Skeleton";
 import { fetchMyReports } from "../../src/auth/api";
 import type { MyReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function formatEnum(value: string) {
   return value.replace(/_/g, " ");
@@ -22,36 +23,24 @@ function formatEnum(value: string) {
 
 export default function CitizenHome() {
   const router = useRouter();
-  const { citizenReports, setCitizenReports } = useAppDataCache();
-  const cacheRef = useRef(citizenReports);
-  cacheRef.current = citizenReports;
-  const [loading, setLoading] = useState(() => citizenReports === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setCitizenReports } = useAppDataCache();
 
-  const reports = citizenReports ?? [];
+  const {
+    data: reportsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "citizenReports",
+    async () => {
+      const res = await fetchMyReports();
+      return res.reports ?? [];
+    },
+    setCitizenReports
+  );
 
-  const load = useCallback(async (mode?: "refresh") => {
-    setError(null);
-    if (mode === "refresh") {
-      setRefreshing(true);
-    } else if (cacheRef.current === null) {
-      setLoading(true);
-    }
-    try {
-      const data = await fetchMyReports();
-      setCitizenReports(data.reports ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load dashboard");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [setCitizenReports]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const reports = reportsData ?? [];
 
   const latest = useMemo(() => reports.slice(0, 3), [reports]);
   const stats = useMemo(() => {
@@ -68,7 +57,7 @@ export default function CitizenHome() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+        refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
       >
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Track your reports and latest police progress in one place.</Text>
@@ -109,7 +98,7 @@ export default function CitizenHome() {
         {error ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => load()}>
+            <TouchableOpacity onPress={refresh}>
               <Text style={styles.link}>Retry </Text>
             </TouchableOpacity>
           </View>

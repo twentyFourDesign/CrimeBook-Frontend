@@ -14,6 +14,7 @@ import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceCases } from "../../src/auth/api";
 import type { PoliceCaseItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 const statusConfig: Record<
   string,
@@ -30,36 +31,24 @@ const statusConfig: Record<
 
 export default function PoliceCasesScreen() {
   const router = useRouter();
-  const { policeCases, setPoliceCases } = useAppDataCache();
-  const cacheRef = useRef(policeCases);
-  cacheRef.current = policeCases;
-  const cases = policeCases;
-  const [loading, setLoading] = useState(() => policeCases === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setPoliceCases } = useAppDataCache();
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const { cases: list } = await fetchPoliceCases();
-        setPoliceCases(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load cases");
-        setPoliceCases([]);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const {
+    data: casesData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "policeCases",
+    async () => {
+      const res = await fetchPoliceCases();
+      return res.cases ?? [];
     },
-    [setPoliceCases]
+    setPoliceCases
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const cases = casesData ?? [];
 
   return (
     <PoliceShell>
@@ -68,7 +57,7 @@ export default function PoliceCasesScreen() {
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
         >
           <View style={styles.header}>
             <View style={styles.headerIcon}>

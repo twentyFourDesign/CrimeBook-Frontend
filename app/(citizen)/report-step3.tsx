@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { ReportProgress } from "../../src/report/ReportProgress";
 import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
@@ -20,6 +21,34 @@ export default function ReportStep3() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsLat, setGpsLat] = useState<number | null>(draft.latitude);
   const [gpsLng, setGpsLng] = useState<number | null>(draft.longitude);
+
+  const [region, setRegion] = useState<Region>({
+    latitude: draft.latitude || 3.3792, // Default to a center point or Lagos
+    longitude: draft.longitude || 6.5244,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005,
+  });
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return;
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+      );
+      const data = (await res.json()) as {
+        status?: string;
+        results?: Array<{ formatted_address?: string }>;
+      };
+      if (data.status === "OK" && data.results && data.results[0]?.formatted_address) {
+        const addr = data.results[0].formatted_address;
+        setLocation(addr);
+        updateDraft({ locationText: addr, latitude: lat, longitude: lng });
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -94,6 +123,13 @@ export default function ReportStep3() {
               });
               setGpsLat(lat);
               setGpsLng(lng);
+              setRegion({
+                latitude: lat,
+                longitude: lng,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
+              });
+              reverseGeocode(lat, lng);
             } catch {
               setError("Could not fetch your current location. Try again or type it manually.");
             } finally {
@@ -112,9 +148,19 @@ export default function ReportStep3() {
         </TouchableOpacity>
 
         <View style={styles.mapBox}>
-          <Ionicons name="map-outline" size={80} color="#86A78C" style={styles.mapBgIcon} />
-          <View style={styles.mapPin}>
-            <Ionicons name="location" size={28} color="#2563EB" />
+          <MapView
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            region={region}
+            onRegionChangeComplete={(newRegion) => {
+              setRegion(newRegion);
+              setGpsLat(newRegion.latitude);
+              setGpsLng(newRegion.longitude);
+              reverseGeocode(newRegion.latitude, newRegion.longitude);
+            }}
+          />
+          <View style={styles.mapPinContainer} pointerEvents="none">
+            <Ionicons name="location" size={32} color="#DC2626" />
           </View>
         </View>
 
@@ -203,18 +249,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     overflow: "hidden",
+    position: "relative",
   },
-  mapBgIcon: { opacity: 0.45 },
-  mapPin: {
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapPinContainer: {
     position: "absolute",
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorText: { fontSize: 12, color: "#DC2626", marginBottom: 8 },
   resolvingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },

@@ -598,9 +598,13 @@ export default function GroupDetail() {
                 </View>
               ) : (
                 <View style={styles.lockedCard}>
-                  <Text style={styles.lockedText}>🔒 Join this group to view and create posts.</Text>
+                  <View style={styles.lockedIconCircle}>
+                    <Ionicons name="lock-closed" size={32} color="#64748B" />
+                  </View>
+                  <Text style={styles.lockedTitle}>Private Neighborhood</Text>
+                  <Text style={styles.lockedText}>Join this group to view posts and participate in the community chat.</Text>
                   <TouchableOpacity style={styles.joinSmallBtn} onPress={handleJoinLeave}>
-                    <Text style={styles.joinSmallBtnText}>Join Now</Text>
+                    <Text style={styles.joinSmallBtnText}>Join Community</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -637,8 +641,10 @@ export default function GroupDetail() {
           ListEmptyComponent={
             group.isMember ? (
               <View style={styles.emptyFeed}>
-                <Ionicons name="chatbubbles-outline" size={48} color="#CBD5E1" />
-                <Text style={styles.emptyText}>No posts yet. Be the first to share something!</Text>
+                <View style={styles.emptyFeedIcon}>
+                  <Ionicons name="chatbubbles-outline" size={40} color="#94A3B8" />
+                </View>
+                <Text style={styles.emptyText}>No posts yet. Be the first to share something with your neighbors!</Text>
               </View>
             ) : null
           }
@@ -994,16 +1000,34 @@ const styles = StyleSheet.create({
   postBtnDisabled: { backgroundColor: "#94A3B8" },
   postBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   lockedCard: {
-    backgroundColor: "#F8FAFF",
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 32,
     marginBottom: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#CBD5E1",
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  lockedText: { fontSize: 14, color: "#64748B", textAlign: "center", marginBottom: 16 },
+  lockedIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F8FAFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  lockedTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  lockedText: { fontSize: 14, color: "#64748B", textAlign: "center", marginBottom: 24, lineHeight: 22 },
   joinSmallBtn: {
     backgroundColor: "#2563EB",
     paddingHorizontal: 20,
@@ -1018,13 +1042,15 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B", marginBottom: 16 },
   postCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   avatarPlaceholder: {
@@ -1047,9 +1073,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   pinnedText: { fontSize: 10, color: "#D97706", fontWeight: "700" },
-  postContent: { fontSize: 14, color: "#334155", lineHeight: 22 },
-  emptyFeed: { alignItems: "center", paddingVertical: 60, opacity: 0.5 },
-  emptyText: { fontSize: 14, color: "#64748B", textAlign: "center", marginTop: 12 },
+  postContent: { fontSize: 15, color: "#334155", lineHeight: 24, marginTop: 4 },
+  emptyFeed: { alignItems: "center", paddingVertical: 80 },
+  emptyFeedIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F8FAFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  emptyText: { fontSize: 14, color: "#94A3B8", textAlign: "center", maxWidth: "80%", lineHeight: 22 },
   
   // Chat Styles
   chatContainer: {

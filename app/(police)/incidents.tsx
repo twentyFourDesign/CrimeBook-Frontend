@@ -15,6 +15,7 @@ import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
 import type { PoliceIncidentForMap } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
+import { useCachedData } from "../../src/hooks/useCachedData";
 
 function levelFromStatus(status: string): "critical" | "high" | "medium" | "low" {
   const s = status.toUpperCase();
@@ -41,36 +42,24 @@ const levelBg: Record<string, string> = {
 export default function PoliceIncidentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { policeIncidents, setPoliceIncidents } = useAppDataCache();
-  const cacheRef = useRef(policeIncidents);
-  cacheRef.current = policeIncidents;
-  const incidents = policeIncidents;
-  const [loading, setLoading] = useState(() => policeIncidents === null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { setPoliceIncidents } = useAppDataCache();
 
-  const load = useCallback(
-    async (mode?: "refresh") => {
-      setError(null);
-      if (mode === "refresh") setRefreshing(true);
-      else if (cacheRef.current === null) setLoading(true);
-      try {
-        const { incidents: list } = await fetchPoliceIncidentsForMap();
-        setPoliceIncidents(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not load incidents");
-        setPoliceIncidents([]);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const {
+    data: incidentsData,
+    loading,
+    revalidating,
+    error,
+    refresh
+  } = useCachedData(
+    "policeIncidents",
+    async () => {
+      const res = await fetchPoliceIncidentsForMap();
+      return res.incidents ?? [];
     },
-    [setPoliceIncidents]
+    setPoliceIncidents
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const incidents = incidentsData ?? [];
 
   const officerLat = user?.officerLocation?.latitude ?? null;
   const officerLng = user?.officerLocation?.longitude ?? null;
@@ -102,7 +91,7 @@ export default function PoliceIncidentsScreen() {
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
+          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
         >
           {/* Header */}
           <View style={styles.header}>

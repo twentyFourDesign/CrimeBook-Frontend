@@ -1,24 +1,73 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REPORT_H_PAD } from "../../src/report/reportScreenLayout";
+import { useState, useEffect, useRef } from "react";
+import ConfettiCannon from "react-native-confetti-cannon";
 
 export default function ReportSuccess() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { displayCaseId, status } = useLocalSearchParams<{
+  const { displayCaseId, status, newBadge } = useLocalSearchParams<{
     displayCaseId?: string;
     status?: string;
+    newBadge?: string;
   }>();
+
+  const [badge, setBadge] = useState<any>(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const caseId = displayCaseId ?? "—";
   const reportStatus = status ?? "SUBMITTED";
 
+  useEffect(() => {
+    if (newBadge) {
+      try {
+        const parsed = JSON.parse(newBadge);
+        setBadge(parsed);
+        // Show modal after a tiny delay so the screen settles
+        setTimeout(() => setShowBadgeModal(true), 600);
+      } catch (e) {
+        console.error("Failed to parse badge", e);
+      }
+    }
+  }, [newBadge]);
+
+  useEffect(() => {
+    if (showBadgeModal) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showBadgeModal]);
+
   return (
     <View style={styles.wrapper}>
       <StatusBar style="dark" />
+
+      {newBadge && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <ConfettiCannon
+            count={60}
+            origin={{ x: -10, y: 0 }}
+            fadeOut={true}
+            fallSpeed={3000}
+            explosionSpeed={350}
+          />
+          <ConfettiCannon
+            count={60}
+            origin={{ x: 400, y: 0 }}
+            fadeOut={true}
+            fallSpeed={3000}
+            explosionSpeed={350}
+          />
+        </View>
+      )}
 
       <View
         style={[
@@ -72,6 +121,31 @@ export default function ReportSuccess() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <Modal transparent visible={showBadgeModal} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.badgeModal, { opacity: fadeAnim, transform: [{ scale: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }]}>
+            <View style={styles.badgeIconContainer}>
+              <Ionicons name={badge?.iconUrl || "ribbon-outline"} size={64} color="#F59E0B" />
+            </View>
+            <Text style={styles.badgeCongrats}>Congratulations!</Text>
+            <Text style={styles.badgeTitle}>You earned the {badge?.name} badge</Text>
+            <Text style={styles.badgePoints}>+{badge?.pointsValue} Reputation Points</Text>
+            <Text style={styles.badgeDesc}>{badge?.description}</Text>
+
+            <TouchableOpacity style={styles.viewBadgeBtn} onPress={() => setShowBadgeModal(false)}>
+              <Text style={styles.viewBadgeText}>Dismiss</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.goToProfileBtn} onPress={() => {
+              setShowBadgeModal(false);
+              router.push("/(citizen)/profile");
+            }}>
+              <Text style={styles.goToProfileText}>View in Profile</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -129,4 +203,81 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   homeText: { fontSize: 16, fontWeight: "600", color: "#555" },
+
+  // Badge Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  badgeModal: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 32,
+    alignItems: "center",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  badgeIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#FEF3C7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    borderWidth: 4,
+    borderColor: "#FDE68A",
+  },
+  badgeCongrats: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#D97706",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  badgeTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  badgePoints: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#059669",
+    marginBottom: 16,
+  },
+  badgeDesc: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  viewBadgeBtn: {
+    width: "100%",
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  viewBadgeText: { fontSize: 15, fontWeight: "600", color: "#4B5563" },
+  goToProfileBtn: {
+    width: "100%",
+    backgroundColor: "#F59E0B",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  goToProfileText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });
