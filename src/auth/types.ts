@@ -35,6 +35,29 @@ export type AppUser = {
 
 export type IdDocumentType = "national_id" | "passport" | "drivers_license";
 
+export type InviteStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+
+export interface GroupInvite {
+  id: string;
+  groupId: string;
+  inviterId: string;
+  email: string;
+  status: InviteStatus;
+  createdAt: string;
+  updatedAt: string;
+  group: {
+    id: string;
+    name: string;
+    description: string | null;
+    avatarUrl: string | null;
+  };
+  inviter: {
+    id: string;
+    name: string;
+    username: string;
+  };
+}
+
 export type VerificationSubmitBody = {
   idDocumentType: IdDocumentType;
   idDocumentUrl?: string;
@@ -365,4 +388,53 @@ export type ApiResponse<T> = {
   message: string;
   data?: T;
   errors?: unknown;
+};
+
+export type CommunityGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  avatarUrl: string | null;
+  memberCount: number;
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+  createdAt: string;
+  isMember?: boolean;
+};
+
+export type CommunityPostMedia = {
+  id: string;
+  mediaType: "PHOTO" | "VIDEO" | "AUDIO" | "DOCUMENT";
+  fileUrl: string;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  durationSecs: number | null;
+};
+
+export type GroupPost = {
+  id: string;
+  content: string;
+  imageUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  isPinned: boolean;
+  createdAt: string;
+  author: {
+    id: string;
+    displayName: string;
+  };
+  media: CommunityPostMedia[];
+};
+
+export type GroupMessage = {
+  id: string;
+  content: string;
+  createdAt: string;
+  sender: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
 };

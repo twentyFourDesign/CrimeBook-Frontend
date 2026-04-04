@@ -18,6 +18,7 @@ import { Audio, ResizeMode, Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
+import { Skeleton } from "../../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
 import { fetchReportDetail, fetchReportMessages, sendReportMessage } from "../../../src/auth/api";
 import type {
@@ -415,8 +416,27 @@ export default function ReportDetailScreen() {
         </View>
 
         {loading && (
-          <View style={styles.centerRow}>
-            <ActivityIndicator />
+          <View style={{ gap: 16 }}>
+            <View style={styles.accordionOuter}>
+              <View style={styles.accordionHeader}>
+                <Skeleton width={36} height={36} borderRadius={10} style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Skeleton width="40%" height={16} style={{ marginBottom: 4 }} />
+                  <Skeleton width="60%" height={12} />
+                </View>
+              </View>
+            </View>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={styles.accordionOuter}>
+                <View style={styles.accordionHeader}>
+                  <Skeleton width={36} height={36} borderRadius={10} style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Skeleton width="50%" height={16} style={{ marginBottom: 4 }} />
+                    <Skeleton width="70%" height={12} />
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
@@ -650,7 +670,17 @@ export default function ReportDetailScreen() {
                   : "You can leave messages now; assigned officers will see them once they open a case."}
               </Text>
               {threadLoading ? (
-                <ActivityIndicator style={{ marginVertical: 12 }} />
+                <View style={{ gap: 12, marginVertical: 12 }}>
+                  {[1, 2].map((i) => (
+                    <View key={i} style={[styles.msgRow, i % 2 === 0 ? styles.msgRowPolice : styles.msgRowYou]}>
+                      <View style={[styles.msgBubble, i % 2 === 0 ? styles.msgBubblePolice : styles.msgBubbleYou, { width: "70%" }]}>
+                        <Skeleton width="40%" height={12} style={{ marginBottom: 6 }} />
+                        <Skeleton width="100%" height={14} style={{ marginBottom: 4 }} />
+                        <Skeleton width="80%" height={14} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
               ) : null}
               {threadError ? <Text style={styles.threadError}>{threadError}</Text> : null}
               <View style={styles.threadList}>

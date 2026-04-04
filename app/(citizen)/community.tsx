@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { Skeleton } from "../../src/components/common/Skeleton";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { fetchCitizenAppeals, fetchCommunityGroups, fetchFeedReports } from "../../src/auth/api";
-import type { FeedReportItem, PublicAppealItem } from "../../src/auth/types";
+import type { CommunityGroup, FeedReportItem, PublicAppealItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
 function formatEnum(s: string) {
@@ -32,18 +34,7 @@ export default function Community() {
   const [error, setError] = useState<string | null>(null);
   const [appeals, setAppeals] = useState<PublicAppealItem[] | null>(null);
   const [appealsError, setAppealsError] = useState<string | null>(null);
-  const [groups, setGroups] = useState<
-    {
-      id: string;
-      name: string;
-      description: string | null;
-      memberCount: number;
-      latitude: number;
-      longitude: number;
-      radiusKm: number;
-      createdAt: string;
-    }[]
-  >([]);
+  const [groups, setGroups] = useState<CommunityGroup[]>([]);
 
   const load = useCallback(
     async (mode?: "refresh") => {
@@ -108,50 +99,134 @@ export default function Community() {
             </View>
             <Text style={styles.subtitle}>Your Neighborhood hub</Text>
           </View>
-          <TouchableOpacity
-            style={styles.newAlertBtn}
-            onPress={() => {
-              resetDraft();
-              router.push("/(citizen)/report-step1");
-            }}
-          >
-            <Text style={styles.newAlertText}>🔔 New Alert</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.settingsHeaderBtn}
+              onPress={() => alert("Community settings coming soon")}
+            >
+              <Ionicons name="settings-outline" size={22} color="#475569" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.newAlertBtn}
+              onPress={() => {
+                resetDraft();
+                router.push("/(citizen)/report-step1");
+              }}
+            >
+              <Text style={styles.newAlertText}>🔔 New Alert</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>📡</Text>
-            <Text style={styles.statValue}>{total}</Text>
-            <Text style={styles.statLabel}>Reports</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>✅</Text>
-            <Text style={styles.statValue}>{verifiedCount}</Text>
-            <Text style={styles.statLabel}>Police verified</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>👥</Text>
-            <Text style={styles.statValue}>{Math.max(total - verifiedCount, 0)}</Text>
-            <Text style={styles.statLabel}>Awaiting review</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Neighborhood groups</Text>
-        {!loading && groups.length > 0
-          ? groups.slice(0, 6).map((g) => (
-              <View key={g.id} style={styles.groupCard}>
-                <Text style={styles.groupTitle}>{g.name}</Text>
-                {g.description ? <Text style={styles.groupDesc}>{g.description}</Text> : null}
-                <Text style={styles.groupMeta}>
-                  {g.memberCount} members · radius {g.radiusKm} km
-                </Text>
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <View key={i} style={styles.statCard}>
+                <Skeleton width={24} height={24} style={{ marginBottom: 4 }} />
+                <Skeleton width={30} height={20} style={{ marginBottom: 4 }} />
+                <Skeleton width={60} height={10} />
               </View>
             ))
-          : null}
-        {!loading && groups.length === 0 ? (
-          <Text style={styles.mutedAppeals}>No groups yet — create one via the API or wait for neighbors.</Text>
-        ) : null}
+          ) : (
+            <>
+              <View style={styles.statCard}>
+                <Text style={styles.statIcon}>📡</Text>
+                <Text style={styles.statValue}>{total}</Text>
+                <Text style={styles.statLabel}>Reports</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statIcon}>✅</Text>
+                <Text style={styles.statValue}>{verifiedCount}</Text>
+                <Text style={styles.statLabel}>Police verified</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statIcon}>👥</Text>
+                <Text style={styles.statValue}>{Math.max(total - verifiedCount, 0)}</Text>
+                <Text style={styles.statLabel}>Awaiting review</Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        {loading && (
+          <View style={{ marginBottom: 24 }}>
+            <Skeleton width={150} height={16} style={{ marginBottom: 12 }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.myGroupsScroll} contentContainerStyle={styles.myGroupsContent}>
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={styles.myGroupCard}>
+                  <Skeleton width={48} height={48} circle style={{ marginBottom: 10 }} />
+                  <Skeleton width="80%" height={14} style={{ marginBottom: 4 }} />
+                  <Skeleton width="50%" height={10} />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* My Joined Groups */}
+        {groups.filter(g => g.isMember).length > 0 && (
+          <>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>My Neighborhoods</Text>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.myGroupsScroll}
+              contentContainerStyle={styles.myGroupsContent}
+            >
+              {groups.filter(g => g.isMember).map((g) => (
+                <TouchableOpacity
+                  key={g.id}
+                  style={styles.myGroupCard}
+                  onPress={() => router.push(`/(citizen)/group/${g.id}`)}
+                >
+                  <View style={styles.myGroupIcon}>
+                    <Text style={styles.myGroupIconText}>{g.name[0]}</Text>
+                  </View>
+                  <Text style={styles.myGroupTitle} numberOfLines={1}>{g.name}</Text>
+                  <Text style={styles.myGroupMembers}>{g.memberCount} members</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Discover Communities</Text>
+          <TouchableOpacity
+            style={styles.createGroupBtn}
+            onPress={() => router.push("/(citizen)/create-group")}
+          >
+            <Text style={styles.createGroupText}>+ Create Group</Text>
+          </TouchableOpacity>
+        </View>
+
+        {!loading && groups.filter(g => !g.isMember).length > 0
+          ? groups.filter(g => !g.isMember).slice(0, 4).map((g) => (
+              <TouchableOpacity
+                key={g.id}
+                style={styles.groupCard}
+                onPress={() => router.push(`/(citizen)/group/${g.id}`)}
+              >
+                <View style={styles.groupTop}>
+                  <Text style={styles.groupTitle}>{g.name}</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#64748B" />
+                </View>
+                {g.description ? <Text style={styles.groupDesc} numberOfLines={2}>{g.description}</Text> : null}
+                <View style={styles.groupBottom}>
+                  <Text style={styles.groupMeta}>
+                    👥 {g.memberCount} · 📍 {g.radiusKm} km radius
+                  </Text>
+                  <Text style={styles.joinActionText}>View & Join</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          : !loading && groups.filter(g => !g.isMember).length === 0 && (
+            <View style={styles.emptyGroupsBox}>
+              <Text style={styles.mutedAppeals}>Join or create a group to connect with your neighbors.</Text>
+            </View>
+          )}
 
         <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Police public appeals</Text>
         {appealsError ? <Text style={styles.errorText}>{appealsError}</Text> : null}
@@ -176,9 +251,22 @@ export default function Community() {
         <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Live incident feed</Text>
 
         {loading && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" />
-            <Text style={styles.loadingText}>Loading reports…</Text>
+          <View style={{ gap: 12 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <View key={i} style={styles.incidentCard}>
+                <View style={styles.incidentLeft}>
+                  <Skeleton width={32} height={32} circle />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Skeleton width="60%" height={16} />
+                    <Skeleton width="40%" height={12} />
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <Skeleton width="30%" height={10} />
+                      <Skeleton width="25%" height={10} />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
@@ -231,6 +319,38 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  settingsHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  createGroupBtn: {
+    backgroundColor: "#DBEAFE",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  createGroupText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2563EB",
   },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   title: { fontSize: 22, fontWeight: "700", color: "#111" },
@@ -289,7 +409,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  groupTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   groupTitle: { fontSize: 15, fontWeight: "700", color: "#111" },
+  joinedPill: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  joinedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
   groupDesc: { fontSize: 13, color: "#555", marginTop: 4 },
   groupMeta: { fontSize: 12, color: "#888", marginTop: 6 },
   incidentCard: {
@@ -358,5 +495,71 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, color: "#DC2626", marginBottom: 12 },
   alertDotVerified: {
     backgroundColor: "#BBF7D0",
+  },
+  myGroupsScroll: {
+    marginBottom: 24,
+    marginHorizontal: -20,
+  },
+  myGroupsContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  myGroupCard: {
+    width: 140,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+  },
+  myGroupIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  myGroupIconText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+  myGroupTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  myGroupMembers: {
+    fontSize: 11,
+    color: "#64748B",
+  },
+  groupBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  joinActionText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+  emptyGroupsBox: {
+    padding: 20,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    marginBottom: 12,
   },
 });

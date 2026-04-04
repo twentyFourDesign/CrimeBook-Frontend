@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { Skeleton } from "../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { fetchMyReports } from "../../src/auth/api";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
@@ -63,8 +64,16 @@ export default function MyReportsScreen() {
         </View>
 
         {loading && (
-          <View style={styles.centerRow}>
-            <ActivityIndicator />
+          <View style={{ gap: 12 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={styles.reportCard}>
+                <Skeleton width="60%" height={18} style={{ marginBottom: 10 }} />
+                <Skeleton width="40%" height={12} style={{ marginBottom: 8 }} />
+                <Skeleton width="30%" height={12} style={{ marginBottom: 10 }} />
+                <Skeleton width="50%" height={12} style={{ marginBottom: 12 }} />
+                <Skeleton width="40%" height={10} />
+              </View>
+            ))}
           </View>
         )}
 

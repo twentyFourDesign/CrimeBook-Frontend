@@ -16,8 +16,10 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { Skeleton } from "../../src/components/common/Skeleton";
 import {
   fetchCitizenProfile,
   fetchMyBadgesAndPoints,
@@ -25,8 +27,10 @@ import {
   updateCitizenProfile,
   updatePrivacySettings,
   uploadCrimeMediaFile,
+  fetchMyInvites,
+  respondToGroupInvite,
 } from "../../src/auth/api";
-import type { CitizenProfilePayload, UserBadgeEntry } from "../../src/auth/types";
+import type { CitizenProfilePayload, UserBadgeEntry, GroupInvite } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 
@@ -63,6 +67,8 @@ export default function ProfileScreen() {
   const [privacyAnonymous, setPrivacyAnonymous] = useState(false);
   const [privacyApproxLocation, setPrivacyApproxLocation] = useState(false);
   const [privacyLoading, setPrivacyLoading] = useState(false);
+  const [invites, setInvites] = useState<GroupInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
 
   const applyProfileToForm = useCallback((p: CitizenProfilePayload) => {
     setProfile(p);
@@ -95,6 +101,9 @@ export default function ProfileScreen() {
           setPrivacyAnonymous(privRes.settings.defaultAnonymousReporting);
           setPrivacyApproxLocation(privRes.settings.locationPrecision === "approximate");
         }
+        const invitesRes = await fetchMyInvites().catch(() => ({ invites: [] }));
+        setInvites(invitesRes.invites);
+        await refreshUser().catch(() => {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not load profile");
       } finally {
@@ -217,6 +226,22 @@ export default function ProfileScreen() {
     }
   };
 
+  const onRespondInvite = async (inviteId: string, accept: boolean) => {
+    try {
+      setInvitesLoading(true);
+      await respondToGroupInvite(inviteId, accept);
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+      if (accept) {
+        Alert.alert("Success", "You have joined the group!");
+        refreshUser();
+      }
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Action failed");
+    } finally {
+      setInvitesLoading(false);
+    }
+  };
+
   const verifyLabel = user?.identityVerificationStatus.replace(/_/g, " ") ?? "";
 
   return (
@@ -234,8 +259,22 @@ export default function ProfileScreen() {
           <Text style={styles.title}>Profile</Text>
 
           {loading && (
-            <View style={styles.centerRow}>
-              <ActivityIndicator />
+            <View style={{ gap: 20 }}>
+              <View style={styles.avatarRow}>
+                <Skeleton width={96} height={96} circle />
+                <View style={{ flex: 1, gap: 8 }}>
+                  <Skeleton width="60%" height={20} />
+                  <Skeleton width="40%" height={14} />
+                  <Skeleton width="50%" height={12} />
+                </View>
+              </View>
+              <Skeleton width="40%" height={24} borderRadius={8} />
+              {[1, 2].map((i) => (
+                <View key={i} style={{ gap: 10 }}>
+                  <Skeleton width="30%" height={16} />
+                  <Skeleton width="100%" height={40} borderRadius={12} />
+                </View>
+              ))}
             </View>
           )}
 
@@ -266,7 +305,12 @@ export default function ProfileScreen() {
                   </View>
                 </TouchableOpacity>
                 <View style={styles.avatarMeta}>
-                  <Text style={styles.userName}>{profile.name}</Text>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.userName}>{profile.name}</Text>
+                    {user?.identityVerificationStatus === "approved" && (
+                      <Ionicons name="checkmark-circle" size={18} color="#2563EB" style={{ marginLeft: 4 }} />
+                    )}
+                  </View>
                   <Text style={styles.username}>@{profile.username}</Text>
                   <Text style={styles.trust}>
                     Trust {profile.trustScore.toFixed(0)} · {profile.reputationPoints} pts
@@ -274,7 +318,47 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
-              <Text style={styles.verifyBadge}>Verification: {verifyLabel}</Text>
+              {/* Verification Status Card */}
+              <View style={[
+                styles.statusCard,
+                user?.identityVerificationStatus === "approved" && styles.statusCardApproved,
+                user?.identityVerificationStatus === "pending" && styles.statusCardPending,
+                user?.identityVerificationStatus === "rejected" && styles.statusCardRejected,
+              ]}>
+                <View style={styles.statusIconWrap}>
+                  <Ionicons 
+                    name={
+                      user?.identityVerificationStatus === "approved" ? "shield-checkmark" : 
+                      user?.identityVerificationStatus === "pending" ? "time" : 
+                      user?.identityVerificationStatus === "rejected" ? "alert-circle" : "shield-outline"
+                    } 
+                    size={16} 
+                    color={
+                      user?.identityVerificationStatus === "approved" ? "#16A34A" : 
+                      user?.identityVerificationStatus === "pending" ? "#D97706" : 
+                      user?.identityVerificationStatus === "rejected" ? "#DC2626" : "#475569"
+                    } 
+                  />
+                </View>
+                <View style={styles.statusInfo}>
+                  <Text style={styles.statusTitle}>
+                    {user?.identityVerificationStatus === "approved" ? "Verified Citizen" : 
+                     user?.identityVerificationStatus === "pending" ? "Verification Pending" : 
+                     user?.identityVerificationStatus === "rejected" ? "Verification Rejected" : "Identity Not Verified"}
+                  </Text>
+                  <Text style={styles.statusDesc}>
+                    {user?.identityVerificationStatus === "approved" ? "Your identity is confirmed. You have full access to community features." : 
+                     user?.identityVerificationStatus === "pending" ? "Our team is reviewing your documents. This usually takes 24-48 hours." : 
+                     user?.identityVerificationStatus === "rejected" ? "Your application was not approved. Please check your email for details." : "Verify your ID to earn trust and unlock premium neighborhood features."}
+                  </Text>
+                  {user?.identityVerificationStatus === "none" && (
+                    <TouchableOpacity style={styles.verifyCTA} onPress={() => router.push("/(auth)/verification")}>
+                      <Text style={styles.verifyCTAText}>Start Verification</Text>
+                      <Ionicons name="arrow-forward" size={14} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
 
               <Text style={styles.section}>Badges & points</Text>
               <Text style={styles.privacyHint}>
@@ -286,6 +370,48 @@ export default function ProfileScreen() {
                   • {ub.badge.name.replace(/_/g, " ")} — {ub.badge.description}
                 </Text>
               ))}
+
+              {invites.length > 0 || invitesLoading ? (
+                <>
+                  <Text style={styles.section}>Group invitations</Text>
+                  <Text style={styles.privacyHint}>Neighbors have invited you to join these groups.</Text>
+                  {invitesLoading ? (
+                    [1, 2].map((i) => (
+                      <View key={i} style={styles.inviteCard}>
+                        <View style={styles.inviteInfo}>
+                          <Skeleton width="60%" height={16} style={{ marginBottom: 4 }} />
+                          <Skeleton width="40%" height={12} />
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    invites.map((inv) => (
+                      <View key={inv.id} style={styles.inviteCard}>
+                        <View style={styles.inviteInfo}>
+                          <Text style={styles.inviteGroupName}>{inv.group.name}</Text>
+                          <Text style={styles.inviteMeta}>Invited by @{inv.inviter.username}</Text>
+                        </View>
+                        <View style={styles.inviteActions}>
+                          <TouchableOpacity
+                            style={styles.declineBtn}
+                            disabled={invitesLoading}
+                            onPress={() => onRespondInvite(inv.id, false)}
+                          >
+                            <Text style={styles.declineText}>Decline</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.acceptBtn}
+                            disabled={invitesLoading}
+                            onPress={() => onRespondInvite(inv.id, true)}
+                          >
+                            <Text style={styles.acceptText}>Accept</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : null}
 
               <Text style={styles.section}>Privacy defaults</Text>
               <Text style={styles.privacyHint}>
@@ -506,17 +632,72 @@ const styles = StyleSheet.create({
   userName: { fontSize: 20, fontWeight: "700", color: "#111" },
   username: { fontSize: 13, color: "#64748B", marginTop: 2 },
   trust: { fontSize: 12, color: "#475569", marginTop: 6 },
-  verifyBadge: {
-    fontSize: 12,
-    color: "#64748B",
-    marginBottom: 20,
-    backgroundColor: "#F1F5F9",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    overflow: "hidden",
+  
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
+  statusCard: {
+    backgroundColor: "#F8FAFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  statusCardApproved: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#DCFCE7",
+  },
+  statusCardPending: {
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FEF3C7",
+  },
+  statusCardRejected: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FEE2E2",
+  },
+  statusIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statusInfo: {
+    flex: 1,
+  },
+  statusTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  statusDesc: {
+    fontSize: 11,
+    color: "#64748B",
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  verifyCTA: {
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+  },
+  verifyCTAText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
   section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8, marginBottom: 10 },
   privacyHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
   badgeLine: { fontSize: 13, color: "#334155", marginBottom: 6 },
@@ -603,4 +784,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signOutText: { fontSize: 16, fontWeight: "600", color: "#475569" },
+  inviteCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  inviteInfo: { flex: 1 },
+  inviteGroupName: { fontSize: 15, fontWeight: "700", color: "#111" },
+  inviteMeta: { fontSize: 12, color: "#64748B", marginTop: 2 },
+  inviteActions: { flexDirection: "row", gap: 8 },
+  declineBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
+  },
+  declineText: { fontSize: 13, fontWeight: "600", color: "#475569" },
+  acceptBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#2563EB",
+  },
+  acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" },
 });

@@ -20,6 +20,10 @@ import {
   ReportDetailPayload,
   ReportMessageItem,
   VerificationSubmitBody,
+  CommunityGroup,
+  GroupPost,
+  GroupInvite,
+  GroupMessage,
 } from "./types";
 import { readTokens, saveTokens } from "./storage";
 
@@ -313,7 +317,7 @@ export function uploadCrimeMediaFile(input: {
   uri: string;
   name: string;
   mimeType: string;
-  folder: "reports" | "verification" | "avatars";
+  folder: "reports" | "verification" | "avatars" | "community";
 }) {
   const form = new FormData();
   form.append("folder", input.folder);
@@ -409,17 +413,111 @@ export function fetchCommunityGroups(query?: { lat?: number; lng?: number; radiu
   if (query?.radiusKm !== undefined) q.set("radiusKm", String(query.radiusKm));
   const suffix = q.toString() ? `?${q.toString()}` : "";
   return requestAuthenticated<{
-    groups: {
-      id: string;
-      name: string;
-      description: string | null;
-      memberCount: number;
-      latitude: number;
-      longitude: number;
-      radiusKm: number;
-      createdAt: string;
-    }[];
+    groups: CommunityGroup[];
   }>(`/api/community/groups${suffix}`, { method: "GET" });
+}
+
+export function createCommunityGroup(body: {
+  name: string;
+  description?: string | null;
+  avatarUrl?: string | null;
+  latitude: number;
+  longitude: number;
+  radiusKm?: number;
+}) {
+  return requestAuthenticated<{ group: { id: string; name: string } }>("/api/community/groups", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchGroupDetail(groupId: string) {
+  return requestAuthenticated<{ group: CommunityGroup }>(`/api/community/groups/${groupId}`, {
+    method: "GET",
+  });
+}
+
+export function joinCommunityGroup(groupId: string) {
+  return requestAuthenticated<{ success: boolean }>(`/api/community/groups/${groupId}/join`, {
+    method: "POST",
+  });
+}
+
+export function leaveCommunityGroup(groupId: string) {
+  return requestAuthenticated<{ success: boolean }>(`/api/community/groups/${groupId}/leave`, {
+    method: "POST",
+  });
+}
+
+export function fetchGroupPosts(groupId: string) {
+  return requestAuthenticated<{ posts: GroupPost[] }>(`/api/community/groups/${groupId}/posts`, {
+    method: "GET",
+  });
+}
+
+export function createGroupPost(
+  groupId: string,
+  body: {
+    content: string;
+    imageUrl?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    media?: Array<{
+      mediaType: "PHOTO" | "VIDEO" | "AUDIO" | "DOCUMENT";
+      fileUrl: string;
+      fileName: string;
+      fileSizeBytes: number;
+      mimeType: string;
+      durationSecs?: number | null;
+    }>;
+  }
+) {
+  return requestAuthenticated<{ post: { id: string; createdAt: string } }>(
+    `/api/community/groups/${groupId}/posts`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+export function fetchGroupMessages(groupId: string) {
+  return requestAuthenticated<{ messages: GroupMessage[] }>(
+    `/api/community/groups/${groupId}/messages`,
+    {
+      method: "GET",
+    }
+  );
+}
+
+export function sendGroupMessage(groupId: string, content: string) {
+  return requestAuthenticated<{ message: GroupMessage }>(
+    `/api/community/groups/${groupId}/messages`,
+    {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }
+  );
+}
+
+export function inviteToGroup(groupId: string, email: string) {
+  return requestAuthenticated<{ success: boolean }>(`/api/community/groups/${groupId}/invites`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function fetchMyInvites() {
+  return requestAuthenticated<{ invites: GroupInvite[] }>("/api/users/me/invites", {
+    method: "GET",
+  });
+}
+
+export function respondToGroupInvite(inviteId: string, accept: boolean) {
+  return requestAuthenticated<{ success: boolean }>(`/api/users/me/invites/${inviteId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ accept }),
+  });
 }
 
 export function fetchMyBadgesAndPoints() {

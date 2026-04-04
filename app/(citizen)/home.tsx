@@ -11,6 +11,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { Skeleton } from "../../src/components/common/Skeleton";
 import { fetchMyReports } from "../../src/auth/api";
 import type { MyReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
@@ -82,8 +83,26 @@ export default function CitizenHome() {
         </TouchableOpacity>
 
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator />
+          <View style={{ gap: 18 }}>
+            <View style={styles.statsGrid}>
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} style={[styles.statCard, { borderStyle: "solid" }]}>
+                  <Skeleton width={40} height={24} style={{ marginBottom: 4 }} />
+                  <Skeleton width={80} height={12} />
+                </View>
+              ))}
+            </View>
+            <View style={styles.row}>
+              <Skeleton width={120} height={20} />
+            </View>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={styles.card}>
+                <Skeleton width="70%" height={18} style={{ marginBottom: 10 }} />
+                <Skeleton width="40%" height={12} style={{ marginBottom: 6 }} />
+                <Skeleton width="50%" height={12} style={{ marginBottom: 10 }} />
+                <Skeleton width="30%" height={10} />
+              </View>
+            ))}
           </View>
         ) : null}
 
@@ -91,7 +110,7 @@ export default function CitizenHome() {
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity onPress={() => load()}>
-              <Text style={styles.link}>Retry</Text>
+              <Text style={styles.link}>Retry </Text>
             </TouchableOpacity>
           </View>
         ) : null}
