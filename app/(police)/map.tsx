@@ -239,11 +239,6 @@ export default function PoliceMapScreen() {
           )}
         </View>
 
-        {/* Legend */}
-        <View style={styles.legend}>
-           <Text style={styles.legendText}>Heatmap: Blue (Low) → Red (High Intensity)</Text>
-        </View>
-
         {error ? (
           <View style={styles.errorOverlay}>
             <Ionicons name="alert-circle" size={20} color="#DC2626" />
