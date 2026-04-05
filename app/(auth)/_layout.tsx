@@ -1,4 +1,4 @@
-import { Redirect, Slot, useSegments } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../../src/auth/AuthContext";
 import { getPostAuthRoute } from "../../src/auth/routing";
@@ -21,7 +21,7 @@ export default function AuthLayout() {
 
   if (user) {
     if (inVerifyFlow || atChooseRole || atOtp) {
-      return <Slot />;
+      return <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />;
     }
     return <Redirect href={getPostAuthRoute(user)} />;
   }
@@ -30,5 +30,7 @@ export default function AuthLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />
+  );
 }

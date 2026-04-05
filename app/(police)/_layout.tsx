@@ -1,4 +1,4 @@
-import { Redirect, Slot } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../../src/auth/AuthContext";
 
@@ -18,5 +18,7 @@ export default function PoliceLayout() {
     return <Redirect href="/(citizen)/home" />;
   }
 
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />
+  );
 }

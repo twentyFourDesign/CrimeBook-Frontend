@@ -1,4 +1,4 @@
-import { Redirect, Slot, useSegments } from "expo-router";
+import { Redirect, Stack, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../../src/auth/AuthContext";
 import { citizenNeedsVerification } from "../../src/auth/routing";
@@ -23,7 +23,7 @@ export default function CitizenLayout() {
     const inReportFlow =
       leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
     if (inReportFlow) {
-      return <Slot />;
+      return <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />;
     }
     return <Redirect href="/(police)/home" />;
   }
@@ -46,5 +46,7 @@ export default function CitizenLayout() {
     return <Redirect href="/(auth)/verify/citizen-step1" />;
   }
 
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />
+  );
 }
