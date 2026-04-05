@@ -26,6 +26,13 @@ function levelFromStatus(status: string): "critical" | "high" | "medium" | "low"
   return "low";
 }
 
+function getConfidenceInfo(score?: number) {
+  if (score == null) return null;
+  if (score >= 70) return { label: "High", color: "#16A34A", bg: "#DCFCE7" };
+  if (score >= 40) return { label: "Medium", color: "#F59E0B", bg: "#FEF9C3" };
+  return { label: "Low", color: "#EF4444", bg: "#FEE2E2" };
+}
+
 const levelColors: Record<string, string> = {
   critical: "#EF4444",
   high: "#F97316",
@@ -188,6 +195,14 @@ export default function PoliceIncidentsScreen() {
                   </View>
                   
                   <View style={styles.footerRight}>
+                    {inc.credibilityScore != null && (
+                      <View style={[styles.verifiedBadge, { backgroundColor: getConfidenceInfo(inc.credibilityScore)?.bg }]}>
+                        <Ionicons name="stats-chart" size={12} color={getConfidenceInfo(inc.credibilityScore)?.color} />
+                        <Text style={[styles.confirmedText, { color: getConfidenceInfo(inc.credibilityScore)?.color }]}>
+                          Confidence: {getConfidenceInfo(inc.credibilityScore)?.label}
+                        </Text>
+                      </View>
+                    )}
                     {inc.isPoliceVerified && (
                       <View style={styles.verifiedBadge}>
                         <Ionicons name="shield-checkmark" size={14} color="#16A34A" />

@@ -40,6 +40,13 @@ function levelFromStatus(status: string): "critical" | "high" | "medium" | "low"
   return "low";
 }
 
+function getConfidenceInfo(score?: number | null) {
+  if (score == null) return null;
+  if (score >= 70) return { label: "High", color: "#16A34A", bg: "#DCFCE7" };
+  if (score >= 40) return { label: "Medium", color: "#F59E0B", bg: "#FEF9C3" };
+  return { label: "Low", color: "#EF4444", bg: "#FEE2E2" };
+}
+
 export default function PoliceHome() {
   const router = useRouter();
   const { user } = useAuth();
@@ -250,6 +257,17 @@ export default function PoliceHome() {
                         {new Date(alertRaw.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </View>
+                    {alertRaw.credibilityScore != null && (() => {
+                      const conf = getConfidenceInfo(alertRaw.credibilityScore);
+                      return conf ? (
+                        <View style={[styles.confidenceBadge, { backgroundColor: conf.bg }]}>
+                          <Ionicons name="stats-chart" size={10} color={conf.color} />
+                          <Text style={[styles.confidenceText, { color: conf.color }]}>
+                            {conf.label}
+                          </Text>
+                        </View>
+                      ) : null;
+                    })()}
                     <Ionicons name="arrow-forward" size={16} color="#CBD5E1" />
                   </View>
                 </View>
@@ -293,6 +311,14 @@ export default function PoliceHome() {
                   </View>
                 </View>
                 <View style={styles.activityRight}>
+                  {incRaw.credibilityScore != null && (() => {
+                    const conf = getConfidenceInfo(incRaw.credibilityScore);
+                    return conf ? (
+                      <View style={[styles.confidenceBadge, { backgroundColor: conf.bg }]}>
+                        <Text style={[styles.confidenceText, { color: conf.color }]}>{conf.label}</Text>
+                      </View>
+                    ) : null;
+                  })()}
                    <View style={[
                      styles.statusDot, 
                      { backgroundColor: incRaw.isPoliceVerified ? "#22C55E" : "#E2E8F0" }
@@ -586,6 +612,19 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  confidenceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
 });
 //           ))}

@@ -98,6 +98,7 @@ export type PoliceIncidentForMap = {
   description?: string;
   communityConfirmCount?: number;
   isPoliceVerified?: boolean;
+  credibilityScore?: number;
 };
 
 export type FeedReportItem = {

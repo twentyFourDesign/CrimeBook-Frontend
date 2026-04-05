@@ -16,7 +16,7 @@ export default function PoliceMapScreen() {
   const { setPoliceIncidents } = useAppDataCache();
 
   const mapRef = useRef<MapView>(null);
-  const [timeFilter, setTimeFilter] = useState("6h");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);

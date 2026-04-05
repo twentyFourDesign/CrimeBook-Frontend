@@ -23,7 +23,7 @@ export default function MapScreen() {
   }
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
-  const [timeFilter, setTimeFilter] = useState("6h");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -48,7 +48,7 @@ export default function MapScreen() {
           // Sometimes getMapBoundaries throws if map isn't fully laid out yet
         }
       }
-      
+
       const res = await fetchHeatmapReports({ time: timeFilter !== "all" ? timeFilter : "", ne, sw, status: statusFilter, category: categoryFilter });
       setPoints(res.incidents ?? []);
       setError(null);
@@ -76,7 +76,7 @@ export default function MapScreen() {
 
   // Refetch when map is moved/panned so we fetch data in new bounds
   const onRegionChangeComplete = () => {
-    fetchData(); 
+    fetchData();
   };
 
   const initialRegion = {
