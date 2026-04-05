@@ -72,22 +72,22 @@ export default function PoliceSosActiveScreen() {
           <View style={styles.headerText}>
             <Text style={styles.title}>Emergency Center</Text>
             <View style={styles.alertBadge}>
-               <View style={styles.pulseDot} />
-               <Text style={styles.alertCount}>{alerts.length} ACTIVE SOS</Text>
+              <View style={styles.pulseDot} />
+              <Text style={styles.alertCount}>{alerts.length} ACTIVE SOS</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => load("refresh")} disabled={refreshing}>
-             <Ionicons name="refresh" size={20} color={refreshing ? "#4B5563" : "#fff"} />
+            <Ionicons name="refresh" size={20} color={refreshing ? "#4B5563" : "#fff"} />
           </TouchableOpacity>
         </View>
 
         <ScrollView
           contentContainerStyle={styles.container}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={() => load("refresh")} 
-              tintColor="#EF4444" 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load("refresh")}
+              tintColor="#EF4444"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -101,18 +101,18 @@ export default function PoliceSosActiveScreen() {
 
           {error && (
             <View style={styles.errorBox}>
-               <Ionicons name="warning" size={24} color="#EF4444" />
-               <Text style={styles.errorText}>{error}</Text>
-               <TouchableOpacity style={styles.retryBtn} onPress={() => load()}>
-                  <Text style={styles.retryText}>Retry Scan</Text>
-               </TouchableOpacity>
+              <Ionicons name="warning" size={24} color="#EF4444" />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => load()}>
+                <Text style={styles.retryText}>Retry Scan</Text>
+              </TouchableOpacity>
             </View>
           )}
 
           {!loading && alerts.length === 0 ? (
             <View style={styles.centerState}>
               <View style={styles.secureIconBox}>
-                 <Ionicons name="shield-checkmark" size={48} color="#10B981" />
+                <Ionicons name="shield-checkmark" size={48} color="#10B981" />
               </View>
               <Text style={styles.stateText}>All residential areas secured.</Text>
               <Text style={styles.stateSubText}>No active SOS transmissions detected.</Text>
@@ -127,32 +127,32 @@ export default function PoliceSosActiveScreen() {
                 <View key={a.id} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <View style={styles.userSection}>
-                       <View style={styles.avatarPlaceholder}>
-                          <Text style={styles.avatarInitials}>{a.user.name[0]}</Text>
-                       </View>
-                       <View>
-                          <Text style={styles.cardTitle}>{a.user.name}</Text>
-                          <Text style={styles.cardPhone}>{a.user.phone || "No contact info"}</Text>
-                       </View>
+                      <View style={styles.avatarPlaceholder}>
+                        <Text style={styles.avatarInitials}>{a.user.name[0]}</Text>
+                      </View>
+                      <View>
+                        <Text style={styles.cardTitle}>{a.user.name}</Text>
+                        <Text style={styles.cardPhone}>{a.user.phone || "No contact info"}</Text>
+                      </View>
                     </View>
                     <View style={[styles.typeBadge, a.isSilent ? styles.silentBadge : styles.audibleBadge]}>
-                       <Ionicons name={a.isSilent ? "mic-off" : "volume-high"} size={12} color="#fff" />
-                       <Text style={styles.typeText}>{a.isSilent ? "SILENT" : "AUDIBLE"}</Text>
+                      <Ionicons name={a.isSilent ? "mic-off" : "volume-high"} size={12} color="#fff" />
+                      <Text style={styles.typeText}>{a.isSilent ? "SILENT" : "AUDIBLE"}</Text>
                     </View>
                   </View>
 
                   <View style={styles.cardStats}>
-                     <View style={styles.statBox}>
-                        <Text style={styles.statLabel}>NOTIFIED</Text>
-                        <Text style={styles.statValue}>{a.notifiedCount} Contacts</Text>
-                     </View>
-                     <View style={styles.statDivider} />
-                     <View style={styles.statBox}>
-                        <Text style={styles.statLabel}>TIME ELAPSED</Text>
-                        <Text style={styles.statValue}>
-                          {Math.floor((Date.now() - new Date(a.createdAt).getTime()) / 60000)}m ago
-                        </Text>
-                     </View>
+                    <View style={styles.statBox}>
+                      <Text style={styles.statLabel}>NOTIFIED</Text>
+                      <Text style={styles.statValue}>{a.notifiedCount} Contacts</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statBox}>
+                      <Text style={styles.statLabel}>TIME ELAPSED</Text>
+                      <Text style={styles.statValue}>
+                        {Math.floor((Date.now() - new Date(a.createdAt).getTime()) / 60000)}m ago
+                      </Text>
+                    </View>
                   </View>
 
                   <View style={styles.actionGrid}>
@@ -160,7 +160,7 @@ export default function PoliceSosActiveScreen() {
                       <Ionicons name="navigate" size={18} color="#fff" />
                       <Text style={styles.mapBtnText}>Intercept Location</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity
                       style={[styles.resolveBtn, resolving === a.id && styles.resolveDisabled]}
                       onPress={() => onResolve(a.id)}
@@ -209,9 +209,9 @@ const styles = StyleSheet.create({
   headerText: {
     alignItems: "center",
   },
-  title: { 
-    fontSize: 18, 
-    fontWeight: "800", 
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
     color: "#fff",
     letterSpacing: 0.5,
   },
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   container: { padding: 20, paddingBottom: 40 },
-  
+
   centerState: {
     marginTop: 100,
     alignItems: "center",
@@ -325,14 +325,14 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#F1F5F9",
   },
-  cardTitle: { 
-    fontSize: 17, 
-    fontWeight: "800", 
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
     color: "#fff",
   },
-  cardPhone: { 
-    fontSize: 13, 
-    color: "#94A3B8", 
+  cardPhone: {
+    fontSize: 13,
+    color: "#94A3B8",
     marginTop: 2,
     fontWeight: "600",
   },
@@ -401,10 +401,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
   },
-  mapBtnText: { 
-    color: "#fff", 
-    fontWeight: "800", 
-    fontSize: 14 
+  mapBtnText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14
   },
   resolveBtn: {
     flex: 0.8,
@@ -417,9 +417,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   resolveDisabled: { opacity: 0.5 },
-  resolveBtnText: { 
-    color: "#fff", 
-    fontWeight: "800", 
-    fontSize: 14 
+  resolveBtnText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14
   },
 });

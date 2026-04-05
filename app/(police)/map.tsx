@@ -39,9 +39,9 @@ export default function PoliceMapScreen() {
           const bounds = await mapRef.current.getMapBoundaries();
           ne = `${bounds.northEast.latitude},${bounds.northEast.longitude}`;
           sw = `${bounds.southWest.latitude},${bounds.southWest.longitude}`;
-        } catch (boundsErr) {}
+        } catch (boundsErr) { }
       }
-      
+
       const res = await fetchPoliceIncidentsForMap({ time: timeFilter !== "all" ? timeFilter : "", ne, sw, status: statusFilter, category: categoryFilter });
       setIncidents(res.incidents ?? []);
       setError(null);
@@ -66,7 +66,7 @@ export default function PoliceMapScreen() {
   }, [fetchData]);
 
   const onRegionChangeComplete = () => {
-    fetchData(true); 
+    fetchData(true);
   };
 
 
@@ -115,10 +115,10 @@ export default function PoliceMapScreen() {
           onRegionChangeComplete={onRegionChangeComplete}
         >
           {heatmapPoints.length > 0 && (
-            <Heatmap 
-              points={heatmapPoints} 
-              radius={Platform.OS === 'ios' ? 40 : 20} 
-              opacity={0.6} 
+            <Heatmap
+              points={heatmapPoints}
+              radius={Platform.OS === 'ios' ? 40 : 20}
+              opacity={0.6}
               gradient={{
                 colors: ["#60A5FA", "#3B82F6", "#2563EB", "#1D4ED8", "#EF4444"],
                 startPoints: [0.01, 0.25, 0.5, 0.75, 1],
@@ -133,15 +133,15 @@ export default function PoliceMapScreen() {
               onPress={() => router.push({ pathname: "/(police)/incident-report", params: { reportId: i.id } })}
             >
               <View style={styles.markerContainer}>
-                 <View style={[styles.markerPulse, { backgroundColor: "#EF444433" }]} />
-                 <View style={styles.markerCore} />
+                <View style={[styles.markerPulse, { backgroundColor: "#EF444433" }]} />
+                <View style={styles.markerCore} />
               </View>
               <Callout tooltip>
-                 <View style={styles.calloutBox}>
-                    <Text style={styles.calloutTitle}>{i.crimeCategory}</Text>
-                    <Text style={styles.calloutSub} numberOfLines={2}>{i.locationLabel || i.locationAddress}</Text>
-                    <View style={styles.calloutArrow} />
-                 </View>
+                <View style={styles.calloutBox}>
+                  <Text style={styles.calloutTitle}>{i.crimeCategory}</Text>
+                  <Text style={styles.calloutSub} numberOfLines={2}>{i.locationLabel || i.locationAddress}</Text>
+                  <View style={styles.calloutArrow} />
+                </View>
               </Callout>
             </Marker>
           ))}
@@ -157,22 +157,22 @@ export default function PoliceMapScreen() {
               <View>
                 <Text style={styles.headerTitle}>Operational Heatmap</Text>
                 <View style={styles.statusRow}>
-                   {revalidating ? <ActivityIndicator size="small" color="#1D4ED8" /> : <View style={styles.liveDot} />}
+                  {revalidating ? <ActivityIndicator size="small" color="#1D4ED8" /> : <View style={styles.liveDot} />}
                   <Text style={styles.headerSubtitle}>
                     {total} incidents active
                   </Text>
                 </View>
               </View>
             </View>
-            <TouchableOpacity 
-              onPress={toggleFilters} 
+            <TouchableOpacity
+              onPress={toggleFilters}
               style={styles.refreshBtn}
               activeOpacity={0.7}
             >
               <Feather name="filter" size={20} color={showFilters ? "#1D4ED8" : "#64748B"} />
             </TouchableOpacity>
           </View>
-          
+
           {showFilters && (
             <View style={styles.expandedFilters}>
               <Text style={styles.filterSectionTitle}>Category</Text>
@@ -249,8 +249,8 @@ export default function PoliceMapScreen() {
         {loading && !incidents.length && (
           <View style={styles.loadingOverlay}>
             <View style={styles.loadingCard}>
-               <ActivityIndicator size="large" color="#1D4ED8" />
-               <Text style={styles.loadingText}>Synchronizing Heatmap...</Text>
+              <ActivityIndicator size="large" color="#1D4ED8" />
+              <Text style={styles.loadingText}>Synchronizing Heatmap...</Text>
             </View>
           </View>
         )}

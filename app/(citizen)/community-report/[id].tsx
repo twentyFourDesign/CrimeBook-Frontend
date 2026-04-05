@@ -173,8 +173,8 @@ export default function CommunityReportDetail() {
                   The police have marked this incident as resolved. Do you confirm that the situation is settled?
                 </Text>
                 <View style={styles.resolveActions}>
-                  <TouchableOpacity 
-                    style={[styles.resolveBtn, styles.resolveBtnConfirm]} 
+                  <TouchableOpacity
+                    style={[styles.resolveBtn, styles.resolveBtnConfirm]}
                     onPress={() => {
                       setResolveStatus("CONFIRMED");
                       setCommentDraft("");
@@ -183,7 +183,7 @@ export default function CommunityReportDetail() {
                   >
                     <Text style={styles.resolveBtnText}>Yes, Resolved</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.resolveBtn, styles.resolveBtnDispute]}
                     onPress={() => {
                       setResolveStatus("DISPUTED");
@@ -292,8 +292,8 @@ export default function CommunityReportDetail() {
               {resolveStatus === "CONFIRMED" ? "Confirm Resolution" : "Dispute Resolution"}
             </Text>
             <Text style={styles.modalHint}>
-              {resolveStatus === "CONFIRMED" 
-                ? "Excellent. Feel free to add any closing comments." 
+              {resolveStatus === "CONFIRMED"
+                ? "Excellent. Feel free to add any closing comments."
                 : "Please explain why you believe the incident is not yet resolved."}
             </Text>
             <TextInput
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   modalActions: { flexDirection: "row", gap: 12, marginTop: 16 },
-  
+
   resolvePromptCard: {
     backgroundColor: "#F0F9FF",
     borderRadius: 16,

@@ -34,14 +34,14 @@ import {
 } from "../../../src/auth/api";
 import type { CommunityGroup, GroupPost, GroupMessage } from "../../../src/auth/types";
 
-function PostMediaGallery({ 
-  media, 
-  activeMediaId, 
-  onPlayAudio 
-}: { 
-  media: any[], 
-  activeMediaId: string | null, 
-  onPlayAudio: (id: string, uri: string) => void 
+function PostMediaGallery({
+  media,
+  activeMediaId,
+  onPlayAudio
+}: {
+  media: any[],
+  activeMediaId: string | null,
+  onPlayAudio: (id: string, uri: string) => void
 }) {
   const photos = media.filter(m => m.mediaType === "PHOTO");
   const videos = media.filter(m => m.mediaType === "VIDEO");
@@ -51,17 +51,17 @@ function PostMediaGallery({
   return (
     <View style={styles.postMediaGallery}>
       {photos.length > 0 && <PostImageGrid images={photos} />}
-      
+
       {videos.map(v => (
         <PostVideoPlayer key={v.id} video={v} />
       ))}
 
       {audios.map(a => (
-        <PostAudioCard 
-          key={a.id} 
-          audio={a} 
-          isPlaying={activeMediaId === a.id} 
-          onToggle={() => onPlayAudio(a.id, a.fileUrl)} 
+        <PostAudioCard
+          key={a.id}
+          audio={a}
+          isPlaying={activeMediaId === a.id}
+          onToggle={() => onPlayAudio(a.id, a.fileUrl)}
         />
       ))}
 
@@ -249,7 +249,7 @@ export default function GroupDetail() {
     if (activeTab === "chat") {
       setIsLoadingMessages(true);
       loadMessages().finally(() => setIsLoadingMessages(false));
-      
+
       const interval = setInterval(loadMessages, 5000); // Poll every 5s
       return () => clearInterval(interval);
     }
@@ -514,22 +514,22 @@ export default function GroupDetail() {
       </View>
 
       <View style={styles.segmentContainer}>
-        <TouchableOpacity 
-          style={[styles.segmentBtn, activeTab === "feed" && styles.segmentBtnActive]} 
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === "feed" && styles.segmentBtnActive]}
           onPress={() => setActiveTab("feed")}
         >
           <Text style={[styles.segmentText, activeTab === "feed" && styles.segmentTextActive]}>Feed</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.segmentBtn, activeTab === "chat" && styles.segmentBtnActive]} 
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === "chat" && styles.segmentBtnActive]}
           onPress={() => setActiveTab("chat")}
           disabled={!group.isMember}
         >
           <Text style={[styles.segmentText, activeTab === "chat" && styles.segmentTextActive]}>Chat</Text>
-          {!group.isMember && <Ionicons name="lock-closed" size={12} color="#94A3B8" style={{marginLeft: 4}} />}
+          {!group.isMember && <Ionicons name="lock-closed" size={12} color="#94A3B8" style={{ marginLeft: 4 }} />}
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.segmentBtn, activeTab === "info" && styles.segmentBtnActive]} 
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === "info" && styles.segmentBtnActive]}
           onPress={() => setActiveTab("info")}
         >
           <Text style={[styles.segmentText, activeTab === "info" && styles.segmentTextActive]}>About</Text>
@@ -553,7 +553,7 @@ export default function GroupDetail() {
                     value={newPostContent}
                     onChangeText={setNewPostContent}
                   />
-                  
+
                   {selectedMedia.length > 0 && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaPreviewList}>
                       {selectedMedia.map((item, index) => (
@@ -562,10 +562,10 @@ export default function GroupDetail() {
                             <Image source={{ uri: item.uri }} style={styles.mediaPreviewThumb} />
                           ) : (
                             <View style={[styles.mediaPreviewThumb, styles.mediaPreviewIcon]}>
-                              <Ionicons 
-                                name={item.type === "VIDEO" ? "videocam" : item.type === "AUDIO" ? "mic" : "document"} 
-                                size={24} 
-                                color="#64748B" 
+                              <Ionicons
+                                name={item.type === "VIDEO" ? "videocam" : item.type === "AUDIO" ? "mic" : "document"}
+                                size={24}
+                                color="#64748B"
                               />
                             </View>
                           )}
@@ -628,10 +628,10 @@ export default function GroupDetail() {
                 )}
               </View>
               <Text style={styles.postContent}>{item.content}</Text>
-              
+
               {item.media && item.media.length > 0 && (
-                <PostMediaGallery 
-                  media={item.media} 
+                <PostMediaGallery
+                  media={item.media}
                   activeMediaId={activeMediaId}
                   onPlayAudio={handlePlayAudio}
                 />
@@ -699,8 +699,8 @@ export default function GroupDetail() {
               onChangeText={setNewMessage}
               multiline
             />
-            <TouchableOpacity 
-              style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]} 
+            <TouchableOpacity
+              style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]}
               onPress={handleSendMessage}
               disabled={isSending || !newMessage.trim()}
             >
@@ -753,9 +753,9 @@ export default function GroupDetail() {
                 <Ionicons name="person-add" size={20} color="#2563EB" />
                 <Text style={styles.actionBtnText}>Invite Neighbors</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.actionBtn, group.isMember ? styles.actionBtnDanger : styles.actionBtnSuccess]} 
+
+              <TouchableOpacity
+                style={[styles.actionBtn, group.isMember ? styles.actionBtnDanger : styles.actionBtnSuccess]}
                 onPress={handleJoinLeave}
                 disabled={joinLoading}
               >
@@ -763,10 +763,10 @@ export default function GroupDetail() {
                   <ActivityIndicator size="small" color={group.isMember ? "#EF4444" : "#16A34A"} />
                 ) : (
                   <>
-                    <Ionicons 
-                      name={group.isMember ? "log-out" : "enter"} 
-                      size={20} 
-                      color={group.isMember ? "#EF4444" : "#16A34A"} 
+                    <Ionicons
+                      name={group.isMember ? "log-out" : "enter"}
+                      size={20}
+                      color={group.isMember ? "#EF4444" : "#16A34A"}
                     />
                     <Text style={[styles.actionBtnText, { color: group.isMember ? "#EF4444" : "#16A34A" }]}>
                       {group.isMember ? "Leave Neighborhood" : "Join Neighborhood"}
@@ -774,7 +774,7 @@ export default function GroupDetail() {
                   </>
                 )}
               </TouchableOpacity>
-              
+
               {group.isMember && (
                 <TouchableOpacity style={styles.actionBtn} onPress={() => setSettingsModalVisible(true)}>
                   <Ionicons name="settings" size={20} color="#64748B" />
@@ -801,10 +801,10 @@ export default function GroupDetail() {
                 <Ionicons name="close" size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.settingsList}>
-              <TouchableOpacity 
-                style={[styles.settingsItem, styles.leaveSettingItem]} 
+              <TouchableOpacity
+                style={[styles.settingsItem, styles.leaveSettingItem]}
                 onPress={() => {
                   setSettingsModalVisible(false);
                   handleJoinLeave();
@@ -825,9 +825,9 @@ export default function GroupDetail() {
         visible={mediaMenuVisible}
         onRequestClose={() => setMediaMenuVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setMediaMenuVisible(false)}
         >
           <View style={styles.mediaMenuContent}>
@@ -839,21 +839,21 @@ export default function GroupDetail() {
                 </View>
                 <Text style={styles.mediaOptionLabel}>Image</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.mediaOption} onPress={pickVideo}>
                 <View style={[styles.mediaOptionIcon, { backgroundColor: "#FEE2E2" }]}>
                   <Ionicons name="videocam" size={24} color="#EF4444" />
                 </View>
                 <Text style={styles.mediaOptionLabel}>Video</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.mediaOption} onPress={pickAudio}>
                 <View style={[styles.mediaOptionIcon, { backgroundColor: "#DCFCE7" }]}>
                   <Ionicons name="mic" size={24} color="#16A34A" />
                 </View>
                 <Text style={styles.mediaOptionLabel}>Audio</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.mediaOption} onPress={pickDocument}>
                 <View style={[styles.mediaOptionIcon, { backgroundColor: "#FEF3C7" }]}>
                   <Ionicons name="document" size={24} color="#D97706" />
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyText: { fontSize: 14, color: "#94A3B8", textAlign: "center", maxWidth: "80%", lineHeight: 22 },
-  
+
   // Chat Styles
   chatContainer: {
     flex: 1,
@@ -1313,7 +1313,7 @@ const styles = StyleSheet.create({
   },
   modalInviteBtnDisabled: { backgroundColor: "#94A3B8" },
   modalInviteText: { color: "#fff", fontWeight: "700" },
-  
+
   // Multimedia & Settings Styles
   postInputActions: {
     flexDirection: "row",

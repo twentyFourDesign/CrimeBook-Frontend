@@ -109,9 +109,9 @@ export default function ReportSuccess() {
         ]}
       >
         <View style={styles.successCircle}>
-           <View style={styles.innerCircle}>
-              <Ionicons name="checkmark" size={48} color="#fff" />
-           </View>
+          <View style={styles.innerCircle}>
+            <Ionicons name="checkmark" size={48} color="#fff" />
+          </View>
         </View>
 
         <Text style={styles.title}>Report Secured</Text>
@@ -122,32 +122,32 @@ export default function ReportSuccess() {
         <View style={styles.caseCard}>
           <View style={styles.caseRow}>
             <View style={styles.caseMeta}>
-               <Text style={styles.caseLabel}>CASE ID</Text>
-               <Text style={styles.caseValue}>#{caseId}</Text>
+              <Text style={styles.caseLabel}>CASE ID</Text>
+              <Text style={styles.caseValue}>#{caseId}</Text>
             </View>
             <View style={styles.statusBadge}>
-               <View style={styles.statusDot} />
-               <Text style={styles.statusText}>{reportStatus}</Text>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>{reportStatus}</Text>
             </View>
           </View>
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.infoGrid}>
-             <View style={styles.infoItem}>
-                <Ionicons name="time-outline" size={16} color="#64748B" />
-                <Text style={styles.infoText}>~15m Response</Text>
-             </View>
-             <View style={styles.infoItem}>
-                <Ionicons name="shield-checkmark-outline" size={16} color="#64748B" />
-                <Text style={styles.infoText}>Encrypted</Text>
-             </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="time-outline" size={16} color="#64748B" />
+              <Text style={styles.infoText}>~15m Response</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="shield-checkmark-outline" size={16} color="#64748B" />
+              <Text style={styles.infoText}>Encrypted</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.actionColumn}>
-          <TouchableOpacity 
-            style={styles.primaryBtn} 
+          <TouchableOpacity
+            style={styles.primaryBtn}
             onPress={() => router.replace("/(citizen)/community")}
             activeOpacity={0.8}
           >
@@ -155,8 +155,8 @@ export default function ReportSuccess() {
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.secondaryBtn} 
+          <TouchableOpacity
+            style={styles.secondaryBtn}
             onPress={() => router.replace("/(citizen)/home")}
             activeOpacity={0.7}
           >
@@ -167,34 +167,34 @@ export default function ReportSuccess() {
 
       <Modal transparent visible={showBadgeModal} animationType="fade">
         <View style={styles.modalOverlay}>
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.badgeModal, 
-              { 
-                opacity: fadeAnim, 
+              styles.badgeModal,
+              {
+                opacity: fadeAnim,
                 transform: [
                   { scale: scaleAnim },
                   { rotate: rotation }
-                ] 
+                ]
               }
             ]}
           >
             <View style={styles.congratsBurst}>
-               <ConfettiCannon count={40} origin={{ x: 150, y: 0 }} />
+              <ConfettiCannon count={40} origin={{ x: 150, y: 0 }} />
             </View>
-            
+
             <View style={styles.badgeIconWrapper}>
-               <View style={styles.badgeRing}>
-                  <Ionicons name={badge?.iconUrl || "ribbon"} size={64} color="#F59E0B" />
-               </View>
+              <View style={styles.badgeRing}>
+                <Ionicons name={badge?.iconUrl || "ribbon"} size={64} color="#F59E0B" />
+              </View>
             </View>
-            
+
             <Text style={styles.badgeCongrats}>NEW BADGE EARNED!</Text>
             <Text style={styles.badgeTitle}>{badge?.name}</Text>
             <View style={styles.pointsBadge}>
-               <Text style={styles.pointsText}>+{badge?.pointsValue} REPUTATION</Text>
+              <Text style={styles.pointsText}>+{badge?.pointsValue} REPUTATION</Text>
             </View>
-            
+
             <Text style={styles.badgeDesc}>{badge?.description}</Text>
 
             <TouchableOpacity style={styles.claimBtn} onPress={() => setShowBadgeModal(false)}>
@@ -227,24 +227,24 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   innerCircle: {
-     width: 84,
-     height: 84,
-     borderRadius: 42,
-     backgroundColor: "#2563EB",
-     justifyContent: "center",
-     alignItems: "center",
-     shadowColor: "#2563EB",
-     shadowOpacity: 0.4,
-     shadowRadius: 20,
-     elevation: 10,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 10,
   },
   title: { fontSize: 28, fontWeight: "900", color: "#1E293B", marginBottom: 12, textAlign: "center" },
-  subtitle: { 
-    fontSize: 15, 
-    color: "#64748B", 
-    textAlign: "center", 
-    lineHeight: 24, 
-    marginBottom: 40, 
+  subtitle: {
+    fontSize: 15,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 40,
     paddingHorizontal: 20,
     fontWeight: "500",
   },
@@ -261,21 +261,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
-  caseRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
+  caseRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
   },
   caseMeta: { gap: 4 },
   caseLabel: { fontSize: 10, fontWeight: "800", color: "#94A3B8", letterSpacing: 1 },
   caseValue: { fontSize: 18, fontWeight: "900", color: "#1E293B" },
-  statusBadge: { 
+  statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0FDF4", 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
     gap: 6,
     borderWidth: 1,

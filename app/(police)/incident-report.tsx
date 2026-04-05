@@ -95,9 +95,9 @@ export default function IncidentReport() {
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={() => load("refresh")} 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load("refresh")}
               tintColor="#1D4ED8"
             />
           }
@@ -114,7 +114,7 @@ export default function IncidentReport() {
               )}
             </View>
             <TouchableOpacity style={styles.moreBtn}>
-               <Ionicons name="ellipsis-horizontal" size={20} color="#64748B" />
+              <Ionicons name="ellipsis-horizontal" size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -141,17 +141,17 @@ export default function IncidentReport() {
                     <Text style={styles.statusText}>{formatEnum(incident.status).toUpperCase()}</Text>
                   </View>
                   <View style={styles.timeTag}>
-                     <Ionicons name="time-outline" size={12} color="#94A3B8" />
-                     <Text style={styles.timeText}>
-                       {new Date(incident.incidentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                     </Text>
+                    <Ionicons name="time-outline" size={12} color="#94A3B8" />
+                    <Text style={styles.timeText}>
+                      {new Date(incident.incidentTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
                   </View>
                 </View>
-                
+
                 <Text style={styles.incidentTitle}>{title}</Text>
-                
+
                 <View style={styles.categoryBadge}>
-                   <Text style={styles.categoryText}>{formatEnum(incident.crimeCategory)}</Text>
+                  <Text style={styles.categoryText}>{formatEnum(incident.crimeCategory)}</Text>
                 </View>
               </View>
 
@@ -163,7 +163,7 @@ export default function IncidentReport() {
                   </View>
                   <Text style={styles.sectionTitle}>Dispatch Location</Text>
                 </View>
-                
+
                 <View style={styles.mapContainer}>
                   <MapView
                     style={styles.map}
@@ -178,9 +178,9 @@ export default function IncidentReport() {
                     }}
                   >
                     <Marker coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}>
-                       <View style={styles.markerOutline}>
-                          <View style={styles.markerInner} />
-                       </View>
+                      <View style={styles.markerOutline}>
+                        <View style={styles.markerInner} />
+                      </View>
                     </Marker>
                   </MapView>
                 </View>
@@ -190,7 +190,7 @@ export default function IncidentReport() {
                     {incident.locationLabel || incident.locationAddress || "Geographic Coordinates"}
                   </Text>
                   <Text style={styles.coordsText}>
-                     {incident.latitude.toFixed(6)}, {incident.longitude.toFixed(6)}
+                    {incident.latitude.toFixed(6)}, {incident.longitude.toFixed(6)}
                   </Text>
                 </View>
 
@@ -280,13 +280,13 @@ export default function IncidentReport() {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
   container: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40 },
-  
+
   // Header
-  header: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24 
+    marginBottom: 24
   },
   backBtn: {
     width: 44,
@@ -301,10 +301,10 @@ const styles = StyleSheet.create({
   headerText: {
     alignItems: "center",
   },
-  heading: { 
-    fontSize: 18, 
-    fontWeight: "800", 
-    color: "#1E293B" 
+  heading: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1E293B"
   },
   subHeading: {
     fontSize: 12,
@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontWeight: "600",
   },
-  incidentTitle: { 
-    fontSize: 22, 
-    fontWeight: "800", 
+  incidentTitle: {
+    fontSize: 22,
+    fontWeight: "800",
     color: "#1E293B",
     marginBottom: 12,
   },
@@ -413,11 +413,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
-  sectionHeader: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 10, 
-    marginBottom: 16 
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16
   },
   sectionIconBox: {
     width: 32,
@@ -427,10 +427,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  sectionTitle: { 
-    fontSize: 15, 
-    fontWeight: "800", 
-    color: "#1E293B" 
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1E293B"
   },
   mapContainer: {
     height: 180,
@@ -484,23 +484,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  directionsBtnText: { 
-    color: "#FFFFFF", 
-    fontSize: 15, 
-    fontWeight: "700" 
+  directionsBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700"
   },
-  
-  descText: { 
-    fontSize: 15, 
-    color: "#475569", 
+
+  descText: {
+    fontSize: 15,
+    color: "#475569",
     lineHeight: 24,
     fontWeight: "500",
   },
 
-  evidenceGrid: { 
-    flexDirection: "row", 
+  evidenceGrid: {
+    flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12 
+    gap: 12
   },
   evidenceBox: {
     width: 80,
@@ -550,9 +550,9 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  acceptText: { 
-    color: "#FFFFFF", 
-    fontSize: 16, 
-    fontWeight: "800" 
+  acceptText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800"
   },
 });

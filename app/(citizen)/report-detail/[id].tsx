@@ -388,10 +388,10 @@ export default function ReportDetailScreen() {
 
   const contentSummary = report
     ? [
-        `${report.description.slice(0, 52)}${report.description.length > 52 ? "…" : ""}`,
-        report.media.length ? `${report.media.length} file(s)` : "No files",
-        report.locationLabel || report.locationAddress || "Map & address",
-      ].join(" · ")
+      `${report.description.slice(0, 52)}${report.description.length > 52 ? "…" : ""}`,
+      report.media.length ? `${report.media.length} file(s)` : "No files",
+      report.locationLabel || report.locationAddress || "Map & address",
+    ].join(" · ")
     : "";
 
   const messagesSummary =
@@ -476,9 +476,8 @@ export default function ReportDetailScreen() {
               {report.assignedOfficer ? (
                 <Row
                   label="Assigned officer"
-                  value={`${report.assignedOfficer.name}${
-                    report.assignedOfficer.badgeNumber ? ` (${report.assignedOfficer.badgeNumber})` : ""
-                  }`}
+                  value={`${report.assignedOfficer.name}${report.assignedOfficer.badgeNumber ? ` (${report.assignedOfficer.badgeNumber})` : ""
+                    }`}
                 />
               ) : (
                 <Row label="Assigned officer" value="—" />

@@ -1,15 +1,27 @@
 import type { ReactNode } from "react";
-import { View, StyleSheet } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PoliceTabBar } from "./PoliceTabBar";
+import { useTheme } from "../../theme/ThemeContext";
 
 type Props = { children: ReactNode };
 
-/** Police main screens: content + same bottom bar pattern as citizen. */
 export function PoliceShell({ children }: Props) {
+  const { colors, animValue } = useTheme();
+
+  const animatedBg = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#FFFFFF", "#141414"],
+  });
+
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={styles.body}>{children}</View>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: colors.safeArea }]}
+      edges={["top", "left", "right"]}
+    >
+      <Animated.View style={[styles.body, { backgroundColor: animatedBg }]}>
+        {children}
+      </Animated.View>
       <View style={styles.tabBarOuter} collapsable={false}>
         <PoliceTabBar />
       </View>
@@ -18,7 +30,7 @@ export function PoliceShell({ children }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff", overflow: "visible" },
+  safe: { flex: 1, overflow: "visible" },
   body: { flex: 1 },
   tabBarOuter: { overflow: "visible", zIndex: 50 },
 });

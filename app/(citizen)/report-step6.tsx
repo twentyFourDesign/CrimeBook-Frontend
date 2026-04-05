@@ -52,12 +52,12 @@ export default function ReportStep6() {
         media:
           draft.media.length > 0
             ? draft.media.map((m) => ({
-                fileUrl: m.url,
-                fileName: m.fileName,
-                mimeType: m.mimeType,
-                fileSizeBytes: m.fileSizeBytes,
-                mediaType: m.mediaType,
-              }))
+              fileUrl: m.url,
+              fileName: m.fileName,
+              mimeType: m.mimeType,
+              fileSizeBytes: m.fileSizeBytes,
+              mediaType: m.mediaType,
+            }))
             : undefined,
       });
       resetDraft();

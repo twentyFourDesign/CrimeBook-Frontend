@@ -15,6 +15,7 @@ import { fetchPoliceCases } from "../../src/auth/api";
 import type { PoliceCaseItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
+import { useTheme } from "../../src/theme/ThemeContext";
 
 const statusConfig: Record<
   string,
@@ -34,6 +35,7 @@ import { Ionicons } from "@expo/vector-icons";
 export default function PoliceCasesScreen() {
   const router = useRouter();
   const { setPoliceCases } = useAppDataCache();
+  const { colors, isDark } = useTheme();
 
   const {
     data: casesData,
@@ -54,14 +56,14 @@ export default function PoliceCasesScreen() {
 
   return (
     <PoliceShell>
-      <StatusBar style="dark" />
-      <View style={styles.wrapper}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.wrapper, { backgroundColor: colors.bg }]}>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={revalidating} 
+            <RefreshControl
+              refreshing={revalidating}
               onRefresh={refresh}
               tintColor="#1D4ED8"
             />
@@ -69,18 +71,18 @@ export default function PoliceCasesScreen() {
         >
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <View style={styles.headerIcon}>
-                <Ionicons name="briefcase" size={24} color="#1D4ED8" />
+              <View style={[styles.headerIcon, { backgroundColor: colors.accentSoft, borderColor: colors.accentMuted }]}>
+                <Ionicons name="briefcase" size={24} color={colors.accent} />
               </View>
               <View>
-                <Text style={styles.heading}>Case Management</Text>
-                <Text style={styles.subheading}>
+                <Text style={[styles.heading, { color: colors.text }]}>Case Management</Text>
+                <Text style={[styles.subheading, { color: colors.textSecondary }]}>
                   {cases.length} investigation{cases.length === 1 ? "" : "s"} assigned to you
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={refresh} style={styles.refreshIconBtn}>
-               <Ionicons name="refresh" size={20} color="#64748B" />
+            <TouchableOpacity onPress={refresh} style={[styles.refreshIconBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name="refresh" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -108,7 +110,7 @@ export default function PoliceCasesScreen() {
             return (
               <TouchableOpacity
                 key={c.id}
-                style={styles.caseCard}
+                style={[styles.caseCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 activeOpacity={0.8}
                 onPress={() =>
                   router.push({
@@ -129,32 +131,32 @@ export default function PoliceCasesScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.caseTitle}>
+                <Text style={[styles.caseTitle, { color: colors.text }]}>
                   {c.report.title?.trim() || "Untitled Case Dispatch"}
                 </Text>
 
                 <View style={styles.cardMeta}>
-                   <View style={styles.metaRow}>
-                     <Ionicons name="location-outline" size={14} color="#64748B" />
-                     <Text style={styles.metaText} numberOfLines={1}>{loc}</Text>
-                   </View>
-                   <View style={styles.metaRow}>
-                     <Ionicons name="calendar-outline" size={14} color="#64748B" />
-                     <Text style={styles.metaText}>
-                        {new Date(c.createdAt).toLocaleDateString()} at {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                     </Text>
-                   </View>
+                  <View style={styles.metaRow}>
+                    <Ionicons name="location-outline" size={14} color="#64748B" />
+                    <Text style={styles.metaText} numberOfLines={1}>{loc}</Text>
+                  </View>
+                  <View style={styles.metaRow}>
+                    <Ionicons name="calendar-outline" size={14} color="#64748B" />
+                    <Text style={styles.metaText}>
+                      {new Date(c.createdAt).toLocaleDateString()} at {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.cardFooter}>
-                   <View style={styles.priorityBox}>
-                     <Ionicons name="shield" size={12} color="#475569" />
-                     <Text style={styles.priorityText}>{c.report.crimeCategory.replace(/_/g, " ")}</Text>
-                   </View>
-                   <View style={styles.viewBtn}>
-                     <Text style={styles.viewBtnText}>View Details</Text>
-                     <Ionicons name="arrow-forward" size={14} color="#1D4ED8" />
-                   </View>
+                <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                  <View style={styles.priorityBox}>
+                    <Ionicons name="shield" size={12} color="#475569" />
+                    <Text style={styles.priorityText}>{c.report.crimeCategory.replace(/_/g, " ")}</Text>
+                  </View>
+                  <View style={styles.viewBtn}>
+                    <Text style={styles.viewBtnText}>View Details</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#1D4ED8" />
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -166,15 +168,15 @@ export default function PoliceCasesScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: "#F8FAFF" },
+  wrapper: { flex: 1 },
   container: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 40 },
-  
+
   // Header
-  header: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginBottom: 24 
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24
   },
   headerContent: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerIcon: {
@@ -198,9 +200,9 @@ const styles = StyleSheet.create({
   },
 
   // Loading/Error
-  loadingState: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  loadingState: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
     padding: 24,
     backgroundColor: "#fff",

@@ -38,6 +38,8 @@ import type { CitizenProfilePayload, UserBadgeEntry, GroupInvite, MyReportItem }
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
+import { useTheme } from "../../src/theme/ThemeContext";
+import { ThemeToggle } from "../../src/components/common/ThemeToggle";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -50,6 +52,7 @@ export default function ProfileScreen() {
   const { user, signOut, refreshUser } = useAuth();
   const { setCitizenProfile } = useAppDataCache();
   const { resetDraft } = useReportDraft();
+  const { colors, isDark } = useTheme();
 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -111,7 +114,7 @@ export default function ProfileScreen() {
       setInvites(invitesRes.invites);
       setMyReports(reportsRes.reports);
       applyProfileToForm(p);
-      refreshUser().catch(() => {});
+      refreshUser().catch(() => { });
 
       return p;
     },
@@ -243,7 +246,7 @@ export default function ProfileScreen() {
               <View style={styles.menuHeader}>
                 <Text style={styles.menuTitle}>Account</Text>
               </View>
-              
+
               <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(citizen)/my-reports"); }}>
                 <Ionicons name="document-text-outline" size={20} color="#64748B" />
                 <Text style={styles.menuItemText}>My Reports</Text>
@@ -261,23 +264,23 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => { 
-                  setIsMenuOpen(false); 
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setIsMenuOpen(false);
                   resetDraft();
-                  router.push("/(citizen)/report-step1"); 
+                  router.push("/(citizen)/report-step1");
                 }}
               >
                 <Ionicons name="add-circle-outline" size={20} color="#059669" />
                 <Text style={[styles.menuItemText, { color: "#059669" }]}>Create Report</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => { 
-                  setIsMenuOpen(false); 
-                  router.push("/(citizen)/invites"); 
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setIsMenuOpen(false);
+                  router.push("/(citizen)/invites");
                 }}
               >
                 <Ionicons name="people-outline" size={20} color="#1E293B" />
@@ -288,7 +291,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <View style={styles.menuDivider} />
-              
+
               <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); signOut(); }}>
                 <Ionicons name="log-out-outline" size={20} color="#B91C1C" />
                 <Text style={[styles.menuItemText, { color: "#B91C1C" }]}>Sign Out</Text>
@@ -297,15 +300,15 @@ export default function ProfileScreen() {
           </Pressable>
         </Modal>
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} />}
+          refreshControl={<RefreshControl refreshing={revalidating} onRefresh={refresh} tintColor={colors.accent} />}
         >
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Profile</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
             <TouchableOpacity onPress={() => setIsMenuOpen(true)} style={styles.menuBtn}>
               <View style={{ position: "relative" }}>
-                <Ionicons name="menu-outline" size={28} color="#1E293B" />
+                <Ionicons name="menu-outline" size={28} color={colors.text} />
                 {invites.some(i => i.status === "PENDING" || !i.status) && (
                   <View style={styles.menuBadgeFloating} />
                 )}
@@ -392,26 +395,26 @@ export default function ProfileScreen() {
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.section}>Recent Reports</Text>
                 <TouchableOpacity onPress={() => router.push("/(citizen)/my-reports")}>
-                   <Text style={styles.viewAllBtn}>View all</Text>
+                  <Text style={styles.viewAllBtn}>View all</Text>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.reportsScroll}
                 style={styles.reportsScrollContainer}
               >
                 {loading ? (
-                  [1, 2].map((i) => <View key={i} style={styles.reportCardSkeleton}><Skeleton width={140} height={100} borderRadius={12}/></View>)
+                  [1, 2].map((i) => <View key={i} style={styles.reportCardSkeleton}><Skeleton width={140} height={100} borderRadius={12} /></View>)
                 ) : myReports.length === 0 ? (
                   <View style={styles.emptyReportCard}>
                     <Text style={styles.emptyReportText}>No reports yet</Text>
                   </View>
                 ) : (
                   myReports.slice(0, 5).map((rep) => (
-                    <TouchableOpacity 
-                      key={rep.id} 
+                    <TouchableOpacity
+                      key={rep.id}
                       style={styles.reportCard}
                       onPress={() => router.push(`/(citizen)/report-detail/${rep.id}`)}
                     >
@@ -430,10 +433,10 @@ export default function ProfileScreen() {
                   <Text style={styles.badgeCountText}>{userBadges.length}</Text>
                 </View>
               </View>
-              
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.badgesScroll}
                 style={styles.badgesScrollContainer}
               >
@@ -451,7 +454,7 @@ export default function ProfileScreen() {
                       <Text style={styles.badgeName} numberOfLines={1}>{ub.badge.name}</Text>
                       <Text style={styles.badgeDesc} numberOfLines={2}>{ub.badge.description}</Text>
                       <View style={styles.badgePointsPill}>
-                         <Text style={styles.badgePointsText}>+{ub.badge.pointsValue} XP</Text>
+                        <Text style={styles.badgePointsText}>+{ub.badge.pointsValue} XP</Text>
                       </View>
                     </View>
                   ))
@@ -511,9 +514,9 @@ export default function ProfileScreen() {
                 />
               </View>
 
-              <Text style={styles.section}>Account</Text>
-              <Text style={styles.label}>Display name</Text>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" />
+              <Text style={[styles.section, { color: colors.text }]}>Account</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Display name</Text>
+              <TextInput style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={colors.textTertiary} />
 
               <Text style={styles.label}>Email</Text>
               <Text style={styles.readonly}>{profile.email}</Text>
@@ -612,7 +615,24 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.section}>More</Text>
+              <Text style={[styles.section, { color: colors.text }]}>Appearance</Text>
+              <View style={[styles.reportCard, { width: "100%", marginBottom: 20, backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? "#1F1F1F" : "#F3F0FF", justifyContent: "center", alignItems: "center" }}>
+                      <Ionicons name={isDark ? "moon" : "sunny"} size={18} color={isDark ? colors.accent : "#F59E0B"} />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 15, fontWeight: "600", color: colors.text }}>Dark Mode</Text>
+                      <Text style={{ fontSize: 11, color: colors.textTertiary }}>{isDark ? "Uber-style Dark" : "Classic Light"}</Text>
+                    </View>
+                  </View>
+                  <ThemeToggle />
+                </View>
+              </View>
+
+              <Text style={[styles.section, { color: colors.text }]}>More</Text>
+
               <Text style={styles.label}>Occupation</Text>
               <TextInput style={styles.input} value={occupation} onChangeText={setOccupation} placeholder="Occupation" />
 
@@ -642,9 +662,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: "700", color: "#111" },
-  headerRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16
   },
@@ -696,7 +716,7 @@ const styles = StyleSheet.create({
   },
   scoreText: { fontSize: 11, fontWeight: "700", color: "#475569" },
   nameRow: { flexDirection: "row", alignItems: "center" },
-  
+
   miniStatus: {
     fontSize: 11,
     color: "#94A3B8",

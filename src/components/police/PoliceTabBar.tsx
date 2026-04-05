@@ -1,104 +1,74 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { Animated, Text, StyleSheet, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../theme/ThemeContext";
 
 const ROUTE_DASHBOARD = "/(police)/home";
 const ROUTE_INCIDENTS = "/(police)/incidents";
-const ROUTE_FEED = "/(police)/community";
-const ROUTE_MAP = "/(police)/map";
-const ROUTE_CASES = "/(police)/cases";
-
-const ACTIVE = "#2563EB";
-const INACTIVE = "#94A3B8";
+const ROUTE_FEED      = "/(police)/community";
+const ROUTE_MAP       = "/(police)/map";
+const ROUTE_CASES     = "/(police)/cases";
 
 export function PoliceTabBar() {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
+  const { colors, animValue } = useTheme();
   const leaf = String(segments[segments.length - 1] ?? "");
 
   const onDashboard = leaf === "home";
   const onIncidents = leaf === "incidents";
-  const onFeed = leaf === "community";
-  const onMap = leaf === "map";
-  const onCases = leaf === "cases";
+  const onFeed      = leaf === "community";
+  const onMap       = leaf === "map";
+  const onCases     = leaf === "cases";
 
-  const goDashboard = () => router.replace(ROUTE_DASHBOARD);
-  const goIncidents = () => router.replace(ROUTE_INCIDENTS);
-  const goFeed = () => router.replace(ROUTE_FEED);
-  const goMap = () => router.replace(ROUTE_MAP);
-  const goCases = () => router.replace(ROUTE_CASES);
+  const animatedBarBg = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#FFFFFF", "#141414"],
+  });
+  const animatedBorder = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#E8ECF1", "#2A2A2A"],
+  });
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+    <Animated.View
+      style={[
+        styles.bar,
+        { 
+          paddingBottom: Math.max(insets.bottom, 10),
+          backgroundColor: animatedBarBg,
+          borderTopColor: animatedBorder,
+        },
+      ]}
+    >
       <View style={styles.row}>
-        <TabButton
-          label="Dashboard"
-          icon="home-outline"
-          iconFocused="home"
-          active={onDashboard}
-          onPress={goDashboard}
-          a11y="Dashboard"
-        />
-        <TabButton
-          label="Incidents"
-          icon="alert-circle-outline"
-          iconFocused="alert-circle"
-          active={onIncidents}
-          onPress={goIncidents}
-          a11y="Incidents"
-        />
-        <TabButton
-          label="Map"
-          icon="map-outline"
-          iconFocused="map"
-          active={onMap}
-          onPress={goMap}
-          a11y="Map"
-        />
-
-        <TabButton
-          label="Feed"
-          icon="newspaper-outline"
-          iconFocused="newspaper"
-          active={onFeed}
-          onPress={goFeed}
-          a11y="Feed"
-        />
-        <TabButton
-          label="Cases"
-          icon="briefcase-outline"
-          iconFocused="briefcase"
-          active={onCases}
-          onPress={goCases}
-          a11y="Cases"
-        />
+        <TabItem label="Home"      icon="home-outline"         iconFocused="home"            active={onDashboard} onPress={() => router.replace(ROUTE_DASHBOARD)} colors={colors} />
+        <TabItem label="Incidents" icon="alert-circle-outline" iconFocused="alert-circle"    active={onIncidents} onPress={() => router.replace(ROUTE_INCIDENTS)} colors={colors} />
+        <TabItem label="Map"       icon="map-outline"          iconFocused="map"             active={onMap}       onPress={() => router.replace(ROUTE_MAP)}       colors={colors} />
+        <TabItem label="Feed"      icon="newspaper-outline"    iconFocused="newspaper"       active={onFeed}      onPress={() => router.replace(ROUTE_FEED)}      colors={colors} />
+        <TabItem label="Cases"     icon="briefcase-outline"    iconFocused="briefcase"       active={onCases}     onPress={() => router.replace(ROUTE_CASES)}     colors={colors} />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
-function TabButton({
-  label,
-  icon,
-  iconFocused,
-  active,
-  onPress,
-  a11y,
+function TabItem({
+  label, icon, iconFocused, active, onPress, colors,
 }: {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
   iconFocused: React.ComponentProps<typeof Ionicons>["name"];
   active: boolean;
   onPress: () => void;
-  a11y: string;
+  colors: ReturnType<typeof useTheme>["colors"];
 }) {
-  const color = active ? ACTIVE : INACTIVE;
+  const color = active ? colors.tabActive : colors.tabInactive;
   return (
-    <Pressable style={styles.tab} onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y}>
+    <Pressable style={styles.tab} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
       <Ionicons name={active ? iconFocused : icon} size={22} color={color} />
-      <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+      <Text style={[styles.label, { color }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -107,13 +77,11 @@ const styles = StyleSheet.create({
   bar: {
     position: "relative",
     overflow: "visible",
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E8ECF1",
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: -3 },
     elevation: 10,
     zIndex: 20,
@@ -132,6 +100,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minHeight: 48,
   },
-  label: { fontSize: 10, color: INACTIVE, fontWeight: "600", marginTop: 4 },
-  labelActive: { color: ACTIVE },
+  label: { fontSize: 10, fontWeight: "600", marginTop: 4 },
 });

@@ -55,17 +55,17 @@ export default function ReportStep5() {
       const result =
         mode === "camera"
           ? await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.All,
-              quality: 0.85,
-              videoMaxDuration: 120,
-            })
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            quality: 0.85,
+            videoMaxDuration: 120,
+          })
           : await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.All,
-              quality: 0.85,
-              allowsMultipleSelection: true,
-              selectionLimit: MAX_FILES - draft.media.length,
-              videoMaxDuration: 120,
-            });
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            quality: 0.85,
+            allowsMultipleSelection: true,
+            selectionLimit: MAX_FILES - draft.media.length,
+            videoMaxDuration: 120,
+          });
 
       if (result.canceled || !result.assets?.length) return;
 

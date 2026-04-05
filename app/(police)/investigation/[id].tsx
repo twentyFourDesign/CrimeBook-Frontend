@@ -88,7 +88,7 @@ export default function InvestigationDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const caseId = Array.isArray(id) ? id[0] : id;
-  
+
   const [activeStatus, setActiveStatus] = useState<(typeof statusOptions)[number]>("On Scene");
   const [activeCaseStatus, setActiveCaseStatus] = useState<(typeof caseStatusOptions)[number] | "">("");
   const [notes, setNotes] = useState("");
@@ -108,7 +108,7 @@ export default function InvestigationDetail() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [linkedReportId, setLinkedReportId] = useState<string | null>(null);
   const [caseNumber, setCaseNumber] = useState("");
-  
+
   const [appealOpen, setAppealOpen] = useState(false);
   const [appealTitle, setAppealTitle] = useState("");
   const [appealDescription, setAppealDescription] = useState("");
@@ -127,7 +127,7 @@ export default function InvestigationDetail() {
         const mapped = mapCaseStatusFromDb(c.status);
         setActiveStatus(mapped.top);
         setActiveCaseStatus(mapped.bottom);
-        
+
         const { messages } = await fetchCaseMessages(caseId);
         setThreadMessages(messages);
       } catch (e) {
@@ -284,8 +284,8 @@ export default function InvestigationDetail() {
   return (
     <PoliceShell>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.wrapper}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
@@ -297,8 +297,8 @@ export default function InvestigationDetail() {
             <Text style={styles.title}>Case Investigation</Text>
             <Text style={styles.subTitle}>#{caseNumber}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.actionBtn} 
+          <TouchableOpacity
+            style={styles.actionBtn}
             onPress={() => caseId && router.push({ pathname: "/(police)/investigation-notes/[id]", params: { id: caseId } })}
           >
             <Ionicons name="journal-outline" size={20} color="#1D4ED8" />
@@ -320,8 +320,8 @@ export default function InvestigationDetail() {
               {/* Status Section */}
               <View style={styles.card}>
                 <View style={styles.sectionHeader}>
-                   <Ionicons name="shield-outline" size={18} color="#1D4ED8" />
-                   <Text style={styles.sectionTitle}>Operational Status</Text>
+                  <Ionicons name="shield-outline" size={18} color="#1D4ED8" />
+                  <Text style={styles.sectionTitle}>Operational Status</Text>
                 </View>
                 <View style={styles.statusGrid}>
                   {statusOptions.map((s) => (
@@ -352,8 +352,8 @@ export default function InvestigationDetail() {
               {/* Quick Actions */}
               <View style={styles.card}>
                 <View style={styles.sectionHeader}>
-                   <Ionicons name="flash-outline" size={18} color="#F59E0B" />
-                   <Text style={styles.sectionTitle}>Quick Capture</Text>
+                  <Ionicons name="flash-outline" size={18} color="#F59E0B" />
+                  <Text style={styles.sectionTitle}>Quick Capture</Text>
                 </View>
                 <View style={styles.actionRow}>
                   {quickCapture.map((item) => (
@@ -364,10 +364,10 @@ export default function InvestigationDetail() {
                       disabled={uploading}
                     >
                       <View style={[styles.captureIconBox, { backgroundColor: item.color + "1A" }]}>
-                        <Ionicons 
-                          name={item.label === "Audio" && isRecordingAudio ? "stop-circle" : item.icon} 
-                          size={24} 
-                          color={item.label === "Audio" && isRecordingAudio ? "#EF4444" : item.color} 
+                        <Ionicons
+                          name={item.label === "Audio" && isRecordingAudio ? "stop-circle" : item.icon}
+                          size={24}
+                          color={item.label === "Audio" && isRecordingAudio ? "#EF4444" : item.color}
                         />
                       </View>
                       <Text style={styles.captureLabel}>{item.label === "Audio" && isRecordingAudio ? "Recording" : item.label}</Text>
@@ -379,8 +379,8 @@ export default function InvestigationDetail() {
               {/* Chat Section */}
               <View style={styles.card}>
                 <View style={styles.sectionHeader}>
-                   <Ionicons name="chatbubbles-outline" size={18} color="#10B981" />
-                   <Text style={styles.sectionTitle}>Reporter Communication</Text>
+                  <Ionicons name="chatbubbles-outline" size={18} color="#10B981" />
+                  <Text style={styles.sectionTitle}>Reporter Communication</Text>
                 </View>
                 <View style={styles.chatBox}>
                   {threadMessages.length === 0 ? (
@@ -403,35 +403,35 @@ export default function InvestigationDetail() {
                   )}
                 </View>
                 <View style={styles.chatInputRow}>
-                   <TextInput
-                     style={styles.chatInput}
-                     placeholder="Type intelligence..."
-                     value={threadInput}
-                     onChangeText={setThreadInput}
-                     multiline
-                   />
-                   <TouchableOpacity 
-                     style={[styles.sendBtn, !threadInput.trim() && styles.sendBtnDisabled]}
-                     onPress={sendReporterMessage}
-                     disabled={!threadInput.trim() || threadSending}
-                   >
-                     {threadSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
-                   </TouchableOpacity>
+                  <TextInput
+                    style={styles.chatInput}
+                    placeholder="Type intelligence..."
+                    value={threadInput}
+                    onChangeText={setThreadInput}
+                    multiline
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendBtn, !threadInput.trim() && styles.sendBtnDisabled]}
+                    onPress={sendReporterMessage}
+                    disabled={!threadInput.trim() || threadSending}
+                  >
+                    {threadSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+                  </TouchableOpacity>
                 </View>
               </View>
 
               {/* Public Appeal */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.appealBanner}
                 onPress={() => setAppealOpen(true)}
                 activeOpacity={0.9}
               >
                 <View style={styles.appealIconBox}>
-                   <Ionicons name="megaphone" size={24} color="#fff" />
+                  <Ionicons name="megaphone" size={24} color="#fff" />
                 </View>
                 <View style={styles.appealContent}>
-                   <Text style={styles.appealTitle}>Broadcast Public Appeal</Text>
-                   <Text style={styles.appealSub}>Request community assistance in this area</Text>
+                  <Text style={styles.appealTitle}>Broadcast Public Appeal</Text>
+                  <Text style={styles.appealSub}>Request community assistance in this area</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
               </TouchableOpacity>
@@ -439,8 +439,8 @@ export default function InvestigationDetail() {
               {/* Field Notes Area */}
               <View style={styles.card}>
                 <View style={styles.sectionHeader}>
-                   <Ionicons name="create-outline" size={18} color="#475569" />
-                   <Text style={styles.sectionTitle}>Incident Log Notes</Text>
+                  <Ionicons name="create-outline" size={18} color="#475569" />
+                  <Text style={styles.sectionTitle}>Incident Log Notes</Text>
                 </View>
                 <TextInput
                   style={styles.notesInput}
@@ -450,7 +450,7 @@ export default function InvestigationDetail() {
                   onChangeText={setNotes}
                   textAlignVertical="top"
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.saveBtn, !notes.trim() && styles.saveBtnDisabled]}
                   onPress={async () => {
                     if (!caseId || !notes.trim() || saving) return;
@@ -477,43 +477,43 @@ export default function InvestigationDetail() {
 
         {/* Appeal Modal */}
         <Modal visible={appealOpen} transparent animationType="slide">
-           <View style={styles.modalOverlay}>
-              <View style={styles.modalCard}>
-                 <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Public Appeal</Text>
-                    <TouchableOpacity onPress={() => setAppealOpen(false)}>
-                       <Ionicons name="close" size={24} color="#64748B" />
-                    </TouchableOpacity>
-                 </View>
-                 <Text style={styles.modalLabel}>Broadcast Title</Text>
-                 <TextInput 
-                   style={styles.modalInput} 
-                   value={appealTitle} 
-                   onChangeText={setAppealTitle}
-                   placeholder="e.g. Seeking witnesses for RO-2024..."
-                 />
-                 <Text style={styles.modalLabel}>Description & Instructions</Text>
-                 <TextInput 
-                   style={[styles.modalInput, styles.modalArea]} 
-                   value={appealDescription} 
-                   onChangeText={setAppealDescription}
-                   multiline
-                   placeholder="Describe what the community should report..."
-                 />
-                 <View style={styles.modalFooter}>
-                    <TouchableOpacity style={styles.modalCancel} onPress={() => setAppealOpen(false)}>
-                       <Text style={styles.modalCancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.modalSubmit, appealSaving && styles.modalSubmitDisabled]} 
-                      onPress={submitAppeal}
-                      disabled={appealSaving}
-                    >
-                       {appealSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSubmitText}>Broadcast Now</Text>}
-                    </TouchableOpacity>
-                 </View>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Public Appeal</Text>
+                <TouchableOpacity onPress={() => setAppealOpen(false)}>
+                  <Ionicons name="close" size={24} color="#64748B" />
+                </TouchableOpacity>
               </View>
-           </View>
+              <Text style={styles.modalLabel}>Broadcast Title</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={appealTitle}
+                onChangeText={setAppealTitle}
+                placeholder="e.g. Seeking witnesses for RO-2024..."
+              />
+              <Text style={styles.modalLabel}>Description & Instructions</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalArea]}
+                value={appealDescription}
+                onChangeText={setAppealDescription}
+                multiline
+                placeholder="Describe what the community should report..."
+              />
+              <View style={styles.modalFooter}>
+                <TouchableOpacity style={styles.modalCancel} onPress={() => setAppealOpen(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalSubmit, appealSaving && styles.modalSubmitDisabled]}
+                  onPress={submitAppeal}
+                  disabled={appealSaving}
+                >
+                  {appealSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSubmitText}>Broadcast Now</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </KeyboardAvoidingView>
     </PoliceShell>
