@@ -1,4 +1,4 @@
-import { ApiResponse, ReportMediaPayload } from "../auth/types";
+import { ApiResponse, ReportMediaPayload, UserBadgeEntry } from "../auth/types";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
@@ -21,6 +21,7 @@ export type SubmitReportResult = {
     displayCaseId: string;
     status: string;
   };
+  newBadge?: UserBadgeEntry;
 };
 
 async function parseResponse<T>(response: Response): Promise<T> {
