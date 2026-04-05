@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, RefreshControl, StyleSheet, Text, TouchableOpacity, View, Platform, Dimensions } from "react-native";
+import { ActivityIndicator, RefreshControl, StyleSheet, Text, TouchableOpacity, View, Platform, Dimensions, ScrollView, LayoutAnimation } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Heatmap, Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentsForMap } from "../../src/auth/api";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
-import { useCachedData } from "../../src/hooks/useCachedData";
 import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,22 +15,60 @@ export default function PoliceMapScreen() {
   const router = useRouter();
   const { setPoliceIncidents } = useAppDataCache();
 
-  const {
-    data: incidentsData,
-    loading,
-    revalidating,
-    error,
-    refresh
-  } = useCachedData(
-    "policeIncidents",
-    async () => {
-      const res = await fetchPoliceIncidentsForMap();
-      return res.incidents ?? [];
-    },
-    setPoliceIncidents
-  );
+  const mapRef = useRef<MapView>(null);
+  const [timeFilter, setTimeFilter] = useState("6h");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [revalidating, setRevalidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const incidents = incidentsData ?? [];
+  const toggleFilters = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFilters(!showFilters);
+  };
+
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRevalidating(true);
+    try {
+      let ne, sw;
+      if (mapRef.current) {
+        try {
+          const bounds = await mapRef.current.getMapBoundaries();
+          ne = `${bounds.northEast.latitude},${bounds.northEast.longitude}`;
+          sw = `${bounds.southWest.latitude},${bounds.southWest.longitude}`;
+        } catch (boundsErr) {}
+      }
+      
+      const res = await fetchPoliceIncidentsForMap({ time: timeFilter !== "all" ? timeFilter : "", ne, sw, status: statusFilter, category: categoryFilter });
+      setIncidents(res.incidents ?? []);
+      setError(null);
+    } catch (err: any) {
+      console.warn("Heatmap fetch error:", err);
+      if (!incidents.length) setError("Failed to sync incidents");
+    } finally {
+      setLoading(false);
+      setRevalidating(false);
+    }
+  }, [timeFilter, statusFilter, categoryFilter, incidents.length]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchData();
+
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const onRegionChangeComplete = () => {
+    fetchData(true); 
+  };
+
 
   const initialRegion = useMemo(() => {
     if (!incidents || incidents.length === 0) {
@@ -67,12 +105,14 @@ export default function PoliceMapScreen() {
       <StatusBar style="dark" />
       <View style={styles.container}>
         <MapView
+          ref={mapRef}
           style={StyleSheet.absoluteFillObject}
           provider={PROVIDER_GOOGLE}
           initialRegion={initialRegion}
           customMapStyle={mapStyle}
           showsMyLocationButton
           showsUserLocation
+          onRegionChangeComplete={onRegionChangeComplete}
         >
           {heatmapPoints.length > 0 && (
             <Heatmap 
@@ -117,7 +157,7 @@ export default function PoliceMapScreen() {
               <View>
                 <Text style={styles.headerTitle}>Operational Heatmap</Text>
                 <View style={styles.statusRow}>
-                  <View style={styles.liveDot} />
+                   {revalidating ? <ActivityIndicator size="small" color="#1D4ED8" /> : <View style={styles.liveDot} />}
                   <Text style={styles.headerSubtitle}>
                     {total} incidents active
                   </Text>
@@ -125,17 +165,78 @@ export default function PoliceMapScreen() {
               </View>
             </View>
             <TouchableOpacity 
-              onPress={refresh} 
+              onPress={toggleFilters} 
               style={styles.refreshBtn}
               activeOpacity={0.7}
             >
-              {revalidating ? (
-                <ActivityIndicator size="small" color="#1D4ED8" />
-              ) : (
-                <Ionicons name="sync" size={20} color="#64748B" />
-              )}
+              <Feather name="filter" size={20} color={showFilters ? "#1D4ED8" : "#64748B"} />
             </TouchableOpacity>
           </View>
+          
+          {showFilters && (
+            <View style={styles.expandedFilters}>
+              <Text style={styles.filterSectionTitle}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll} style={styles.filterRow}>
+                {["all", "robbery", "assault", "kidnapping", "domestic_violence", "drug_activity", "traffic_crime"].map((c) => {
+                  const isActive = categoryFilter === c;
+                  return (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.filterPill, isActive && styles.filterPillActive]}
+                      onPress={() => setCategoryFilter(c)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                        {c === "all" ? "All" : c.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <Text style={styles.filterSectionTitle}>Status</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll} style={styles.filterRow}>
+                {[
+                  { id: "active", label: "Active Cases" },
+                  { id: "solved", label: "Solved" },
+                  { id: "all", label: "Any" },
+                ].map((s) => {
+                  const isActive = statusFilter === s.id;
+                  return (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={[styles.filterPill, isActive && styles.filterPillActive]}
+                      onPress={() => setStatusFilter(s.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <Text style={styles.filterSectionTitle}>Time</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll} style={styles.filterRow}>
+                {["6h", "24h", "7d", "all"].map((t) => {
+                  const isActive = timeFilter === t;
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.filterPill, isActive && styles.filterPillActive]}
+                      onPress={() => setTimeFilter(t)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                        {t === "all" ? "All Time" : `Last ${t}`}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
         </View>
 
         {/* Legend */}
@@ -229,6 +330,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E2E8F0",
+  },
+  expandedFilters: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+  },
+  filterSectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterScroll: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  filterPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  filterPillActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#1D4ED8",
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  filterPillTextActive: {
+    color: "#1D4ED8",
   },
 
   markerContainer: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },

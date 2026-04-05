@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.crimebook.app"
+      "bundleIdentifier": "com.crimebook.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+      }
     },
     "android": {
       "package": "com.crimebook.app",
@@ -30,7 +33,12 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/images/logo.png"

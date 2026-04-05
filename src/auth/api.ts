@@ -341,8 +341,16 @@ export function uploadCrimeMediaFile(input: {
   return requestAuthenticatedMultipart<CrimeMediaUploadResult>("/api/media/upload", form);
 }
 
-export function fetchPoliceIncidentsForMap() {
-  return requestAuthenticated<{ incidents: PoliceIncidentForMap[] }>("/api/police/incidents", {
+export function fetchPoliceIncidentsForMap(query?: { time?: string; ne?: string; sw?: string; status?: string; category?: string }) {
+  const params = new URLSearchParams();
+  if (query?.time) params.set("time", query.time);
+  if (query?.ne) params.set("ne", query.ne);
+  if (query?.sw) params.set("sw", query.sw);
+  if (query?.status) params.set("status", query.status);
+  if (query?.category) params.set("category", query.category);
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return requestAuthenticated<{ incidents: PoliceIncidentForMap[] }>(`/api/police/incidents${suffix}`, {
     method: "GET",
   });
 }
@@ -664,5 +672,21 @@ export function createPoliceCaseAppeal(
   return requestAuthenticated<{ appeal: PublicAppealItem }>(`/api/police/cases/${caseId}/appeals`, {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+export function fetchHeatmapReports(query: { time: string; ne?: string; sw?: string; status?: string; category?: string }) {
+  const params = new URLSearchParams();
+  if (query.time) params.set("time", query.time);
+  if (query.ne) params.set("ne", query.ne);
+  if (query.sw) params.set("sw", query.sw);
+  if (query.status) params.set("status", query.status);
+  if (query.category) params.set("category", query.category);
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return requestAuthenticated<{
+    incidents: Array<{ id: string; latitude: number; longitude: number; weight: number }>;
+  }>(`/api/citizen/heatmap${suffix}`, {
+    method: "GET",
   });
 }
