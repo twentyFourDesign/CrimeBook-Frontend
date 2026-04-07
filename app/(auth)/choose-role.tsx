@@ -40,7 +40,7 @@ const roles = [
 export default function ChooseRole() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [selected, setSelected] = useState<(typeof roles)[number]["id"]>("citizen");
+  const [selected, setSelected] = useState<(typeof roles)[number]["id"]>("verified_citizen");
   const [loading, setLoading] = useState(false);
 
   /** After OTP we `replace` here — no stack to pop; avoid unhandled GO_BACK (Android hardware back). */

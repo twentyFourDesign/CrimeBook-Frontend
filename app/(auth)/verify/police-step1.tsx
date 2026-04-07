@@ -106,20 +106,21 @@ export default function PoliceStep1() {
           value={badgeNumber}
           onChangeText={setBadgeNumber}
           placeholder="e.g. 4521"
+          placeholderTextColor="#94A3B8"
           autoCapitalize="characters"
         />
 
         <Text style={styles.label}>Rank / title</Text>
-        <TextInput style={styles.input} value={rank} onChangeText={setRank} placeholder="e.g. Sergeant" />
+        <TextInput style={styles.input} value={rank} onChangeText={setRank} placeholder="e.g. Sergeant" placeholderTextColor="#94A3B8" />
 
         <Text style={styles.label}>Department</Text>
-        <TextInput style={styles.input} value={department} onChangeText={setDepartment} placeholder="e.g. City PD" />
+        <TextInput style={styles.input} value={department} onChangeText={setDepartment} placeholder="e.g. City PD" placeholderTextColor="#94A3B8" />
 
         <Text style={styles.label}>Precinct / station</Text>
-        <TextInput style={styles.input} value={precinct} onChangeText={setPrecinct} placeholder="e.g. North division" />
+        <TextInput style={styles.input} value={precinct} onChangeText={setPrecinct} placeholder="e.g. North division" placeholderTextColor="#94A3B8" />
 
         <Text style={styles.label}>Unit code (optional)</Text>
-        <TextInput style={styles.input} value={unitCode} onChangeText={setUnitCode} placeholder="e.g. K-9" />
+        <TextInput style={styles.input} value={unitCode} onChangeText={setUnitCode} placeholder="e.g. K-9" placeholderTextColor="#94A3B8" />
 
         <Text style={styles.label}>ID or commission card (optional)</Text>
         <TouchableOpacity style={styles.uploadBtn} onPress={pickDoc} disabled={uploading}>

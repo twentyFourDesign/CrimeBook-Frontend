@@ -252,7 +252,7 @@ export default function ProfileScreen() {
                 <Text style={styles.menuItemText}>My Reports</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(citizen)/group/joined"); }}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(citizen)/community"); }}>
                 <Ionicons name="people-outline" size={20} color="#64748B" />
                 <Text style={styles.menuItemText}>Community Groups</Text>
               </TouchableOpacity>

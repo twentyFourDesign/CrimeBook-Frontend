@@ -38,7 +38,14 @@ async function request<T>(path: string, options: RequestInit): Promise<T> {
     },
   });
 
-  const payload = (await response.json()) as ApiResponse<T>;
+  const text = await response.text();
+  let payload: ApiResponse<T>;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid server response (${response.status})`);
+  }
+
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || "Request failed");
   }
@@ -117,7 +124,14 @@ async function requestAuthenticatedMultipart<T>(path: string, form: FormData): P
     response = await run(tokensOut.accessToken);
   }
 
-  const payload = (await response.json()) as ApiResponse<T>;
+  const text = await response.text();
+  let payload: ApiResponse<T>;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid server response (${response.status})`);
+  }
+
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || "Request failed");
   }
@@ -145,7 +159,14 @@ async function requestAuthenticated<T>(path: string, options: RequestInit = {}):
     response = await run(tokensOut.accessToken);
   }
 
-  const payload = (await response.json()) as ApiResponse<T>;
+  const text = await response.text();
+  let payload: ApiResponse<T>;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid server response (${response.status})`);
+  }
+
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || "Request failed");
   }

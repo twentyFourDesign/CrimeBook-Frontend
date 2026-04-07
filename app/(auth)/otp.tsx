@@ -70,6 +70,7 @@ export default function OtpScreen() {
         value={code}
         onChangeText={setCode}
         placeholder="123456"
+        placeholderTextColor="#94A3B8"
       />
       <TouchableOpacity style={styles.button} onPress={onVerify} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? "Verifying..." : "Verify OTP"}</Text>
