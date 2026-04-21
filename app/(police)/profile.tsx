@@ -13,13 +13,14 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { useAuth } from "../../src/auth/AuthContext";
-import { fetchOfficerProfile, updateOfficerProfile, uploadCrimeMediaFile } from "../../src/auth/api";
+import { fetchOfficerProfile, updateOfficerProfile, uploadCrimeMediaFile, fetchMyBadgesAndPoints } from "../../src/auth/api";
+import { UserBadgeEntry } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
 import { useTheme } from "../../src/theme/ThemeContext";
@@ -40,10 +41,19 @@ export default function PoliceProfileScreen() {
   const [latInput, setLatInput] = useState("");
   const [lngInput, setLngInput] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [userBadges, setUserBadges] = useState<UserBadgeEntry[]>([]);
 
   const { data: profile, loading, revalidating, error, refresh } = useCachedData(
     "officerProfile",
-    async () => { const { profile: p } = await fetchOfficerProfile(); await refreshUser().catch(() => { }); return p; },
+    async () => { 
+      const [{ profile: p }, badgesRes] = await Promise.all([
+        fetchOfficerProfile(),
+        fetchMyBadgesAndPoints().catch(() => ({ userBadges: [] }))
+      ]);
+      setUserBadges(badgesRes.userBadges);
+      await refreshUser().catch(() => { }); 
+      return p; 
+    },
     setOfficerProfile
   );
 
@@ -115,6 +125,48 @@ export default function PoliceProfileScreen() {
             <Text style={[styles.badgeText, { color: colors.accent }]}>Badge #{profile?.officerProfile?.badgeNumber || "—"}</Text>
           </View>
         </Animated.View>
+
+        {/* Achievement Vault */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary, marginTop: 0 }]}>Achievement Vault</Text>
+          <View style={[styles.badgeCountBadge, { backgroundColor: colors.accent }]}>
+            <Text style={styles.badgeCountText}>{userBadges.length}</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.badgesScroll}
+          style={styles.badgesScrollContainer}
+        >
+          {userBadges.length === 0 ? (
+            <Animated.View style={[styles.emptyBadgeCard, { backgroundColor: animSurface, borderColor: animBorder }]}>
+              <Ionicons name="lock-closed-outline" size={24} color={colors.textTertiary} />
+              <Text style={[styles.emptyBadgeText, { color: colors.textTertiary }]}>No badges yet</Text>
+            </Animated.View>
+          ) : (
+            userBadges.map((ub) => (
+              <Animated.View key={ub.id} style={[styles.achievementCard, { backgroundColor: animSurface, borderColor: animBorder }]}>
+                <View style={[styles.badgeIconBg, { backgroundColor: colors.accentSoft }]}>
+                  <Ionicons name={(ub.badge.iconUrl as any) || "ribbon-outline"} size={28} color={colors.accent} />
+                </View>
+                <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={1}>{ub.badge.name}</Text>
+                <Text style={[styles.badgeDesc, { color: colors.textSecondary }]} numberOfLines={2}>{ub.badge.description}</Text>
+                <View style={[styles.badgePointsPill, { backgroundColor: colors.success + '20' }]}>
+                  <Text style={[styles.badgePointsText, { color: colors.success }]}>+{ub.badge.pointsValue} XP</Text>
+                </View>
+              </Animated.View>
+            ))
+          )}
+          <TouchableOpacity 
+            style={[styles.earnMoreCard, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]} 
+            onPress={() => router.push("/achievement-vault")}
+          >
+            <Ionicons name="add-circle-outline" size={24} color={colors.textSecondary} />
+            <Text style={[styles.earnMoreText, { color: colors.textSecondary }]}>Earn More</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
 
         {/* ── Duty Info ── */}
@@ -255,4 +307,19 @@ const styles = StyleSheet.create({
   signOutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 14, paddingVertical: 15, marginBottom: 16, borderWidth: 1 },
   signOutText: { fontSize: 15, fontWeight: "800" },
   versionText: { textAlign: "center", fontSize: 12, marginTop: 8, fontWeight: "600" },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, paddingHorizontal: 2 },
+  badgeCountBadge: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2, justifyContent: "center", alignItems: "center" },
+  badgeCountText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  badgesScrollContainer: { marginBottom: 24, marginHorizontal: -20 },
+  badgesScroll: { paddingHorizontal: 20, gap: 12 },
+  achievementCard: { width: 150, padding: 16, borderRadius: 16, borderWidth: 1, alignItems: "center" },
+  badgeIconBg: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 10 },
+  badgeName: { fontSize: 13, fontWeight: "700", marginBottom: 4, textAlign: "center" },
+  badgeDesc: { fontSize: 11, textAlign: "center", lineHeight: 14, marginBottom: 8 },
+  badgePointsPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  badgePointsText: { fontSize: 10, fontWeight: "800" },
+  emptyBadgeCard: { width: 150, padding: 24, borderRadius: 16, borderWidth: 1, borderStyle: "dashed", justifyContent: "center", alignItems: "center", gap: 8 },
+  emptyBadgeText: { fontSize: 12, fontWeight: "600" },
+  earnMoreCard: { width: 120, padding: 16, borderRadius: 16, justifyContent: "center", alignItems: "center", gap: 8, borderStyle: "dashed", borderWidth: 1, borderColor: "#cbd5e1" },
+  earnMoreText: { fontSize: 13, fontWeight: "700" },
 });

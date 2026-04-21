@@ -13,6 +13,7 @@ export type SubmitReportBody = {
   isHappeningNow?: boolean;
   isAnonymous: boolean;
   media?: ReportMediaPayload[];
+  authenticityAnalysis?: any;
 };
 
 export type SubmitReportResult = {

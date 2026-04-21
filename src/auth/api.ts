@@ -569,6 +569,24 @@ export function fetchMyBadgesAndPoints() {
   );
 }
 
+export function fetchAchievements() {
+  return requestAuthenticated<{
+    reputationPoints: number;
+    trustScore: number;
+    userBadges: Array<{ id: string; earnedAt: string; badge: any }>;
+    goals: Array<{
+      id: string;
+      title: string;
+      description: string;
+      current: number;
+      target: number;
+      icon: string;
+      progress: number;
+      isEarned: boolean;
+    }>;
+  }>("/api/users/me/achievements", { method: "GET" });
+}
+
 export function fetchPrivacySettings() {
   return requestAuthenticated<{
     settings: {

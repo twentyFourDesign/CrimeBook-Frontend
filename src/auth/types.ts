@@ -363,6 +363,7 @@ export type ReportDetailPayload = {
   policeNotes?: PoliceNoteItem[];
   /** Audit trail from GET citizen/my-reports and GET police/incidents */
   statusHistory?: ReportStatusHistoryItem[];
+  authenticityAnalysis?: any;
 };
 
 /** Matches POST /api/media/upload response & Prisma `MediaType` */

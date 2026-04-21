@@ -27,6 +27,7 @@ import type {
   ReportMediaItem,
   ReportMessageItem,
 } from "../../../src/auth/types";
+import { ForensicBreakdown } from "../../../src/components/report/ForensicBreakdown";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -57,12 +58,13 @@ function isPoliceSenderRole(role: string) {
   return role === "POLICE_OFFICER" || role === "POLICE_COMMAND";
 }
 
-type SectionKey = "status" | "details" | "content" | "police" | "messages";
+type SectionKey = "status" | "details" | "content" | "forensics" | "police" | "messages";
 
 const defaultExpanded = (): Record<SectionKey, boolean> => ({
   status: false,
   details: false,
   content: false,
+  forensics: false,
   police: false,
   messages: false,
 });
@@ -584,6 +586,20 @@ export default function ReportDetailScreen() {
                 <Text style={styles.mapBtnText}>Open in Maps</Text>
               </TouchableOpacity>
             </CollapsibleSection>
+
+            {report.authenticityAnalysis ? (
+              <CollapsibleSection
+                sectionKey="forensics"
+                icon="hardware-chip-outline"
+                title="Forensic Authenticity"
+                subtitle="AI-calculated reliability and forensic signals"
+                expanded={expanded.forensics}
+                onToggle={toggleSection}
+                summary={`Score: ${report.authenticityAnalysis.finalScore}/100 · ${report.authenticityAnalysis.grade}`}
+              >
+                <ForensicBreakdown analysis={report.authenticityAnalysis} />
+              </CollapsibleSection>
+            ) : null}
 
             {showPoliceSection ? (
               <CollapsibleSection

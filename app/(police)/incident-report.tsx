@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { fetchPoliceIncidentDetail, takePoliceIncident } from "../../src/auth/api";
 import type { ReportDetailPayload, ReportMediaItem } from "../../src/auth/types";
+import { ForensicBreakdown } from "../../src/components/report/ForensicBreakdown";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -59,6 +60,7 @@ export default function IncidentReport() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [taking, setTaking] = useState(false);
+  const [showForensics, setShowForensics] = useState(false);
 
   const load = useCallback(
     async (mode?: "refresh") => {
@@ -203,7 +205,6 @@ export default function IncidentReport() {
                   <Text style={styles.directionsBtnText}>Route to Scene</Text>
                 </TouchableOpacity>
               </View>
-
               {/* Description Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
@@ -214,6 +215,37 @@ export default function IncidentReport() {
                 </View>
                 <Text style={styles.descText}>{incident.description}</Text>
               </View>
+
+              {/* Forensic Section */}
+              {incident.authenticityAnalysis ? (
+                <View style={styles.sectionCard}>
+                  <TouchableOpacity
+                    style={styles.sectionHeader}
+                    onPress={() => setShowForensics(!showForensics)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sectionIconBox}>
+                      <Ionicons name="hardware-chip" size={16} color="#1D4ED8" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.sectionTitle}>Forensic Authenticity</Text>
+                      {!showForensics && (
+                        <Text style={styles.collapsedSummary}>
+                          Score: {incident.authenticityAnalysis.finalScore}/100 · {incident.authenticityAnalysis.grade}
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons
+                      name={showForensics ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#64748B"
+                    />
+                  </TouchableOpacity>
+                  {showForensics && (
+                    <ForensicBreakdown analysis={incident.authenticityAnalysis} />
+                  )}
+                </View>
+              ) : null}
 
               {/* Evidence Section */}
               <View style={styles.sectionCard}>
@@ -431,6 +463,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: "#1E293B"
+  },
+  collapsedSummary: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
   },
   mapContainer: {
     height: 180,

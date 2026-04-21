@@ -127,6 +127,7 @@ export default function ReportStep6() {
                 mediaType: m.mediaType,
               }))
             : undefined,
+        authenticityAnalysis: analysis,
       });
       resetDraft();
       router.replace({

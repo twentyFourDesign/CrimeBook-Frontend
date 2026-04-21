@@ -382,10 +382,13 @@ export default function ProfileScreen() {
                       <Ionicons name="shield-outline" size={12} color="#475569" />
                       <Text style={styles.scoreText}>Trust {profile.trustScore.toFixed(0)}</Text>
                     </View>
-                    <View style={[styles.scoreChip, { backgroundColor: "#F0F9FF", borderColor: "#BAE6FD" }]}>
+                    <TouchableOpacity 
+                      style={[styles.scoreChip, { backgroundColor: "#F0F9FF", borderColor: "#BAE6FD" }]}
+                      onPress={() => router.push("/achievement-vault")}
+                    >
                       <Ionicons name="flash-outline" size={12} color="#0369A1" />
                       <Text style={[styles.scoreText, { color: "#0369A1" }]}>{profile.reputationPoints} pts</Text>
-                    </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -459,8 +462,8 @@ export default function ProfileScreen() {
                     </View>
                   ))
                 )}
-                {userBadges.length > 0 && (
-                  <TouchableOpacity style={styles.earnMoreCard} onPress={() => Alert.alert("How to earn", "Keep reporting incidents and confirming others' reports to unlock more badges!")}>
+                {userBadges.length >= 0 && (
+                  <TouchableOpacity style={styles.earnMoreCard} onPress={() => router.push("/achievement-vault")}>
                     <Ionicons name="add-circle-outline" size={24} color="#64748B" />
                     <Text style={styles.earnMoreText}>Earn More</Text>
                   </TouchableOpacity>
