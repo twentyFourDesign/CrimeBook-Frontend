@@ -19,6 +19,8 @@ export type AppUser = {
   isEmailVerified: boolean;
   onboardingIntent: OnboardingIntent | null;
   identityVerificationStatus: IdentityVerificationStatus;
+  trustScore: number;
+  reputationPoints: number;
   communityVerification: {
     status: "PENDING" | "APPROVED" | "REJECTED";
     submittedAt: string;

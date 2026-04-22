@@ -122,7 +122,21 @@ export default function PoliceProfileScreen() {
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{profile?.email}</Text>
           <View style={[styles.badgeTag, { backgroundColor: colors.accentSoft }]}>
             <Ionicons name="shield" size={12} color={colors.accent} />
-            <Text style={[styles.badgeText, { color: colors.accent }]}>Badge #{profile?.officerProfile?.badgeNumber || "—"}</Text>
+            <Text style={[styles.badgeText, { color: colors.accent }]}>Officer Badge #{profile?.officerProfile?.badgeNumber || "—"}</Text>
+          </View>
+          
+          <View style={styles.scoreRow}>
+            <Animated.View style={[styles.scoreChip, { backgroundColor: animSurface, borderColor: animBorder }]}>
+              <Ionicons name="shield-outline" size={12} color={colors.textSecondary} />
+              <Text style={[styles.scoreText, { color: colors.textSecondary }]}>Trust {user?.trustScore?.toFixed(0) || 0}</Text>
+            </Animated.View>
+            <TouchableOpacity 
+              style={[styles.scoreChip, { backgroundColor: "#F0F9FF", borderColor: "#BAE6FD" }]}
+              onPress={() => router.push("/achievement-vault")}
+            >
+              <Ionicons name="flash-outline" size={12} color="#0369A1" />
+              <Text style={[styles.scoreText, { color: "#0369A1" }]}>{user?.reputationPoints || 0} pts</Text>
+            </TouchableOpacity>
           </View>
         </Animated.View>
 
@@ -322,4 +336,15 @@ const styles = StyleSheet.create({
   emptyBadgeText: { fontSize: 12, fontWeight: "600" },
   earnMoreCard: { width: 120, padding: 16, borderRadius: 16, justifyContent: "center", alignItems: "center", gap: 8, borderStyle: "dashed", borderWidth: 1, borderColor: "#cbd5e1" },
   earnMoreText: { fontSize: 13, fontWeight: "700" },
+  scoreRow: { flexDirection: "row", gap: 8, marginTop: 12 },
+  scoreChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 6,
+  },
+  scoreText: { fontSize: 12, fontWeight: "700" },
 });
