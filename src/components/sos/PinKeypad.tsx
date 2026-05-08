@@ -19,6 +19,7 @@ interface PinKeypadProps {
   loading?: boolean;
   errorMessage?: string | null;
   pinLength?: number; // default 4
+  resetKey?: string;
 }
 
 const KEYS = [
@@ -37,6 +38,7 @@ export function PinKeypad({
   loading = false,
   errorMessage,
   pinLength = 4,
+  resetKey,
 }: PinKeypadProps) {
   const [digits, setDigits] = useState<string[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -44,10 +46,10 @@ export function PinKeypad({
     Array.from({ length: pinLength }, () => new Animated.Value(0))
   ).current;
 
-  // Reset digits when modal opens
+  // Reset digits whenever a new keypad stage starts.
   useEffect(() => {
     if (visible) setDigits([]);
-  }, [visible]);
+  }, [visible, resetKey]);
 
   // Shake + vibrate on error
   useEffect(() => {

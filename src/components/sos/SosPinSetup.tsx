@@ -133,17 +133,37 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
   };
 
   const config = configs[step];
+  const stepIndex =
+    step === "cancel_enter"
+      ? 1
+      : step === "cancel_confirm"
+      ? 2
+      : step === "duress_enter"
+      ? 3
+      : step === "duress_confirm"
+      ? 4
+      : 0;
 
   return (
     <>
-      {/* Inline info card shown while keypad is not yet open */}
-      <View style={styles.infoCard}>
-        <Ionicons name="warning" size={22} color="#F59E0B" />
-        <View style={styles.infoText}>
-          <Text style={styles.infoTitle}>Set up SOS PINs first</Text>
-          <Text style={styles.infoBody}>
-            You need a Safety PIN and a secret Duress Code before you can use SOS. This is a one-time setup.
-          </Text>
+      <View style={styles.setupCard}>
+        <View style={styles.setupHeader}>
+          <Ionicons name="shield-checkmark-outline" size={18} color="#2563EB" />
+          <Text style={styles.setupTitle}>SOS Security Setup</Text>
+        </View>
+        <Text style={styles.setupBody}>
+          Create one Safety PIN and one Duress PIN. Duress PIN silently keeps emergency help active.
+        </Text>
+        <View style={styles.progressRow}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressDot,
+                i < stepIndex ? styles.progressDotActive : styles.progressDotIdle,
+              ]}
+            />
+          ))}
         </View>
       </View>
 
@@ -163,6 +183,7 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
               ? handleDuressEnter
               : handleDuressConfirm
           }
+          resetKey={step}
           errorMessage={error}
         />
       )}
@@ -171,20 +192,21 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
 }
 
 const styles = StyleSheet.create({
-  infoCard: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: "#FEF3C7",
+  setupCard: {
+    backgroundColor: "#EFF6FF",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#FDE68A",
+    borderColor: "#BFDBFE",
     marginBottom: 16,
-    alignItems: "flex-start",
   },
-  infoText: { flex: 1 },
-  infoTitle: { fontWeight: "800", color: "#92400E", fontSize: 14 },
-  infoBody: { fontSize: 13, color: "#78350F", lineHeight: 20, marginTop: 4 },
+  setupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  setupTitle: { fontWeight: "800", color: "#1E3A8A", fontSize: 14 },
+  setupBody: { fontSize: 13, color: "#1E40AF", lineHeight: 19, marginTop: 6 },
+  progressRow: { flexDirection: "row", gap: 6, marginTop: 10 },
+  progressDot: { width: 18, height: 4, borderRadius: 999 },
+  progressDotActive: { backgroundColor: "#2563EB" },
+  progressDotIdle: { backgroundColor: "#BFDBFE" },
   error: {
     color: "#EF4444",
     fontSize: 13,

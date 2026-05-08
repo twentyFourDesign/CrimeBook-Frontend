@@ -6,6 +6,7 @@ import { AppDataCacheProvider } from "../src/cache/AppDataCacheContext";
 import { ReportDraftProvider } from "../src/report/ReportDraftContext";
 import { VerificationDraftProvider } from "../src/verification/VerificationDraftContext";
 import { ThemeProvider } from "../src/theme/ThemeContext";
+import { usePushNotifications } from "../src/notifications/push";
 
 // Suppress known Expo Go + Google Maps native warnings that appear during development.
 // These are harmless in Expo Go — Google Maps requires a custom dev build. 
@@ -19,11 +20,17 @@ LogBox.ignoreLogs([
   "Module RNMaps",
 ]);
 
+function PushBootstrapper() {
+  usePushNotifications();
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
+          <PushBootstrapper />
           <AppDataCacheProvider>
             <VerificationDraftProvider>
               <ReportDraftProvider>

@@ -11,6 +11,7 @@ import {
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { ReportFooter } from "../../src/components/report/ReportFooter";
@@ -29,6 +30,8 @@ const PING_MS = 15000;
 type PendingIntent = "cancel" | "safe";
 
 export default function CitizenSosScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ setupPins?: string }>();
   const [perm, setPerm] = useState<Location.PermissionStatus | null>(null);
   const [sosId, setSosId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,6 +61,12 @@ export default function CitizenSosScreen() {
       .then(({ pinsConfigured: configured }) => setPinsConfigured(configured))
       .catch(() => setPinsConfigured(false));
   }, []);
+
+  useEffect(() => {
+    if (params.setupPins === "1") {
+      setShowPinSetup(true);
+    }
+  }, [params.setupPins]);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   const clearPing = useCallback(() => {
@@ -162,6 +171,9 @@ export default function CitizenSosScreen() {
   const handlePinSetupComplete = () => {
     setShowPinSetup(false);
     setPinsConfigured(true);
+    if (params.setupPins === "1") {
+      router.replace("/(citizen)/sos");
+    }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────

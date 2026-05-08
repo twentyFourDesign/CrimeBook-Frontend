@@ -260,6 +260,17 @@ export default function ProfileScreen() {
                 <Text style={styles.menuItemText}>Community Groups</Text>
               </TouchableOpacity>
 
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setIsMenuOpen(false);
+                  router.push("/(citizen)/sos?setupPins=1");
+                }}
+              >
+                <Ionicons name="key-outline" size={20} color="#2563EB" />
+                <Text style={[styles.menuItemText, { color: "#2563EB" }]}>Reset SOS PINs</Text>
+              </TouchableOpacity>
+
               {user?.identityVerificationStatus !== "approved" && (
                 <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); router.push("/(auth)/verification"); }}>
                   <Ionicons name="shield-checkmark-outline" size={20} color="#2563EB" />

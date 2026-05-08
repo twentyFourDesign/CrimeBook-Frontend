@@ -629,6 +629,23 @@ export function updateSafetyRadius(radiusKm: number) {
   });
 }
 
+export function registerDeviceToken(body: {
+  token: string;
+  platform: "ios" | "android" | "web";
+}) {
+  return requestAuthenticated<{ registered: boolean }>("/api/users/me/device-token", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deactivateDeviceToken(token: string) {
+  return requestAuthenticated<{ deactivated: boolean }>("/api/users/me/device-token", {
+    method: "DELETE",
+    body: JSON.stringify({ token }),
+  });
+}
+
 export function fetchCitizenAppeals(query?: { lat?: number; lng?: number; radiusKm?: number }) {
   const q = new URLSearchParams();
   if (query?.lat !== undefined) q.set("lat", String(query.lat));
