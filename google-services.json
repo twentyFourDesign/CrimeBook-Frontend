@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "947894331017",
+    "project_id": "crime-reporting-50556",
+    "storage_bucket": "crime-reporting-50556.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947894331017:android:c7d859817ea23722714858",
+        "android_client_info": {
+          "package_name": "com.crimebook.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCatA2I0DwAacf7YNAkEQk6EUlnmEVKzMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

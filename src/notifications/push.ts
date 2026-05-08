@@ -1,18 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { useAuth } from "../auth/AuthContext";
 import { registerDeviceToken } from "../auth/api";
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 export function usePushNotifications() {
   const { user } = useAuth();
@@ -23,6 +13,18 @@ export function usePushNotifications() {
       if (!user) return;
 
       try {
+        const Notifications = await import("expo-notifications");
+
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
+          }),
+        });
+
         if (Platform.OS === "android") {
           await Notifications.setNotificationChannelAsync("crimebook_alerts", {
             name: "Crime Alerts",
@@ -41,17 +43,27 @@ export function usePushNotifications() {
         }
         if (finalStatus !== "granted") return;
 
-        const tokenResult = await Notifications.getDevicePushTokenAsync();
-        const nativeToken = String(tokenResult.data ?? "").trim();
-        if (!nativeToken) return;
-        if (registeredTokenRef.current === nativeToken) return;
+        // Use Expo push token — Expo's infrastructure handles FCM delivery
+        // so there is no Firebase sender mismatch between app and backend.
+        const projectId =
+          Constants.expoConfig?.extra?.eas?.projectId ??
+          Constants.easConfig?.projectId;
+        if (!projectId) {
+          console.warn("[push] No EAS projectId found in app config");
+          return;
+        }
+
+        const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
+        const expoToken = tokenResult.data?.trim();
+        if (!expoToken) return;
+        if (registeredTokenRef.current === expoToken) return;
 
         await registerDeviceToken({
-          token: nativeToken,
+          token: expoToken,
           platform: Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web",
         });
 
-        registeredTokenRef.current = nativeToken;
+        registeredTokenRef.current = expoToken;
       } catch (e) {
         console.warn("[push] registration failed", e);
       }
@@ -61,17 +73,26 @@ export function usePushNotifications() {
   }, [user]);
 
   useEffect(() => {
-    const receivedSub = Notifications.addNotificationReceivedListener(() => {
-      // Foreground notifications are displayed by setNotificationHandler above.
-    });
+    let receivedSub: { remove: () => void } | null = null;
+    let responseSub: { remove: () => void } | null = null;
 
-    const responseSub = Notifications.addNotificationResponseReceivedListener(() => {
-      // Keep listener for deep-link/navigation handling from tapped notifications.
-    });
+    (async () => {
+      try {
+        const Notifications = await import("expo-notifications");
+        receivedSub = Notifications.addNotificationReceivedListener(() => {
+          // Foreground notifications displayed by setNotificationHandler above.
+        });
+        responseSub = Notifications.addNotificationResponseReceivedListener(() => {
+          // Deep-link handling from tapped notifications.
+        });
+      } catch (e) {
+        console.warn("[push] listener setup skipped", e);
+      }
+    })();
 
     return () => {
-      receivedSub.remove();
-      responseSub.remove();
+      receivedSub?.remove();
+      responseSub?.remove();
     };
   }, []);
 }
