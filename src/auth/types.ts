@@ -75,6 +75,7 @@ export type MyReportItem = {
   id: string;
   caseId?: string | null;
   crimeCategory: string;
+  otherCrimeType?: string | null;
   title: string | null;
   status: string;
   description: string;
@@ -91,6 +92,7 @@ export type MyReportItem = {
 export type PoliceIncidentForMap = {
   id: string;
   crimeCategory: string;
+  otherCrimeType?: string | null;
   status: string;
   latitude: number;
   longitude: number;
@@ -101,11 +103,15 @@ export type PoliceIncidentForMap = {
   communityConfirmCount?: number;
   isPoliceVerified?: boolean;
   credibilityScore?: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  commentCount: number;
 };
 
 export type FeedReportItem = {
   id: string;
   crimeCategory: string;
+  otherCrimeType?: string | null;
   title: string | null;
   status: string;
   description: string;
@@ -116,6 +122,10 @@ export type FeedReportItem = {
   longitude: number;
   communityConfirmCount: number;
   isPoliceVerified: boolean;
+  upvoteCount: number;
+  downvoteCount: number;
+  commentCount: number;
+  myVote: VoteType | null;
 };
 
 /** GET /api/citizen/reports/[id] — community view (any signed-in user) */
@@ -123,6 +133,7 @@ export type CommunityReportPayload = {
   id: string;
   isOwnReport: boolean;
   crimeCategory: string;
+  otherCrimeType?: string | null;
   title: string | null;
   description: string;
   status: string;
@@ -166,6 +177,7 @@ export type PoliceCaseItem = {
   report: {
     id: string;
     crimeCategory: string;
+    otherCrimeType?: string | null;
     title: string | null;
     locationAddress: string | null;
     locationLabel: string | null;
@@ -301,19 +313,42 @@ export type UserBadgeEntry = {
 
 export type PoliceSosActiveItem = {
   id: string;
+  status: string;
   latitude: number;
   longitude: number;
   isSilent: boolean;
   audioClipUrl: string | null;
   notifiedCount: number;
   createdAt: string;
-  user: { id: string; name: string; phone: string | null };
+  // Duress (hostage) fields
+  isDuressActive: boolean;
+  duressActivatedAt: string | null;
+  // Live audio chunk URLs
+  liveMediaLinks: string[];
+  // Full user info for police
+  user: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string;
+    homeAddress: string | null;
+    homeLatitude: number | null;
+    homeLongitude: number | null;
+    occupation: string | null;
+  };
   latestLocation: {
     latitude: number;
     longitude: number;
     accuracy: number | null;
     loggedAt: string;
   } | null;
+};
+
+export type SosUpdateResult = {
+  sosId: string;
+  status: string;
+  resolvedAt: string | null;
+  isDuress: false; // always false on client — duress is hidden
 };
 
 /** GET/POST /api/citizen/my-reports/[id]/messages — same shape as police case messages */
@@ -338,6 +373,7 @@ export type ReportDetailPayload = {
   id: string;
   caseId: string | null;
   crimeCategory: string;
+  otherCrimeType?: string | null;
   title: string | null;
   description: string;
   status: string;
@@ -443,6 +479,30 @@ export type GroupMessage = {
   sender: {
     id: string;
     name: string;
-    avatarUrl: string | null;
   };
 };
+
+export type VoteType = "UPVOTE" | "DOWNVOTE";
+
+export interface IncidentVoteResponse {
+  counts: {
+    UPVOTE: number;
+    DOWNVOTE: number;
+  };
+  myVote: VoteType | null;
+}
+
+export interface IncidentComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+}
+
+export interface IncidentCommentsResponse {
+  items: IncidentComment[];
+}

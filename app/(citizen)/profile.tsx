@@ -50,6 +50,9 @@ function initials(name: string) {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, refreshUser } = useAuth();
+
+  if (!user) return null;
+
   const { setCitizenProfile } = useAppDataCache();
   const { resetDraft } = useReportDraft();
   const { colors, isDark } = useTheme();
@@ -292,7 +295,11 @@ export default function ProfileScreen() {
 
               <View style={styles.menuDivider} />
 
-              <TouchableOpacity style={styles.menuItem} onPress={() => { setIsMenuOpen(false); signOut(); }}>
+              <TouchableOpacity style={styles.menuItem} onPress={async () => { 
+                setIsMenuOpen(false); 
+                await signOut();
+                router.replace("/(auth)/login");
+              }}>
                 <Ionicons name="log-out-outline" size={20} color="#B91C1C" />
                 <Text style={[styles.menuItemText, { color: "#B91C1C" }]}>Sign Out</Text>
               </TouchableOpacity>

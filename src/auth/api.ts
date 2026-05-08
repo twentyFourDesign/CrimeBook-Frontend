@@ -24,6 +24,11 @@ import {
   GroupPost,
   GroupInvite,
   GroupMessage,
+  VoteType,
+  IncidentVoteResponse,
+  IncidentComment,
+  IncidentCommentsResponse,
+  SosUpdateResult,
 } from "./types";
 import { readTokens, saveTokens } from "./storage";
 
@@ -648,11 +653,55 @@ export function startCitizenSos(body: {
 }
 
 export function updateCitizenSos(sosId: string, status: "CANCELLED" | "RESPONDED") {
-  return requestAuthenticated<{ sosId: string; status: string; resolvedAt: string | null }>(
+  return requestAuthenticated<SosUpdateResult>(
     `/api/citizen/sos/${sosId}`,
     {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    }
+  );
+}
+
+/**
+ * Cancel/safe SOS using a PIN.
+ * intent = "cancel" maps to CANCELLED; intent = "safe" maps to RESPONDED.
+ * The backend returns the same 200 shape regardless of whether it was duress.
+ */
+export function cancelSosWithPin(
+  sosId: string,
+  body: { pin: string; intent: "cancel" | "safe" }
+) {
+  return requestAuthenticated<SosUpdateResult>(
+    `/api/citizen/sos/${sosId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+/** Set or update the citizen's SOS cancellation + duress PIN pair. */
+export function setSosPins(body: { cancellationPin: string; duressPin: string }) {
+  return requestAuthenticated<{ updated: boolean }>("/api/citizen/sos/pin", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Check whether the current user has SOS PINs configured. */
+export function checkSosPinsSet() {
+  return requestAuthenticated<{ pinsConfigured: boolean }>("/api/citizen/sos/pin/status", {
+    method: "GET",
+  });
+}
+
+/** Append an audio chunk URL (already uploaded to Supabase) to the SOS alert. */
+export function postSosAudioChunk(sosId: string, chunkUrl: string) {
+  return requestAuthenticated<{ totalChunks: number }>(
+    `/api/citizen/sos/${sosId}/audio`,
+    {
+      method: "POST",
+      body: JSON.stringify({ chunkUrl }),
     }
   );
 }
@@ -728,4 +777,38 @@ export function fetchHeatmapReports(query: { time: string; ne?: string; sw?: str
   }>(`/api/citizen/heatmap${suffix}`, {
     method: "GET",
   });
+}
+
+export function fetchReportVotes(reportId: string) {
+  return requestAuthenticated<IncidentVoteResponse>(
+    `/api/citizen/reports/${reportId}/votes`,
+    { method: "GET" }
+  );
+}
+
+export function submitReportVote(reportId: string, voteType: VoteType | null) {
+  return requestAuthenticated<IncidentVoteResponse>(
+    `/api/citizen/reports/${reportId}/votes`,
+    {
+      method: "POST",
+      body: JSON.stringify({ voteType }),
+    }
+  );
+}
+
+export function fetchReportComments(reportId: string) {
+  return requestAuthenticated<IncidentCommentsResponse>(
+    `/api/citizen/reports/${reportId}/comments`,
+    { method: "GET" }
+  );
+}
+
+export function submitReportComment(reportId: string, content: string) {
+  return requestAuthenticated<{ comment: IncidentComment }>(
+    `/api/citizen/reports/${reportId}/comments`,
+    {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }
+  );
 }

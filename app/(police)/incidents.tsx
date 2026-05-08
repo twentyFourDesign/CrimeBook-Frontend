@@ -30,17 +30,25 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; da
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  ROBBERY: "bag-remove", ASSAULT: "body", KIDNAPPING: "person-remove",
-  DOMESTIC_VIOLENCE: "home", DRUG_ACTIVITY: "medical", TRAFFIC_CRIME: "car",
-  FRAUD: "card", MISSING_PERSON: "search", VANDALISM: "hammer",
-  SUSPICIOUS_ACTIVITY: "eye", OTHER: "alert-circle",
+  HOMICIDE: "skull", ASSAULT: "body", ROBBERY: "bag-remove",
+  BURGLARY: "home", THEFT: "wallet", VEHICLE_CRIME: "car",
+  ARSON: "flame", VANDALISM: "hammer", DRUG_ACTIVITY: "medical",
+  FRAUD: "card", CYBERCRIME: "globe", KIDNAPPING: "person-remove",
+  MISSING_PERSON: "search", DOMESTIC_VIOLENCE: "heart-dislike", 
+  HARASSMENT: "chatbubble-ellipses", STALKING: "eye", TRAFFIC_CRIME: "speedometer",
+  DISTURBANCE: "volume-high", SUSPICIOUS_ACTIVITY: "help-circle",
+  WEAPON_VIOLATION: "shield-half", OTHER: "alert-circle",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  ROBBERY: "#EF4444", ASSAULT: "#F97316", KIDNAPPING: "#DC2626",
-  DOMESTIC_VIOLENCE: "#DB2777", DRUG_ACTIVITY: "#7C3AED", TRAFFIC_CRIME: "#0891B2",
-  FRAUD: "#D97706", MISSING_PERSON: "#2563EB", VANDALISM: "#65A30D",
-  SUSPICIOUS_ACTIVITY: "#B45309", OTHER: "#64748B",
+  HOMICIDE: "#000000", ASSAULT: "#F97316", ROBBERY: "#EF4444",
+  BURGLARY: "#B45309", THEFT: "#D97706", VEHICLE_CRIME: "#64748B",
+  ARSON: "#EA580C", VANDALISM: "#65A30D", DRUG_ACTIVITY: "#7C3AED",
+  FRAUD: "#CA8A04", CYBERCRIME: "#0284C7", KIDNAPPING: "#DC2626",
+  MISSING_PERSON: "#2563EB", DOMESTIC_VIOLENCE: "#DB2777",
+  HARASSMENT: "#475569", STALKING: "#111827", TRAFFIC_CRIME: "#0891B2",
+  DISTURBANCE: "#854D0E", SUSPICIOUS_ACTIVITY: "#71717A",
+  WEAPON_VIOLATION: "#991B1B", OTHER: "#64748B",
 };
 
 function timeAgo(iso: string) {
@@ -61,6 +69,9 @@ function getConfidence(score?: number | null) {
 export default function PoliceIncidentsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+
+  if (!user) return null;
+
   const { setPoliceIncidents } = useAppDataCache();
   const { colors, animValue, isDark } = useTheme();
 
@@ -180,7 +191,9 @@ export default function PoliceIncidentsScreen() {
                       <View style={styles.incBody}>
                         <View style={styles.incTopRow}>
                           <Text style={[styles.incCategory, { color: colors.text }]}>
-                            {inc.crimeCategory.replace(/_/g, " ")}
+                            {inc.crimeCategory === "OTHER" && inc.otherCrimeType 
+                               ? inc.otherCrimeType 
+                               : inc.crimeCategory.replace(/_/g, " ")}
                           </Text>
                           <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
                             <Text style={[styles.statusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
@@ -194,6 +207,19 @@ export default function PoliceIncidentsScreen() {
                           {dist ? (
                             <><View style={[styles.metaDot, { backgroundColor: colors.borderStrong }]} /><Text style={[styles.incMetaText, { color: colors.textTertiary }]}>{dist}</Text></>
                           ) : null}
+                          
+                          <View style={[styles.metaDot, { backgroundColor: colors.borderStrong }]} />
+                          <Ionicons name="thumbs-up-outline" size={10} color={colors.textTertiary} />
+                          <Text style={[styles.incMetaText, { color: colors.textTertiary }]}>{inc.upvoteCount}</Text>
+                          
+                          <View style={[styles.metaDot, { backgroundColor: colors.borderStrong }]} />
+                          <Ionicons name="thumbs-down-outline" size={10} color={colors.textTertiary} />
+                          <Text style={[styles.incMetaText, { color: colors.textTertiary }]}>{inc.downvoteCount}</Text>
+
+                          <View style={[styles.metaDot, { backgroundColor: colors.borderStrong }]} />
+                          <Ionicons name="chatbubble-outline" size={10} color={colors.textTertiary} />
+                          <Text style={[styles.incMetaText, { color: colors.textTertiary }]}>{inc.commentCount}</Text>
+
                           {conf ? (
                             <><View style={[styles.metaDot, { backgroundColor: colors.borderStrong }]} /><Text style={[styles.incMetaText, { color: conf.color, fontWeight: "700" }]}>{conf.label}</Text></>
                           ) : null}

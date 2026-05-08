@@ -7,6 +7,7 @@ import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { ReportProgress } from "../../src/report/ReportProgress";
 import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
 import { ReportContinueButton } from "../../src/components/report/ReportContinueButton";
+import { ReportFooter } from "../../src/components/report/ReportFooter";
 import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
 
 export default function ReportStep4() {
@@ -58,6 +59,8 @@ export default function ReportStep4() {
           />
         </View>
 
+      </ScrollView>
+      <ReportFooter>
         <ReportContinueButton
           disabled={!description.trim()}
           onPress={() => {
@@ -66,7 +69,7 @@ export default function ReportStep4() {
             router.push("/(citizen)/report-step5");
           }}
         />
-      </ScrollView>
+      </ReportFooter>
     </View>
   );
 }

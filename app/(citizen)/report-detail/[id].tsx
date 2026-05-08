@@ -20,12 +20,22 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
 import { Skeleton } from "../../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
-import { fetchReportDetail, fetchReportMessages, sendReportMessage } from "../../../src/auth/api";
+import { 
+  fetchReportDetail, 
+  fetchReportMessages, 
+  sendReportMessage,
+  fetchReportVotes,
+  submitReportVote,
+  fetchReportComments,
+  submitReportComment
+} from "../../../src/auth/api";
 import type {
   PoliceMediaItem,
   ReportDetailPayload,
   ReportMediaItem,
   ReportMessageItem,
+  IncidentComment,
+  VoteType,
 } from "../../../src/auth/types";
 import { ForensicBreakdown } from "../../../src/components/report/ForensicBreakdown";
 
@@ -58,7 +68,7 @@ function isPoliceSenderRole(role: string) {
   return role === "POLICE_OFFICER" || role === "POLICE_COMMAND";
 }
 
-type SectionKey = "status" | "details" | "content" | "forensics" | "police" | "messages";
+type SectionKey = "status" | "details" | "content" | "forensics" | "police" | "messages" | "social";
 
 const defaultExpanded = (): Record<SectionKey, boolean> => ({
   status: false,
@@ -67,6 +77,7 @@ const defaultExpanded = (): Record<SectionKey, boolean> => ({
   forensics: false,
   police: false,
   messages: false,
+  social: false,
 });
 
 function CollapsibleSection({
@@ -268,6 +279,13 @@ export default function ReportDetailScreen() {
   const [threadSending, setThreadSending] = useState(false);
   const [threadInput, setThreadInput] = useState("");
   const [threadError, setThreadError] = useState<string | null>(null);
+  const [upvotes, setUpvotes] = useState(0);
+  const [downvotes, setDownvotes] = useState(0);
+  const [myVote, setMyVote] = useState<VoteType | null>(null);
+  const [comments, setComments] = useState<IncidentComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSending, setCommentSending] = useState(false);
 
   const load = useCallback(async (mode?: "refresh") => {
     if (!id) return;
@@ -320,6 +338,32 @@ export default function ReportDetailScreen() {
       cancelled = true;
     };
   }, [id, expanded.messages]);
+  
+  useEffect(() => {
+    if (!id || !expanded.social) return;
+    (async () => {
+      try {
+        const { counts, myVote: mv } = await fetchReportVotes(id);
+        setUpvotes(counts.UPVOTE);
+        setDownvotes(counts.DOWNVOTE);
+        setMyVote(mv);
+      } catch (e) {
+        console.error("Votes fetch error", e);
+      }
+    })();
+    
+    (async () => {
+      setCommentsLoading(true);
+      try {
+        const { items } = await fetchReportComments(id);
+        setComments(items);
+      } catch (e) {
+        console.error("Comments fetch error", e);
+      } finally {
+        setCommentsLoading(false);
+      }
+    })();
+  }, [id, expanded.social]);
 
   const sendThreadMessage = async () => {
     const text = threadInput.trim();
@@ -334,6 +378,34 @@ export default function ReportDetailScreen() {
       Alert.alert("Error", e instanceof Error ? e.message : "Could not send");
     } finally {
       setThreadSending(false);
+    }
+  };
+
+  const handleVote = async (voteType: VoteType) => {
+    if (!id) return;
+    const newVote = myVote === voteType ? null : voteType;
+    try {
+      const { counts, myVote: mv } = await submitReportVote(id, newVote);
+      setUpvotes(counts.UPVOTE);
+      setDownvotes(counts.DOWNVOTE);
+      setMyVote(mv);
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not save vote");
+    }
+  };
+
+  const handleAddComment = async () => {
+    const text = commentInput.trim();
+    if (!text || !id || commentSending) return;
+    setCommentSending(true);
+    try {
+      const { comment } = await submitReportComment(id, text);
+      setComments((prev) => [comment, ...prev]);
+      setCommentInput("");
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Could not add comment");
+    } finally {
+      setCommentSending(false);
     }
   };
 
@@ -511,10 +583,22 @@ export default function ReportDetailScreen() {
               subtitle="Category, timeline, and how you submitted"
               expanded={expanded.details}
               onToggle={toggleSection}
-              summary={report.title?.trim() || formatEnum(report.crimeCategory)}
+              summary={report.title?.trim() || 
+                       (report.crimeCategory === "OTHER" && report.otherCrimeType 
+                         ? `Other: ${report.otherCrimeType}` 
+                         : formatEnum(report.crimeCategory))}
             >
-              <Text style={styles.reportTitle}>{report.title?.trim() || formatEnum(report.crimeCategory)}</Text>
-              <Text style={styles.reportCategory}>{formatEnum(report.crimeCategory)}</Text>
+              <Text style={styles.reportTitle}>
+                {report.title?.trim() || 
+                 (report.crimeCategory === "OTHER" && report.otherCrimeType 
+                   ? `Other: ${report.otherCrimeType}` 
+                   : formatEnum(report.crimeCategory))}
+              </Text>
+              <Text style={styles.reportCategory}>
+                {report.crimeCategory === "OTHER" && report.otherCrimeType 
+                  ? `Other: ${report.otherCrimeType}` 
+                  : formatEnum(report.crimeCategory)}
+              </Text>
               <View style={styles.divider} />
               <Subheading>Timeline</Subheading>
               <Row label="Submitted" value={new Date(report.createdAt).toLocaleString()} />
@@ -527,6 +611,106 @@ export default function ReportDetailScreen() {
               <Row label="Anonymous submission" value={report.isAnonymous ? "Yes" : "No"} />
               <Row label="Community confirmations" value={String(report.communityConfirmCount)} />
               <Row label="Location precision" value={formatEnum(report.locationPrecision)} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              sectionKey="social"
+              icon="people-outline"
+              title="Community Feedback"
+              subtitle="Reactions and community comments"
+              expanded={expanded.social}
+              onToggle={toggleSection}
+              summary={`${upvotes} 👍 · ${downvotes} 👎 · ${comments.length} comment${comments.length === 1 ? "" : "s"}`}
+            >
+              <View style={styles.socialActionRow}>
+                <TouchableOpacity 
+                  style={[styles.voteBtn, myVote === "UPVOTE" && styles.voteBtnActive]} 
+                  onPress={() => handleVote("UPVOTE")}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={myVote === "UPVOTE" ? "thumbs-up" : "thumbs-up-outline"} 
+                    size={20} 
+                    color={myVote === "UPVOTE" ? "#fff" : "#1D4ED8"} 
+                  />
+                  <Text style={[styles.voteBtnText, myVote === "UPVOTE" && styles.voteBtnTextActive]}>
+                    {upvotes}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.voteBtn, myVote === "DOWNVOTE" && styles.voteBtnActiveDown]} 
+                  onPress={() => handleVote("DOWNVOTE")}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={myVote === "DOWNVOTE" ? "thumbs-down" : "thumbs-down-outline"} 
+                    size={20} 
+                    color={myVote === "DOWNVOTE" ? "#fff" : "#B91C1C"} 
+                  />
+                  <Text style={[styles.voteBtnText, myVote === "DOWNVOTE" && styles.voteBtnTextActive]}>
+                    {downvotes}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.divider} />
+              
+              <View style={styles.commentComposer}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Add a comment…"
+                  placeholderTextColor="#9CA3AF"
+                  value={commentInput}
+                  onChangeText={setCommentInput}
+                  multiline
+                  editable={!commentSending}
+                />
+                <TouchableOpacity
+                  style={[styles.commentSendBtn, (!commentInput.trim() || commentSending) && styles.commentSendBtnDisabled]}
+                  onPress={handleAddComment}
+                  disabled={!commentInput.trim() || commentSending}
+                >
+                  {commentSending ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="send" size={16} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.commentList}>
+                {commentsLoading && comments.length === 0 ? (
+                  <ActivityIndicator size="small" color="#1D4ED8" style={{ marginTop: 12 }} />
+                ) : null}
+                
+                {comments.map((c) => (
+                  <View key={c.id} style={styles.commentCard}>
+                    <View style={styles.commentHeader}>
+                      {c.user.avatarUrl ? (
+                        <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
+                      ) : (
+                        <View style={styles.commentAvatarPlaceholder}>
+                          <Text style={styles.commentAvatarText}>
+                            {c.user.name.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View>
+                        <Text style={styles.commentUser}>{c.user.name}</Text>
+                        <Text style={styles.commentDate}>
+                          {new Date(c.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.commentContent}>{c.content}</Text>
+                  </View>
+                ))}
+                
+                {!commentsLoading && comments.length === 0 ? (
+                  <Text style={styles.noComments}>No comments yet. Be the first to reply!</Text>
+                ) : null}
+              </View>
             </CollapsibleSection>
 
             <CollapsibleSection
@@ -970,4 +1154,131 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   threadSendBtnDisabled: { opacity: 0.6 },
+  socialActionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  voteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+    minWidth: 90,
+    justifyContent: "center",
+  },
+  voteBtnActive: {
+    backgroundColor: "#1D4ED8",
+    borderColor: "#1D4ED8",
+  },
+  voteBtnActiveDown: {
+    backgroundColor: "#B91C1C",
+    borderColor: "#B91C1C",
+  },
+  voteBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1D4ED8",
+  },
+  voteBtnTextActive: {
+    color: "#fff",
+  },
+  commentComposer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginBottom: 16,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
+  },
+  commentSendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentSendBtnDisabled: {
+    backgroundColor: "#94A3B8",
+  },
+  commentList: {
+    marginTop: 4,
+  },
+  commentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  commentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E2E8F0",
+  },
+  commentAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E0E7FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentAvatarText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#4338CA",
+  },
+  commentUser: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  commentDate: {
+    fontSize: 11,
+    color: "#94A3B8",
+  },
+  commentContent: {
+    fontSize: 14,
+    color: "#334155",
+    lineHeight: 20,
+  },
+  noComments: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#94A3B8",
+    marginTop: 12,
+    fontStyle: "italic",
+  },
 });

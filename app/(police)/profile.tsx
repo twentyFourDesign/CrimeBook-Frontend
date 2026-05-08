@@ -34,6 +34,9 @@ function initials(name: string) {
 
 export default function PoliceProfileScreen() {
   const { user, signOut, refreshUser } = useAuth();
+
+  if (!user) return null;
+
   const { setOfficerProfile } = useAppDataCache();
   const { colors, animValue, isDark } = useTheme();
 
@@ -274,7 +277,13 @@ export default function PoliceProfileScreen() {
           </View>
         </Animated.View>
 
-        <TouchableOpacity style={[styles.signOutBtn, { backgroundColor: isDark ? "#200805" : "#FEF2F2", borderColor: isDark ? "#3A1008" : "#FEE2E2" }]} onPress={() => signOut()}>
+        <TouchableOpacity 
+          style={[styles.signOutBtn, { backgroundColor: isDark ? "#200805" : "#FEF2F2", borderColor: isDark ? "#3A1008" : "#FEE2E2" }]} 
+          onPress={async () => {
+            await signOut();
+            router.replace("/(auth)/login");
+          }}
+        >
           <Ionicons name="log-out" size={20} color={colors.danger} />
           <Text style={[styles.signOutText, { color: colors.danger }]}>Sign Out</Text>
         </TouchableOpacity>

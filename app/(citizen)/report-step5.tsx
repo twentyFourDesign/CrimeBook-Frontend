@@ -19,6 +19,7 @@ import { ReportProgress } from "../../src/report/ReportProgress";
 import { uploadCrimeMediaFile } from "../../src/auth/api";
 import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
 import { ReportContinueButton } from "../../src/components/report/ReportContinueButton";
+import { ReportFooter } from "../../src/components/report/ReportFooter";
 import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
 
 const MAX_FILES = 8;
@@ -178,13 +179,15 @@ export default function ReportStep5() {
           multiline
         />
 
+      </ScrollView>
+      <ReportFooter>
         <ReportContinueButton
           onPress={() => {
             updateDraft({ evidenceNote: note.trim() });
             router.push("/(citizen)/report-step6");
           }}
         />
-      </ScrollView>
+      </ReportFooter>
     </View>
   );
 }

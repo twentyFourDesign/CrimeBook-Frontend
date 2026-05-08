@@ -152,7 +152,30 @@ export default function MapScreen() {
             <View style={styles.expandedFilters}>
               <Text style={styles.filterSectionTitle}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll} style={styles.filterRow}>
-                {["all", "robbery", "assault", "kidnapping", "domestic_violence", "drug_activity", "traffic_crime"].map((c) => {
+                {[
+                  "all",
+                  "homicide",
+                  "assault",
+                  "robbery",
+                  "burglary",
+                  "theft",
+                  "vehicle_crime",
+                  "arson",
+                  "vandalism",
+                  "drug_activity",
+                  "fraud",
+                  "cybercrime",
+                  "kidnapping",
+                  "missing_person",
+                  "domestic_violence",
+                  "harassment",
+                  "stalking",
+                  "traffic_crime",
+                  "disturbance",
+                  "suspicious_activity",
+                  "weapon_violation",
+                  "other"
+                ].map((c) => {
                   const isActive = categoryFilter === c;
                   return (
                     <TouchableOpacity

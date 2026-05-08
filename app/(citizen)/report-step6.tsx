@@ -19,6 +19,7 @@ import { readTokens } from "../../src/auth/storage";
 import { submitIncidentReport } from "../../src/report/api";
 import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
 import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
+import { ReportFooter } from "../../src/components/report/ReportFooter";
 import { useAuth } from "../../src/auth/AuthContext";
 import {
   computeAuthenticityScore,
@@ -49,7 +50,9 @@ export default function ReportStep6() {
   const [showSignals, setShowSignals] = useState(false);
   const [showFlags, setShowFlags] = useState(false);
 
-  const crimeLabel = draft.crimeSlug ? CRIME_LABELS[draft.crimeSlug] ?? draft.crimeSlug : "—";
+  const crimeLabel = draft.crimeSlug === "other" 
+    ? `Other: ${draft.otherCrimeType}` 
+    : draft.crimeSlug ? CRIME_LABELS[draft.crimeSlug] ?? draft.crimeSlug : "—";
   const when = new Date(draft.incidentTimeIso).toLocaleString();
 
   const onSubmit = async () => {
@@ -109,7 +112,8 @@ export default function ReportStep6() {
     setSubmitting(true);
     try {
       const res = await submitIncidentReport(tokens.accessToken, {
-        crimeSlug: draft.crimeSlug,
+        crimeSlug: draft.crimeSlug as string,
+        otherCrimeType: draft.crimeSlug === "other" ? draft.otherCrimeType : undefined,
         description: fullDescription,
         locationText: draft.locationText.trim() || undefined,
         latitude: draft.latitude,
@@ -183,21 +187,26 @@ export default function ReportStep6() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity
-          style={[styles.button, (submitting || analyzing) && styles.buttonDisabled]}
-          onPress={onSubmit}
-          disabled={submitting || analyzing}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={styles.submitRow}>
-              <Text style={styles.buttonText}>Submit report</Text>
-              <Ionicons name="checkmark-circle" size={22} color="#fff" />
-            </View>
-          )}
-        </TouchableOpacity>
       </ScrollView>
+
+      {!analyzing && (
+        <ReportFooter>
+          <TouchableOpacity
+            style={[styles.button, submitting && styles.buttonDisabled]}
+            onPress={onSubmit}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <View style={styles.submitRow}>
+                <Text style={styles.buttonText}>Submit report</Text>
+                <Ionicons name="checkmark-circle" size={22} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </ReportFooter>
+      )}
 
       {/* ─── Analysis Overlay ─── */}
       {analyzing && (

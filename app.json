@@ -18,6 +18,10 @@
       "bundleIdentifier": "com.crimebook.app",
       "config": {
         "googleMapsApiKey": "AIzaSyB3yYXsHP0kKeBg1dgf97Ux6RTPh2x8Tvk"
+      },
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "CrimeBook records audio during active SOS emergencies to support police response and gather evidence."
       }
     },
     "android": {
@@ -31,6 +35,8 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],

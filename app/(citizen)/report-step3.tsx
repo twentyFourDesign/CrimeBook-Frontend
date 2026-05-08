@@ -9,6 +9,7 @@ import { useReportDraft } from "../../src/report/ReportDraftContext";
 import { ReportProgress } from "../../src/report/ReportProgress";
 import { ReportScreenHeader } from "../../src/components/report/ReportScreenHeader";
 import { ReportContinueButton } from "../../src/components/report/ReportContinueButton";
+import { ReportFooter } from "../../src/components/report/ReportFooter";
 import { useReportScreenLayout } from "../../src/report/reportScreenLayout";
 
 export default function ReportStep3() {
@@ -170,6 +171,8 @@ export default function ReportStep3() {
           </Text>
         )}
 
+      </ScrollView>
+      <ReportFooter>
         <ReportContinueButton
           disabled={!location.trim() || resolving}
           onPress={async () => {
@@ -213,14 +216,13 @@ export default function ReportStep3() {
             }
           }}
         />
-
         {resolving && (
-          <View style={styles.resolvingRow}>
+          <View style={[styles.resolvingRow, { marginTop: 12, marginBottom: 0 }]}>
             <ActivityIndicator size="small" />
             <Text style={styles.resolvingText}>Resolving location…</Text>
           </View>
         )}
-      </ScrollView>
+      </ReportFooter>
     </View>
   );
 }

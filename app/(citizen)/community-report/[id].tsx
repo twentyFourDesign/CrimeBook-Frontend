@@ -20,8 +20,17 @@ import {
   fetchReportConfirmations,
   submitReportConfirmation,
   resolveReportIncident,
+  fetchReportVotes,
+  submitReportVote,
+  fetchReportComments,
+  submitReportComment,
 } from "../../../src/auth/api";
-import type { CommunityReportPayload, ReportConfirmationListItem } from "../../../src/auth/types";
+import type { 
+  CommunityReportPayload, 
+  ReportConfirmationListItem, 
+  VoteType,
+  IncidentComment,
+} from "../../../src/auth/types";
 
 function formatEnum(s: string) {
   return s.replace(/_/g, " ");
@@ -43,6 +52,13 @@ export default function CommunityReportDetail() {
   const [isResolving, setIsResolving] = useState(false);
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [resolveStatus, setResolveStatus] = useState<"CONFIRMED" | "DISPUTED">("CONFIRMED");
+  const [upvotes, setUpvotes] = useState(0);
+  const [downvotes, setDownvotes] = useState(0);
+  const [myVote, setMyVote] = useState<VoteType | null>(null);
+  const [comments, setComments] = useState<IncidentComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSending, setCommentSending] = useState(false);
 
   const load = useCallback(
     async (mode?: "refresh") => {
@@ -68,9 +84,32 @@ export default function CommunityReportDetail() {
     [reportId]
   );
 
+  const loadSocial = useCallback(async () => {
+    if (!reportId) return;
+    try {
+      const { counts, myVote: mv } = await fetchReportVotes(reportId);
+      setUpvotes(counts.UPVOTE);
+      setDownvotes(counts.DOWNVOTE);
+      setMyVote(mv);
+    } catch (e) {
+      console.error("Votes fetch error", e);
+    }
+
+    setCommentsLoading(true);
+    try {
+      const { items } = await fetchReportComments(reportId);
+      setComments(items);
+    } catch (e) {
+      console.error("Comments fetch error", e);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [reportId]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadSocial();
+  }, [load, loadSocial]);
 
   const openModal = (isConfirm: boolean) => {
     setPendingConfirm(isConfirm);
@@ -112,6 +151,34 @@ export default function CommunityReportDetail() {
     }
   };
 
+  const handleVote = async (voteType: VoteType) => {
+    if (!reportId) return;
+    const newVote = myVote === voteType ? null : voteType;
+    try {
+      const { counts, myVote: mv } = await submitReportVote(reportId, newVote);
+      setUpvotes(counts.UPVOTE);
+      setDownvotes(counts.DOWNVOTE);
+      setMyVote(mv);
+    } catch (e) {
+      console.error("Vote error", e);
+    }
+  };
+
+  const handleAddComment = async () => {
+    const text = commentInput.trim();
+    if (!text || !reportId || commentSending) return;
+    setCommentSending(true);
+    try {
+      const { comment } = await submitReportComment(reportId, text);
+      setComments((prev) => [comment, ...prev]);
+      setCommentInput("");
+    } catch (e) {
+      console.error("Comment error", e);
+    } finally {
+      setCommentSending(false);
+    }
+  };
+
   return (
     <CitizenShell>
       <StatusBar style="dark" />
@@ -138,9 +205,16 @@ export default function CommunityReportDetail() {
         {report && (
           <>
             <View style={styles.card}>
-              <Text style={styles.category}>{formatEnum(report.crimeCategory)}</Text>
+              <Text style={styles.category}>
+                {report.crimeCategory === "OTHER" && report.otherCrimeType 
+                  ? `Other: ${report.otherCrimeType}` 
+                  : formatEnum(report.crimeCategory)}
+              </Text>
               <Text style={styles.title}>
-                {report.title?.trim() || formatEnum(report.crimeCategory)}
+                {report.title?.trim() || 
+                 (report.crimeCategory === "OTHER" && report.otherCrimeType 
+                   ? `Other: ${report.otherCrimeType}` 
+                   : formatEnum(report.crimeCategory))}
               </Text>
               {report.locationLabel || report.locationAddress ? (
                 <Text style={styles.loc}>
@@ -197,6 +271,36 @@ export default function CommunityReportDetail() {
               </View>
             )}
 
+            <View style={styles.socialActionRow}>
+              <TouchableOpacity 
+                style={[styles.voteBtn, myVote === "UPVOTE" && styles.voteBtnActive]} 
+                onPress={() => handleVote("UPVOTE")}
+              >
+                <Ionicons 
+                  name={myVote === "UPVOTE" ? "thumbs-up" : "thumbs-up-outline"} 
+                  size={18} 
+                  color={myVote === "UPVOTE" ? "#fff" : "#2563EB"} 
+                />
+                <Text style={[styles.voteBtnText, myVote === "UPVOTE" && styles.voteBtnTextActive]}>
+                  {upvotes}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.voteBtn, myVote === "DOWNVOTE" && styles.voteBtnActiveDown]} 
+                onPress={() => handleVote("DOWNVOTE")}
+              >
+                <Ionicons 
+                  name={myVote === "DOWNVOTE" ? "thumbs-down" : "thumbs-down-outline"} 
+                  size={18} 
+                  color={myVote === "DOWNVOTE" ? "#fff" : "#DC2626"} 
+                />
+                <Text style={[styles.voteBtnText, myVote === "DOWNVOTE" && styles.voteBtnTextActive]}>
+                  {downvotes}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {!report.isOwnReport && (
               <View style={styles.actions}>
                 <TouchableOpacity
@@ -227,9 +331,47 @@ export default function CommunityReportDetail() {
               </Text>
             )}
 
-            <Text style={styles.sectionTitle}>Community responses</Text>
+            <Text style={styles.sectionTitle}>Community comments</Text>
+            <View style={styles.commentComposer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment…"
+                value={commentInput}
+                onChangeText={setCommentInput}
+                multiline
+                editable={!commentSending}
+              />
+              <TouchableOpacity
+                style={[styles.commentSendBtn, !commentInput.trim() && styles.commentSendBtnDisabled]}
+                onPress={handleAddComment}
+                disabled={!commentInput.trim() || commentSending}
+              >
+                {commentSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={16} color="#fff" />}
+              </TouchableOpacity>
+            </View>
+
+            {commentsLoading && comments.length === 0 ? (
+              <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 12 }} />
+            ) : null}
+
+            {comments.map((c) => (
+              <View key={c.id} style={styles.commentCard}>
+                <View style={styles.commentHeader}>
+                  <View style={styles.commentAvatar}>
+                    <Text style={styles.avatarText}>{c.user.name.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.commentUser}>{c.user.name}</Text>
+                    <Text style={styles.commentDate}>{new Date(c.createdAt).toLocaleDateString()}</Text>
+                  </View>
+                </View>
+                <Text style={styles.commentContent}>{c.content}</Text>
+              </View>
+            ))}
+
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Verification log</Text>
             {confirmations.length === 0 ? (
-              <Text style={styles.muted}>No responses yet.</Text>
+              <Text style={styles.muted}>No verifications yet.</Text>
             ) : (
               confirmations.map((c) => (
                 <View key={c.id} style={styles.confRow}>
@@ -458,4 +600,101 @@ const styles = StyleSheet.create({
   resolveBtnConfirm: { backgroundColor: "#0369A1" },
   resolveBtnDispute: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#E2E8F0" },
   resolveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  socialActionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  voteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+  },
+  voteBtnActive: {
+    backgroundColor: "#2563EB",
+  },
+  voteBtnActiveDown: {
+    backgroundColor: "#DC2626",
+  },
+  voteBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  voteBtnTextActive: {
+    color: "#fff",
+  },
+  commentComposer: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  commentSendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  commentSendBtnDisabled: {
+    backgroundColor: "#94A3B8",
+  },
+  commentCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  commentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+  commentUser: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  commentDate: {
+    fontSize: 11,
+    color: "#94A3B8",
+  },
+  commentContent: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+  },
 });

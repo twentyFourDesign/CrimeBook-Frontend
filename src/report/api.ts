@@ -4,6 +4,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3
 
 export type SubmitReportBody = {
   crimeSlug: string;
+  otherCrimeType?: string;
   description: string;
   title?: string;
   locationText?: string;

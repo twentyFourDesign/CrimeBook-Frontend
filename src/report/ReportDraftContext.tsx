@@ -3,6 +3,7 @@ import type { CrimeMediaUploadResult } from "../auth/types";
 
 export type ReportDraft = {
   crimeSlug: string | null;
+  otherCrimeType: string;
   /** ISO 8601 */
   incidentTimeIso: string;
   isHappeningNow: boolean;
@@ -18,6 +19,7 @@ export type ReportDraft = {
 
 const emptyDraft = (): ReportDraft => ({
   crimeSlug: null,
+  otherCrimeType: "",
   incidentTimeIso: new Date().toISOString(),
   isHappeningNow: true,
   locationText: "",

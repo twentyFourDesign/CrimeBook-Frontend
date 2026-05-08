@@ -1,10 +1,25 @@
 export const CRIME_LABELS: Record<string, string> = {
-  theft: "Theft",
+  homicide: "Homicide",
   assault: "Assault",
-  vehicle: "Vehicle crime",
+  robbery: "Robbery",
+  burglary: "Burglary",
+  theft: "Theft",
+  vehicle: "Vehicle Crime",
   arson: "Arson",
   vandalism: "Vandalism",
+  drugs: "Drug Activity",
+  fraud: "Fraud",
+  cyber: "Cybercrime",
+  kidnapping: "Kidnapping",
+  missing: "Missing Person",
+  domestic: "Domestic Violence",
+  harassment: "Harassment",
+  stalking: "Stalking",
+  traffic: "Traffic Crime",
   disturbance: "Disturbance",
+  suspicious: "Suspicious Activity",
+  weapon: "Weapon Violation",
+  other: "Other",
 };
 
 export const TOTAL_REPORT_STEPS = 6;

@@ -87,7 +87,11 @@ export default function IncidentReport() {
 
   const title =
     incident?.title?.trim() ||
-    (incident ? formatEnum(incident.crimeCategory) : "Incident Report");
+    (incident
+      ? incident.crimeCategory === "OTHER" && incident.otherCrimeType
+        ? `Other: ${incident.otherCrimeType}`
+        : formatEnum(incident.crimeCategory)
+      : "Incident Report");
 
   return (
     <PoliceShell>
@@ -153,7 +157,11 @@ export default function IncidentReport() {
                 <Text style={styles.incidentTitle}>{title}</Text>
 
                 <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{formatEnum(incident.crimeCategory)}</Text>
+                  <Text style={styles.categoryText}>
+                    {incident.crimeCategory === "OTHER" && incident.otherCrimeType 
+                      ? `Other: ${incident.otherCrimeType}` 
+                      : formatEnum(incident.crimeCategory)}
+                  </Text>
                 </View>
               </View>
 

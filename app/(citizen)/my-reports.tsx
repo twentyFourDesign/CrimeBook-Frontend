@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { useAuth } from "../../src/auth/AuthContext";
 import { Skeleton } from "../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { fetchMyReports } from "../../src/auth/api";
@@ -23,6 +24,10 @@ function formatCategory(cat: string) {
 
 export default function MyReportsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  if (!user) return null;
+
   const { setCitizenReports } = useAppDataCache();
 
   const {
@@ -88,7 +93,12 @@ export default function MyReportsScreen() {
             onPress={() => router.push(`/(citizen)/report-detail/${r.id}`)}
             activeOpacity={0.85}
           >
-            <Text style={styles.reportTitle}>{r.title?.trim() || formatCategory(r.crimeCategory)}</Text>
+            <Text style={styles.reportTitle}>
+              {r.title?.trim() || 
+               (r.crimeCategory === "OTHER" && r.otherCrimeType 
+                 ? `Other: ${r.otherCrimeType}` 
+                 : formatCategory(r.crimeCategory))}
+            </Text>
             <Text style={styles.reportCat}>{formatCategory(r.crimeCategory)}</Text>
             <Text style={styles.reportStatus}>Status: {r.status.replace(/_/g, " ")}</Text>
             {r.locationLabel || r.locationAddress ? (

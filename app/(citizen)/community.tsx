@@ -14,8 +14,14 @@ import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { Skeleton } from "../../src/components/common/Skeleton";
 import { useReportDraft } from "../../src/report/ReportDraftContext";
-import { fetchCitizenAppeals, fetchCommunityGroups, fetchFeedReports } from "../../src/auth/api";
-import type { CommunityGroup, FeedReportItem, PublicAppealItem } from "../../src/auth/types";
+import { 
+  fetchCitizenAppeals, 
+  fetchCommunityGroups, 
+  fetchFeedReports,
+  submitReportVote,
+  submitReportComment
+} from "../../src/auth/api";
+import type { CommunityGroup, FeedReportItem, PublicAppealItem, VoteType } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
 
@@ -85,6 +91,39 @@ export default function Community() {
     refreshAppeals();
     refreshGroups();
   }, [refreshReports, refreshAppeals, refreshGroups]);
+
+  const handleVote = async (reportId: string, voteType: VoteType) => {
+    const report = (reports ?? []).find(r => r.id === reportId);
+    if (!report) return;
+
+    const newVote = report.myVote === voteType ? null : voteType;
+    
+    // Optimistic update
+    const updatedReports = (reports ?? []).map(r => {
+      if (r.id !== reportId) return r;
+      
+      let up = r.upvoteCount;
+      let down = r.downvoteCount;
+      
+      // Remove old vote
+      if (r.myVote === "UPVOTE") up--;
+      if (r.myVote === "DOWNVOTE") down--;
+      
+      // Add new vote
+      if (newVote === "UPVOTE") up++;
+      if (newVote === "DOWNVOTE") down++;
+      
+      return { ...r, upvoteCount: up, downvoteCount: down, myVote: newVote };
+    });
+    setFeedReports(updatedReports);
+
+    try {
+      await submitReportVote(reportId, newVote);
+    } catch (e) {
+      // Revert on error
+      refreshReports();
+    }
+  };
 
 
   return (
@@ -281,7 +320,10 @@ export default function Community() {
                 </View>
                 <View style={styles.incidentInfo}>
                   <Text style={styles.incidentTitle} numberOfLines={1}>
-                    {item.title?.trim() || formatEnum(item.crimeCategory)}
+                    {item.title?.trim() || 
+                     (item.crimeCategory === "OTHER" && item.otherCrimeType 
+                       ? `Other: ${item.otherCrimeType}` 
+                       : formatEnum(item.crimeCategory))}
                   </Text>
                   {item.locationLabel || item.locationAddress ? (
                     <View style={styles.incidentLocationRow}>
@@ -298,16 +340,48 @@ export default function Community() {
               <View style={styles.incidentDivider} />
 
               <View style={styles.incidentBottom}>
+                <View style={styles.socialActions}>
+                  <TouchableOpacity 
+                    style={[styles.socialBtn, item.myVote === "UPVOTE" && styles.socialBtnActiveUp]}
+                    onPress={() => handleVote(item.id, "UPVOTE")}
+                  >
+                    <Ionicons 
+                      name={item.myVote === "UPVOTE" ? "thumbs-up" : "thumbs-up-outline"} 
+                      size={16} 
+                      color={item.myVote === "UPVOTE" ? "#fff" : "#1D4ED8"} 
+                    />
+                    <Text style={[styles.socialBtnText, item.myVote === "UPVOTE" && styles.socialBtnTextActive]}>
+                      {item.upvoteCount}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.socialBtn, item.myVote === "DOWNVOTE" && styles.socialBtnActiveDown]}
+                    onPress={() => handleVote(item.id, "DOWNVOTE")}
+                  >
+                    <Ionicons 
+                      name={item.myVote === "DOWNVOTE" ? "thumbs-down" : "thumbs-down-outline"} 
+                      size={16} 
+                      color={item.myVote === "DOWNVOTE" ? "#fff" : "#B91C1C"} 
+                    />
+                    <Text style={[styles.socialBtnText, item.myVote === "DOWNVOTE" && styles.socialBtnTextActive]}>
+                      {item.downvoteCount}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.socialBtn}
+                    onPress={() => router.push(`/(citizen)/community-report/${item.id}`)}
+                  >
+                    <Ionicons name="chatbubble-outline" size={16} color="#64748B" />
+                    <Text style={styles.socialBtnText}>{item.commentCount}</Text>
+                  </TouchableOpacity>
+                </View>
+
                 <View style={styles.metaItem}>
                   <Ionicons name="time-outline" size={12} color="#94A3B8" />
                   <Text style={styles.metaText}>
                     {new Date(item.createdAt).toLocaleDateString()}
-                  </Text>
-                </View>
-                <View style={styles.confirmationBadge}>
-                  <View style={styles.confirmationPulse} />
-                  <Text style={styles.confidenceText}>
-                    {item.communityConfirmCount} Confirmations
                   </Text>
                 </View>
               </View>
@@ -605,6 +679,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#2563EB",
+  },
+  socialActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  socialBtnActiveUp: {
+    backgroundColor: "#1D4ED8",
+  },
+  socialBtnActiveDown: {
+    backgroundColor: "#B91C1C",
+  },
+  socialBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  socialBtnTextActive: {
+    color: "#fff",
   },
   emptyGroupsBox: {
     padding: 20,

@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
+import { useAuth } from "../../src/auth/AuthContext";
 import { Skeleton } from "../../src/components/common/Skeleton";
 import { fetchMyReports } from "../../src/auth/api";
 import type { MyReportItem } from "../../src/auth/types";
@@ -31,6 +32,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function CitizenHome() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  if (!user) return null;
+
   const { setCitizenReports } = useAppDataCache();
   const { colors, animValue, isDark } = useTheme();
 
@@ -160,7 +165,10 @@ export default function CitizenHome() {
                       </View>
                       <View style={styles.reportBody}>
                         <Text style={[styles.reportTitle, { color: colors.text }]} numberOfLines={1}>
-                          {r.title?.trim() || formatEnum(r.crimeCategory)}
+                          {r.title?.trim() || 
+                           (r.crimeCategory === "OTHER" && r.otherCrimeType 
+                             ? `Other: ${r.otherCrimeType}` 
+                             : formatEnum(r.crimeCategory))}
                         </Text>
                         <Text style={[styles.reportMeta, { color: colors.textTertiary }]} numberOfLines={1}>
                           {r.locationLabel || r.locationAddress || "Location not set"}

@@ -372,6 +372,7 @@ function analyzeTrust(draft: ReportDraft, user: AppUser | null): SignalResult {
 const HIGH_PRIORITY_CRIMES = [
   "robbery", "assault", "murder", "homicide", "rape", "kidnapping",
   "shooting", "stabbing", "carjacking", "terrorism", "arson",
+  "domestic", "weapon", "drugs",
 ];
 
 function analyzeCoherence(draft: ReportDraft): SignalResult {

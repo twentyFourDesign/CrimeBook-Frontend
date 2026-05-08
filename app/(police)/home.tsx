@@ -56,6 +56,9 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default function PoliceHome() {
   const router = useRouter();
   const { user } = useAuth();
+
+  if (!user) return null;
+
   const { setPoliceIncidents } = useAppDataCache();
   const { colors, animValue, isDark } = useTheme();
 

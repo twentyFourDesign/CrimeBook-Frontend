@@ -132,7 +132,10 @@ export default function PoliceCasesScreen() {
                 </View>
 
                 <Text style={[styles.caseTitle, { color: colors.text }]}>
-                  {c.report.title?.trim() || "Untitled Case Dispatch"}
+                  {c.report.title?.trim() || 
+                   (c.report.crimeCategory === "OTHER" && c.report.otherCrimeType 
+                     ? `Other: ${c.report.otherCrimeType}` 
+                     : c.report.crimeCategory.replace(/_/g, " "))}
                 </Text>
 
                 <View style={styles.cardMeta}>
@@ -151,7 +154,11 @@ export default function PoliceCasesScreen() {
                 <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
                   <View style={styles.priorityBox}>
                     <Ionicons name="shield" size={12} color="#475569" />
-                    <Text style={styles.priorityText}>{c.report.crimeCategory.replace(/_/g, " ")}</Text>
+                    <Text style={styles.priorityText}>
+                      {c.report.crimeCategory === "OTHER" && c.report.otherCrimeType 
+                        ? c.report.otherCrimeType 
+                        : c.report.crimeCategory.replace(/_/g, " ")}
+                    </Text>
                   </View>
                   <View style={styles.viewBtn}>
                     <Text style={styles.viewBtnText}>View Details</Text>
