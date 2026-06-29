@@ -6,9 +6,9 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+  Image } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
@@ -58,15 +58,13 @@ export default function ReportStep5() {
           ? await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             quality: 0.85,
-            videoMaxDuration: 120,
-          })
+            videoMaxDuration: 120 })
           : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
             quality: 0.85,
             allowsMultipleSelection: true,
             selectionLimit: MAX_FILES - draft.media.length,
-            videoMaxDuration: 120,
-          });
+            videoMaxDuration: 120 });
 
       if (result.canceled || !result.assets?.length) return;
 
@@ -81,8 +79,7 @@ export default function ReportStep5() {
           uri: asset.uri,
           name,
           mimeType: mime,
-          folder: "reports",
-        });
+          folder: "reports" });
         setDraft((d) => ({ ...d, media: [...d.media, uploaded] }));
         count += 1;
       }
@@ -96,8 +93,7 @@ export default function ReportStep5() {
   const removeAt = (index: number) => {
     setDraft((d) => ({
       ...d,
-      media: d.media.filter((_, i) => i !== index),
-    }));
+      media: d.media.filter((_, i) => i !== index) }));
   };
 
   return (
@@ -125,7 +121,7 @@ export default function ReportStep5() {
             onPress={() => addFromPicker("camera")}
           >
             {busy ? (
-              <ActivityIndicator />
+              <CrimeBookLoader size="medium" />
             ) : (
               <>
                 <Ionicons name="camera-outline" size={36} color="#2563EB" style={styles.uploadIcon} />
@@ -140,7 +136,7 @@ export default function ReportStep5() {
             onPress={() => addFromPicker("library")}
           >
             {busy ? (
-              <ActivityIndicator />
+              <CrimeBookLoader size="medium" />
             ) : (
               <>
                 <Ionicons name="images-outline" size={36} color="#2563EB" style={styles.uploadIcon} />
@@ -206,8 +202,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
-    borderStyle: "dashed",
-  },
+    borderStyle: "dashed" },
   uploadDisabled: { opacity: 0.6 },
   uploadIcon: { marginBottom: 10 },
   uploadLabel: { fontSize: 13, fontWeight: "600", color: "#555", textAlign: "center" },
@@ -220,8 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#1E293B",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   removeX: {
     position: "absolute",
     top: -6,
@@ -231,8 +225,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#DC2626",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   fieldLabel: { fontSize: 13, fontWeight: "600", color: "#333", marginBottom: 8 },
   input: {
     borderWidth: 1,
@@ -245,6 +238,4 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
     marginBottom: 28,
-    backgroundColor: "#FAFAFA",
-  },
-});
+    backgroundColor: "#FAFAFA" } });

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   RefreshControl,
   ScrollView,
@@ -15,6 +14,8 @@ import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CitizenShell } from "../../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import {
   fetchCommunityReport,
   fetchReportConfirmations,
@@ -188,18 +189,14 @@ export default function CommunityReportDetail() {
         <View style={{ width: 40 }} />
       </View>
 
+      {loading && !report ? (
+        <LoadingState fullScreen message="Loading incident details…" />
+      ) : (
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load("refresh")} />}
       >
-        {loading && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" />
-            <Text style={styles.muted}>Loading…</Text>
-          </View>
-        )}
-
         {error && !loading && <Text style={styles.errorText}>{error}</Text>}
 
         {report && (
@@ -217,9 +214,17 @@ export default function CommunityReportDetail() {
                    : formatEnum(report.crimeCategory))}
               </Text>
               {report.locationLabel || report.locationAddress ? (
-                <Text style={styles.loc}>
-                  📍 {report.locationLabel || report.locationAddress}
-                </Text>
+                <View style={styles.locationCard}>
+                  <View style={styles.locationIconWrap}>
+                    <Ionicons name="location" size={20} color="#2563EB" />
+                  </View>
+                  <View style={styles.locationTextWrap}>
+                    <Text style={styles.locationHeading}>Incident location</Text>
+                    <Text style={styles.loc}>
+                      {report.locationLabel || report.locationAddress}
+                    </Text>
+                  </View>
+                </View>
               ) : null}
               <Text style={styles.body}>{report.description}</Text>
               <View style={styles.metaRow}>
@@ -346,12 +351,12 @@ export default function CommunityReportDetail() {
                 onPress={handleAddComment}
                 disabled={!commentInput.trim() || commentSending}
               >
-                {commentSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={16} color="#fff" />}
+                {commentSending ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Ionicons name="send" size={16} color="#fff" />}
               </TouchableOpacity>
             </View>
 
             {commentsLoading && comments.length === 0 ? (
-              <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 12 }} />
+              <LoadingState size="small" message="Loading comments…" />
             ) : null}
 
             {comments.map((c) => (
@@ -387,6 +392,7 @@ export default function CommunityReportDetail() {
           </>
         )}
       </ScrollView>
+      )}
 
       <Modal visible={modalOpen} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
@@ -417,7 +423,7 @@ export default function CommunityReportDetail() {
                 disabled={submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                 ) : (
                   <Text style={styles.btnPrimaryText}>Submit</Text>
                 )}
@@ -460,7 +466,7 @@ export default function CommunityReportDetail() {
                 disabled={isResolving}
               >
                 {isResolving ? (
-                  <ActivityIndicator color="#fff" />
+                  <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                 ) : (
                   <Text style={styles.btnPrimaryText}>
                     {resolveStatus === "CONFIRMED" ? "Confirm Solved" : "Send Dispute"}
@@ -503,7 +509,36 @@ const styles = StyleSheet.create({
   },
   category: { fontSize: 12, fontWeight: "700", color: "#2563EB", textTransform: "uppercase" },
   title: { fontSize: 20, fontWeight: "700", color: "#111", marginTop: 4 },
-  loc: { fontSize: 14, color: "#555", marginTop: 8 },
+  locationCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 14,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  locationIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationTextWrap: { flex: 1 },
+  locationHeading: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1D4ED8",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  },
+  loc: { fontSize: 14, color: "#1E293B", lineHeight: 20, fontWeight: "500" },
   body: { fontSize: 15, color: "#333", marginTop: 12, lineHeight: 22 },
   metaRow: {
     flexDirection: "row",

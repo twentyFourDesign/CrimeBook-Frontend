@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -37,8 +37,7 @@ export default function CreateGroupScreen() {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         setLocation({
           latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
+          longitude: loc.coords.longitude });
       } catch (e) {
         console.error(e);
         Alert.alert("Error", "Could not determine your current location.");
@@ -66,8 +65,7 @@ export default function CreateGroupScreen() {
         description: description.trim() || undefined,
         latitude: location.latitude,
         longitude: location.longitude,
-        radiusKm: isNaN(radius) ? 2 : radius,
-      });
+        radiusKm: isNaN(radius) ? 2 : radius });
 
       Alert.alert("Success", "Your neighborhood group has been created!");
       router.replace(`/(citizen)/group/${res.group.id}`);
@@ -127,7 +125,7 @@ export default function CreateGroupScreen() {
           <View style={styles.locationCard}>
             <Text style={styles.locationLabel}>Group Location</Text>
             {locLoading ? (
-              <ActivityIndicator size="small" color="#2563EB" />
+              <CrimeBookLoader size="small" ballColor="#2563EB" />
             ) : location ? (
               <Text style={styles.locationValue}>
                 📌 {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)} (Current)
@@ -142,7 +140,7 @@ export default function CreateGroupScreen() {
             onPress={handleCreate}
             disabled={loading || locLoading || !location}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createBtnText}>Create Group</Text>}
+            {loading ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Text style={styles.createBtnText}>Create Group</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -166,8 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   textArea: { minHeight: 100, textAlignVertical: "top" },
   hint: { fontSize: 12, color: "#94A3B8" },
   locationCard: {
@@ -175,8 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#DBEAFE",
-  },
+    borderColor: "#DBEAFE" },
   locationLabel: { fontSize: 12, fontWeight: "700", color: "#2563EB", marginBottom: 4, textTransform: "uppercase" },
   locationValue: { fontSize: 14, color: "#1E293B" },
   locationError: { fontSize: 14, color: "#EF4444" },
@@ -185,8 +181,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 10,
-  },
+    marginTop: 10 },
   createBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  btnDisabled: { opacity: 0.6 },
-});
+  btnDisabled: { opacity: 0.6 } });

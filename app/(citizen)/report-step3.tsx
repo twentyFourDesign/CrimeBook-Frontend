@@ -1,4 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Platform } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -27,8 +29,7 @@ export default function ReportStep3() {
     latitude: draft.latitude || 3.3792, // Default to a center point or Lagos
     longitude: draft.longitude || 6.5244,
     latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
-  });
+    longitudeDelta: 0.005 });
 
   const reverseGeocode = async (lat: number, lng: number) => {
     const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -91,8 +92,7 @@ export default function ReportStep3() {
               }
 
               const pos = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High,
-              });
+                accuracy: Location.Accuracy.High });
 
               const lat = pos.coords.latitude;
               const lng = pos.coords.longitude;
@@ -120,16 +120,14 @@ export default function ReportStep3() {
               updateDraft({
                 locationText: displayText || draft.locationText,
                 latitude: lat,
-                longitude: lng,
-              });
+                longitude: lng });
               setGpsLat(lat);
               setGpsLng(lng);
               setRegion({
                 latitude: lat,
                 longitude: lng,
                 latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              });
+                longitudeDelta: 0.005 });
               reverseGeocode(lat, lng);
             } catch {
               setError("Could not fetch your current location. Try again or type it manually.");
@@ -139,7 +137,7 @@ export default function ReportStep3() {
           }}
         >
           {gpsLoading ? (
-            <ActivityIndicator size="small" color="#1D4ED8" />
+            <CrimeBookLoader size="small" ballColor="#1D4ED8" />
           ) : (
             <View style={styles.useCurrentRow}>
               <Ionicons name="navigate-outline" size={18} color="#1D4ED8" />
@@ -202,8 +200,7 @@ export default function ReportStep3() {
               updateDraft({
                 locationText: text,
                 latitude: lat ?? null,
-                longitude: lng ?? null,
-              });
+                longitude: lng ?? null });
               router.push("/(citizen)/report-step4");
             } catch {
               if (!draft.latitude || !draft.longitude) {
@@ -218,7 +215,7 @@ export default function ReportStep3() {
         />
         {resolving && (
           <View style={[styles.resolvingRow, { marginTop: 12, marginBottom: 0 }]}>
-            <ActivityIndicator size="small" />
+            <CrimeBookLoader size="small" />
             <Text style={styles.resolvingText}>Resolving location…</Text>
           </View>
         )}
@@ -241,8 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111",
     marginBottom: 14,
-    backgroundColor: "#FAFAFA",
-  },
+    backgroundColor: "#FAFAFA" },
   mapBox: {
     height: 180,
     backgroundColor: "#E8F4E8",
@@ -251,11 +247,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     overflow: "hidden",
-    position: "relative",
-  },
+    position: "relative" },
   map: {
-    ...StyleSheet.absoluteFillObject,
-  },
+    ...StyleSheet.absoluteFillObject },
   mapPinContainer: {
     position: "absolute",
     top: 0,
@@ -263,8 +257,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   errorText: { fontSize: 12, color: "#DC2626", marginBottom: 8 },
   resolvingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   resolvingText: { fontSize: 12, color: "#64748B" },
@@ -272,8 +265,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748B",
     marginBottom: 8,
-    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
-  },
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }) },
   useCurrentBtn: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
@@ -282,11 +274,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BFDBFE",
     backgroundColor: "#EFF6FF",
-    marginBottom: 14,
-  },
+    marginBottom: 14 },
   useCurrentBtnDisabled: {
-    opacity: 0.7,
-  },
+    opacity: 0.7 },
   useCurrentRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  useCurrentText: { fontSize: 12, fontWeight: "600", color: "#1D4ED8" },
-});
+  useCurrentText: { fontSize: 12, fontWeight: "600", color: "#1D4ED8" } });

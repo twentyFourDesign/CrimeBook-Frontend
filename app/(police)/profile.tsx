@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Image,
@@ -10,8 +9,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { router, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
 import { useAuth } from "../../src/auth/AuthContext";
-import { fetchOfficerProfile, updateOfficerProfile, uploadCrimeMediaFile, fetchMyBadgesAndPoints } from "../../src/auth/api";
+import { fetchOfficerProfile, updateOfficerProfile, updateUsername, uploadCrimeMediaFile, fetchMyBadgesAndPoints } from "../../src/auth/api";
 import { UserBadgeEntry } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
 import { useCachedData } from "../../src/hooks/useCachedData";
@@ -45,6 +45,8 @@ export default function PoliceProfileScreen() {
   const [lngInput, setLngInput] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
   const [userBadges, setUserBadges] = useState<UserBadgeEntry[]>([]);
+  const [username, setUsername] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
 
   const { data: profile, loading, revalidating, error, refresh } = useCachedData(
     "officerProfile",
@@ -63,7 +65,27 @@ export default function PoliceProfileScreen() {
   useEffect(() => {
     if (profile?.officerProfile?.currentLatitude) setLatInput(profile.officerProfile.currentLatitude.toString());
     if (profile?.officerProfile?.currentLongitude) setLngInput(profile.officerProfile.currentLongitude.toString());
+    if (profile?.username) setUsername(profile.username);
   }, [profile]);
+
+  const saveUsername = async () => {
+    const trimmed = username.trim();
+    if (!trimmed) {
+      Alert.alert("Username required", "Enter a username to save.");
+      return;
+    }
+    setSavingUsername(true);
+    try {
+      const res = await updateUsername(trimmed);
+      setUsername(res.username);
+      await refresh();
+      Alert.alert("Saved", "Your username has been updated.");
+    } catch (e) {
+      Alert.alert("Save failed", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setSavingUsername(false);
+    }
+  };
 
   const pickAvatar = async () => {
     if (!profile) return;
@@ -113,7 +135,7 @@ export default function PoliceProfileScreen() {
         <Animated.View style={[styles.headerCard, { backgroundColor: animSurface, borderColor: animBorder }]}>
           <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar} disabled={uploadingAvatar}>
             <View style={[styles.avatarCircle, { backgroundColor: colors.accent }]}>
-              {uploadingAvatar ? <ActivityIndicator color="#fff" /> :
+              {uploadingAvatar ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> :
                 profile?.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} /> :
                   <Text style={styles.avatarInitial}>{profile?.name ? initials(profile.name) : "P"}</Text>}
             </View>
@@ -122,6 +144,7 @@ export default function PoliceProfileScreen() {
             </View>
           </TouchableOpacity>
           <Text style={[styles.userName, { color: colors.text }]}>{profile?.name || "Officer"}</Text>
+          <Text style={[styles.userHandle, { color: colors.textSecondary }]}>@{username || profile?.username || "officer"}</Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{profile?.email}</Text>
           <View style={[styles.badgeTag, { backgroundColor: colors.accentSoft }]}>
             <Ionicons name="shield" size={12} color={colors.accent} />
@@ -186,6 +209,34 @@ export default function PoliceProfileScreen() {
         </ScrollView>
 
 
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Account</Text>
+        <Animated.View style={[styles.accountCard, { backgroundColor: animSurface, borderColor: animBorder }]}>
+          <Text style={[styles.infoLabel, { color: colors.textTertiary }]}>Username</Text>
+          <View style={styles.usernameRow}>
+            <Text style={[styles.usernamePrefix, { color: colors.textSecondary }]}>@</Text>
+            <TextInput
+              style={[styles.usernameInput, { color: colors.text, backgroundColor: animInput, borderColor: animInputBorder }]}
+              value={username}
+              onChangeText={(v) => setUsername(v.replace(/\s/g, "").toLowerCase())}
+              placeholder="your_username"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.saveUsernameBtn, { backgroundColor: colors.accent }, savingUsername && { opacity: 0.7 }]}
+            onPress={saveUsername}
+            disabled={savingUsername}
+          >
+            {savingUsername ? (
+              <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
+            ) : (
+              <Text style={styles.saveUsernameText}>Save username</Text>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* ── Duty Info ── */}
         <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Duty Information</Text>
         <View style={styles.infoGrid}>
@@ -231,7 +282,7 @@ export default function PoliceProfileScreen() {
                   setLngInput(pos.coords.longitude.toString());
                 } finally { setGpsLoading(false); }
               }}>
-              {gpsLoading ? <ActivityIndicator size="small" color={colors.accent} /> : (
+              {gpsLoading ? <CrimeBookLoader size="small" ballColor="#2563EB" /> : (
                 <><Ionicons name="locate" size={16} color={colors.accent} /><Text style={[styles.gpsBtnText, { color: colors.accent }]}>Use GPS</Text></>
               )}
             </TouchableOpacity>
@@ -304,6 +355,28 @@ const styles = StyleSheet.create({
   editAvatarBtn: { position: "absolute", bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "#fff" },
   userName: { fontSize: 20, fontWeight: "800" },
   userEmail: { fontSize: 13, marginTop: 4 },
+  userHandle: { fontSize: 13, marginTop: 2, fontWeight: "600" },
+  accountCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10 },
+  usernameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  usernamePrefix: { fontSize: 16, fontWeight: "700" },
+  usernameInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15 },
+  saveUsernameBtn: {
+    marginTop: 4,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center" },
+  saveUsernameText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   badgeTag: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   badgeText: { fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
   sectionTitle: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10, marginLeft: 2, marginTop: 4 },
@@ -353,7 +426,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    gap: 6,
-  },
-  scoreText: { fontSize: 12, fontWeight: "700" },
-});
+    gap: 6 },
+  scoreText: { fontSize: 12, fontWeight: "700" } });

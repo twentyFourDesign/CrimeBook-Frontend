@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -14,8 +13,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
@@ -32,8 +32,7 @@ import {
   uploadCrimeMediaFile,
   fetchMyInvites,
   respondToGroupInvite,
-  fetchMyReports,
-} from "../../src/auth/api";
+  fetchMyReports } from "../../src/auth/api";
 import type { CitizenProfilePayload, UserBadgeEntry, GroupInvite, MyReportItem } from "../../src/auth/types";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
@@ -71,6 +70,7 @@ export default function ProfileScreen() {
 
   // Form states
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [homeAddress, setHomeAddress] = useState("");
@@ -81,6 +81,7 @@ export default function ProfileScreen() {
 
   const applyProfileToForm = useCallback((p: CitizenProfilePayload) => {
     setName(p.name);
+    setUsername(p.username);
     setPhone(p.phone ?? "");
     setCity(p.city ?? "");
     const cp = p.citizenProfile;
@@ -134,8 +135,7 @@ export default function ProfileScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.85,
-    });
+      quality: 0.85 });
     if (result.canceled || !result.assets[0]) return;
 
     setUploadingAvatar(true);
@@ -147,8 +147,7 @@ export default function ProfileScreen() {
         uri: asset.uri,
         name: fileName,
         mimeType: mime,
-        folder: "avatars",
-      });
+        folder: "avatars" });
       const res = await updateCitizenProfile({ avatarUrl: uploaded.url });
       setCitizenProfile(res.profile);
       await refreshUser();
@@ -184,8 +183,7 @@ export default function ProfileScreen() {
       const res = await updateCitizenProfile({
         homeAddress: homeAddress.trim() || null,
         homeLatitude: coords.homeLatitude,
-        homeLongitude: coords.homeLongitude,
-      });
+        homeLongitude: coords.homeLongitude });
       setCitizenProfile(res.profile);
       const cp = res.profile.citizenProfile;
       setHomeLat(cp?.homeLatitude != null ? String(cp.homeLatitude) : "");
@@ -211,14 +209,14 @@ export default function ProfileScreen() {
       setSaving(true);
       const res = await updateCitizenProfile({
         name: name.trim(),
+        username: username.trim(),
         phone: phone.trim() || null,
         city: city.trim() || null,
         homeAddress: homeAddress.trim() || null,
         homeLatitude,
         homeLongitude,
         occupation: occupation.trim() || null,
-        preferredLanguage: preferredLanguage.trim() || "en",
-      });
+        preferredLanguage: preferredLanguage.trim() || "en" });
       setCitizenProfile(res.profile);
       await refreshUser();
       Alert.alert("Saved", "Your profile has been updated.");
@@ -264,11 +262,11 @@ export default function ProfileScreen() {
                 style={styles.menuItem}
                 onPress={() => {
                   setIsMenuOpen(false);
-                  router.push("/(citizen)/sos?setupPins=1");
+                  router.push("/(citizen)/sos-pins");
                 }}
               >
                 <Ionicons name="key-outline" size={20} color="#2563EB" />
-                <Text style={[styles.menuItemText, { color: "#2563EB" }]}>Reset SOS PINs</Text>
+                <Text style={[styles.menuItemText, { color: "#2563EB" }]}>SOS Settings</Text>
               </TouchableOpacity>
 
               {user?.identityVerificationStatus !== "approved" && (
@@ -368,7 +366,7 @@ export default function ProfileScreen() {
               <View style={styles.avatarRow}>
                 <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} disabled={uploadingAvatar}>
                   {uploadingAvatar ? (
-                    <ActivityIndicator style={styles.avatarLoader} />
+                    <CrimeBookLoader size="small" style={styles.avatarLoader} />
                   ) : profile.avatarUrl ? (
                     <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
                   ) : (
@@ -387,7 +385,7 @@ export default function ProfileScreen() {
                       <Ionicons name="checkmark-circle" size={18} color="#2563EB" style={{ marginLeft: 4 }} />
                     )}
                   </View>
-                  <Text style={styles.username}>@{profile.username}</Text>
+                  <Text style={styles.username}>@{username || profile.username}</Text>
                   {user?.identityVerificationStatus !== "approved" ? (
                     <Text style={[styles.miniStatus, user?.identityVerificationStatus === "pending" && styles.miniStatusPending]}>
                       {user?.identityVerificationStatus === "pending" ? "• Verification in progress" : "• Not Verified"}
@@ -494,6 +492,20 @@ export default function ProfileScreen() {
               <Text style={styles.privacyHint}>
                 Applied when you submit reports (you can still override in the form when available).
               </Text>
+
+              <Text style={[styles.section, { marginTop: 8 }]}>SOS security</Text>
+              <Text style={styles.privacyHint}>
+                Manage your Safety PIN and Duress Code used to cancel or silently continue SOS.
+              </Text>
+              <TouchableOpacity
+                style={styles.sosPinSettingsBtn}
+                onPress={() => router.push("/(citizen)/sos-pins")}
+              >
+                <Ionicons name="key-outline" size={18} color="#2563EB" />
+                <Text style={styles.sosPinSettingsText}>SOS Settings</Text>
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Default anonymous reporting</Text>
                 <Switch
@@ -522,8 +534,7 @@ export default function ProfileScreen() {
                     try {
                       setPrivacyLoading(true);
                       await updatePrivacySettings({
-                        locationPrecision: v ? "approximate" : "exact",
-                      });
+                        locationPrecision: v ? "approximate" : "exact" });
                     } catch (e) {
                       setPrivacyApproxLocation(!v);
                       Alert.alert("Error", e instanceof Error ? e.message : "Could not save");
@@ -538,6 +549,21 @@ export default function ProfileScreen() {
               <Text style={[styles.section, { color: colors.text }]}>Account</Text>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Display name</Text>
               <TextInput style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={colors.textTertiary} />
+
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Username</Text>
+              <View style={styles.usernameInputRow}>
+                <Text style={styles.usernamePrefix}>@</Text>
+                <TextInput
+                  style={[styles.input, styles.usernameInput, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+                  value={username}
+                  onChangeText={(v) => setUsername(v.replace(/\s/g, "").toLowerCase())}
+                  placeholder="your_username"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              <Text style={styles.hint}>3–30 characters. Letters, numbers, and underscores only.</Text>
 
               <Text style={styles.label}>Email</Text>
               <Text style={styles.readonly}>{profile.email}</Text>
@@ -603,8 +629,7 @@ export default function ProfileScreen() {
                       return;
                     }
                     const pos = await Location.getCurrentPositionAsync({
-                      accuracy: Location.Accuracy.High,
-                    });
+                      accuracy: Location.Accuracy.High });
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
                     setHomeLat(lat.toFixed(6));
@@ -617,7 +642,7 @@ export default function ProfileScreen() {
                 }}
               >
                 {gpsLoading ? (
-                  <ActivityIndicator size="small" color="#1D4ED8" />
+                  <CrimeBookLoader size="small" ballColor="#1D4ED8" />
                 ) : (
                   <Text style={styles.useCurrentText}>Use my current location</Text>
                 )}
@@ -630,7 +655,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.9}
               >
                 {savingHome ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                 ) : (
                   <Text style={styles.saveHomeBtnText}>Save home location</Text>
                 )}
@@ -667,7 +692,7 @@ export default function ProfileScreen() {
               />
 
               <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save profile</Text>}
+                {saving ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Text style={styles.saveBtnText}>Save profile</Text>}
               </TouchableOpacity>
 
             </>
@@ -690,8 +715,7 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   menuBtn: {
-    padding: 4,
-  },
+    padding: 4 },
   centerRow: { paddingVertical: 24, alignItems: "center" },
   errBox: { marginBottom: 12 },
   errText: { color: "#B91C1C", fontSize: 14 },
@@ -706,8 +730,7 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     backgroundColor: "#2563EB",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   avatarInitials: { fontSize: 28, fontWeight: "700", color: "#fff" },
   avatarLoader: { width: 96, height: 96 },
   avatarEditBadge: {
@@ -717,12 +740,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.65)",
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
-  },
+    borderRadius: 8 },
   avatarEditText: { color: "#fff", fontSize: 11, fontWeight: "600" },
   avatarMeta: { flex: 1 },
   userName: { fontSize: 20, fontWeight: "700", color: "#111" },
   username: { fontSize: 13, color: "#64748B", marginTop: 2 },
+  usernameInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4 },
+  usernamePrefix: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#64748B",
+    paddingLeft: 4 },
+  usernameInput: {
+    flex: 1,
+    marginBottom: 0 },
   scoreRow: { flexDirection: "row", gap: 8, marginTop: 8 },
   scoreChip: {
     flexDirection: "row",
@@ -733,8 +767,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    gap: 4,
-  },
+    gap: 4 },
   scoreText: { fontSize: 11, fontWeight: "700", color: "#475569" },
   nameRow: { flexDirection: "row", alignItems: "center" },
 
@@ -742,17 +775,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#94A3B8",
     marginTop: 2,
-    fontWeight: "500",
-  },
+    fontWeight: "500" },
   miniStatusPending: {
-    color: "#D97706",
-  },
+    color: "#D97706" },
   miniStatusVerified: {
     fontSize: 11,
     color: "#16A34A",
     marginTop: 2,
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
 
   section: { fontSize: 16, fontWeight: "700", color: "#111", marginTop: 8 },
   sectionHeaderRow: {
@@ -760,22 +790,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 10,
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   viewAllBtn: {
     fontSize: 13,
     color: "#2563EB",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   reportsScrollContainer: {
     marginHorizontal: -20,
     paddingHorizontal: 20,
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   reportsScroll: {
     paddingRight: 40,
-    gap: 12,
-  },
+    gap: 12 },
   reportCard: {
     width: 160,
     backgroundColor: "#fff",
@@ -786,34 +812,29 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 1,
-  },
+    elevation: 1 },
   reportCardSkeleton: { width: 140, marginRight: 12 },
   reportStatusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   reportCardCategory: {
     fontSize: 10,
     fontWeight: "700",
     color: "#64748B",
     textTransform: "uppercase",
-    marginBottom: 4,
-  },
+    marginBottom: 4 },
   reportCardTitle: {
     fontSize: 13,
     fontWeight: "600",
     color: "#1E293B",
     height: 36,
-    lineHeight: 18,
-  },
+    lineHeight: 18 },
   reportCardDate: {
     fontSize: 10,
     color: "#94A3B8",
-    marginTop: 8,
-  },
+    marginTop: 8 },
   emptyReportCard: {
     width: 160,
     height: 100,
@@ -822,24 +843,32 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     borderStyle: "dashed",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   emptyReportText: {
     fontSize: 12,
-    color: "#94A3B8",
-  },
+    color: "#94A3B8" },
 
   privacyHint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
+  sosPinSettingsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16 },
+  sosPinSettingsText: { flex: 1, fontSize: 15, fontWeight: "700", color: "#1D4ED8" },
   badgesScrollContainer: {
     marginHorizontal: -20,
     paddingHorizontal: 20,
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   badgesScroll: {
     paddingRight: 40,
     gap: 12,
-    paddingVertical: 8,
-  },
+    paddingVertical: 8 },
   achievementCard: {
     width: 140,
     backgroundColor: "#fff",
@@ -851,8 +880,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   badgeIconBg: {
     width: 50,
     height: 50,
@@ -860,34 +888,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   badgeName: {
     fontSize: 13,
     fontWeight: "700",
     color: "#1E293B",
     textAlign: "center",
-    marginBottom: 4,
-  },
+    marginBottom: 4 },
   badgeDesc: {
     fontSize: 10,
     color: "#64748B",
     textAlign: "center",
     lineHeight: 14,
-    height: 28,
-  },
+    height: 28 },
   badgePointsPill: {
     marginTop: 10,
     backgroundColor: "#F0FDF4",
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
-  },
+    borderRadius: 6 },
   badgePointsText: {
     fontSize: 9,
     fontWeight: "800",
-    color: "#16A34A",
-  },
+    color: "#16A34A" },
   emptyBadgeCard: {
     width: 140,
     height: 140,
@@ -897,16 +920,14 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC" },
   emptyBadgeText: { fontSize: 11, color: "#94A3B8", marginTop: 8 },
   earnMoreCard: {
     width: 100,
     height: 140,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-  },
+    gap: 8 },
   earnMoreText: { fontSize: 11, fontWeight: "600", color: "#64748B" },
   badgeCountBadge: {
     backgroundColor: "#2563EB",
@@ -914,16 +935,14 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   badgeCountText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
-    gap: 12,
-  },
+    gap: 12 },
   switchLabel: { flex: 1, fontSize: 14, color: "#111", fontWeight: "600" },
   hint: { fontSize: 12, color: "#64748B", marginBottom: 10, lineHeight: 18 },
   label: { fontSize: 12, fontWeight: "600", color: "#64748B", marginBottom: 6, marginTop: 10 },
@@ -935,8 +954,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: "#111",
-    backgroundColor: "#fff",
-  },
+    backgroundColor: "#fff" },
   multiline: { minHeight: 72, textAlignVertical: "top" },
   readonly: {
     borderWidth: 1,
@@ -946,8 +964,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: "#64748B",
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC" },
   row2: { flexDirection: "row", gap: 12 },
   row2Item: { flex: 1 },
   useCurrentBtn: {
@@ -958,8 +975,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#BFDBFE",
-    backgroundColor: "#EFF6FF",
-  },
+    backgroundColor: "#EFF6FF" },
   useCurrentBtnDisabled: { opacity: 0.65 },
   useCurrentText: { fontSize: 13, fontWeight: "600", color: "#1D4ED8" },
   saveHomeBtn: {
@@ -970,8 +986,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     minWidth: 180,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   saveHomeBtnDisabled: { opacity: 0.65 },
   saveHomeBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   saveBtn: {
@@ -979,16 +994,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563EB",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 
   menuOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-start",
-    alignItems: "flex-end",
-  },
+    alignItems: "flex-end" },
   menuContent: {
     position: "absolute",
     top: 60,
@@ -1002,44 +1015,37 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   menuHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   menuTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#64748B",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 12,
-  },
+    paddingVertical: 12 },
   menuItemText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   menuDivider: {
     height: 1,
     backgroundColor: "#F1F5F9",
-    marginVertical: 4,
-  },
+    marginVertical: 4 },
   menuBadge: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#DC2626",
-    marginLeft: "auto",
-  },
+    marginLeft: "auto" },
   menuBadgeFloating: {
     position: "absolute",
     top: 2,
@@ -1049,8 +1055,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#DC2626",
     borderWidth: 2,
-    borderColor: "#fff",
-  },
+    borderColor: "#fff" },
   inviteCard: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -1060,8 +1065,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between" },
   inviteInfo: { flex: 1 },
   inviteGroupName: { fontSize: 15, fontWeight: "700", color: "#111" },
   inviteMeta: { fontSize: 12, color: "#64748B", marginTop: 2 },
@@ -1070,14 +1074,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   declineText: { fontSize: 13, fontWeight: "600", color: "#475569" },
   acceptBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "#2563EB",
-  },
-  acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" },
-});
+    backgroundColor: "#2563EB" },
+  acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" } });

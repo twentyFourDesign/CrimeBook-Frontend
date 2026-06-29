@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Linking,
@@ -11,8 +10,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { Audio, ResizeMode, Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,8 +35,7 @@ import type {
   ReportMediaItem,
   ReportMessageItem,
   IncidentComment,
-  VoteType,
-} from "../../../src/auth/types";
+  VoteType } from "../../../src/auth/types";
 import { ForensicBreakdown } from "../../../src/components/report/ForensicBreakdown";
 
 function formatEnum(s: string) {
@@ -77,8 +76,7 @@ const defaultExpanded = (): Record<SectionKey, boolean> => ({
   forensics: false,
   police: false,
   messages: false,
-  social: false,
-});
+  social: false });
 
 function CollapsibleSection({
   sectionKey,
@@ -88,8 +86,7 @@ function CollapsibleSection({
   expanded,
   onToggle,
   children,
-  summary,
-}: {
+  summary }: {
   sectionKey: SectionKey;
   title: string;
   subtitle?: string;
@@ -145,8 +142,7 @@ function CitizenMediaCard({
   m,
   playingKey,
   playKey,
-  onPlayPause,
-}: {
+  onPlayPause }: {
   m: ReportMediaItem;
   playingKey: string | null;
   playKey: string;
@@ -205,8 +201,7 @@ function PoliceEvidenceCard({
   item,
   playingKey,
   playKey,
-  onPlayPause,
-}: {
+  onPlayPause }: {
   item: PoliceMediaItem;
   playingKey: string | null;
   playKey: string;
@@ -475,6 +470,14 @@ export default function ReportDetailScreen() {
         ? "Chat with officers on this case"
         : "Messages — officers see this after a case is opened";
 
+  if (loading && !report) {
+    return (
+      <CitizenShell>
+        <LoadingState fullScreen message="Loading report…" />
+      </CitizenShell>
+    );
+  }
+
   return (
     <CitizenShell>
       <ScrollView
@@ -488,31 +491,6 @@ export default function ReportDetailScreen() {
             Report
           </Text>
         </View>
-
-        {loading && (
-          <View style={{ gap: 16 }}>
-            <View style={styles.accordionOuter}>
-              <View style={styles.accordionHeader}>
-                <Skeleton width={36} height={36} borderRadius={10} style={{ marginRight: 10 }} />
-                <View style={{ flex: 1 }}>
-                  <Skeleton width="40%" height={16} style={{ marginBottom: 4 }} />
-                  <Skeleton width="60%" height={12} />
-                </View>
-              </View>
-            </View>
-            {[1, 2, 3].map((i) => (
-              <View key={i} style={styles.accordionOuter}>
-                <View style={styles.accordionHeader}>
-                  <Skeleton width={36} height={36} borderRadius={10} style={{ marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Skeleton width="50%" height={16} style={{ marginBottom: 4 }} />
-                    <Skeleton width="70%" height={12} />
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
 
         {error && (
           <View style={styles.errBox}>
@@ -672,7 +650,7 @@ export default function ReportDetailScreen() {
                   disabled={!commentInput.trim() || commentSending}
                 >
                   {commentSending ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                   ) : (
                     <Ionicons name="send" size={16} color="#fff" />
                   )}
@@ -681,7 +659,7 @@ export default function ReportDetailScreen() {
 
               <View style={styles.commentList}>
                 {commentsLoading && comments.length === 0 ? (
-                  <ActivityIndicator size="small" color="#1D4ED8" style={{ marginTop: 12 }} />
+                  <CrimeBookLoader size="small" ballColor="#1D4ED8" />
                 ) : null}
                 
                 {comments.map((c) => (
@@ -759,8 +737,7 @@ export default function ReportDetailScreen() {
                     latitude: report.latitude,
                     longitude: report.longitude,
                     latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
+                    longitudeDelta: 0.01 }}
                 >
                   <Marker coordinate={{ latitude: report.latitude, longitude: report.longitude }} />
                 </MapView>
@@ -919,7 +896,7 @@ export default function ReportDetailScreen() {
                   activeOpacity={0.85}
                 >
                   {threadSending ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                   ) : (
                     <Ionicons name="send" size={18} color="#FFFFFF" />
                   )}
@@ -948,38 +925,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   accordionHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC" },
   accordionSummary: {
     fontSize: 12,
     color: "#64748B",
     marginTop: 6,
-    lineHeight: 17,
-  },
+    lineHeight: 17 },
   accordionBody: {
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#E2E8F0",
-    backgroundColor: "#FAFBFC",
-  },
+    backgroundColor: "#FAFBFC" },
   sectionHeaderIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 10,
     backgroundColor: "#EFF6FF",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   sectionHeaderText: { flex: 1 },
   sectionHeaderTitle: { fontSize: 16, fontWeight: "800", color: "#0F172A", letterSpacing: 0.2 },
   sectionHeaderSubtitle: { fontSize: 12, color: "#64748B", marginTop: 4, lineHeight: 17 },
@@ -989,8 +961,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    marginBottom: 14,
-  },
+    marginBottom: 14 },
   statusBadgeLargeText: { fontSize: 15, fontWeight: "800", color: "#1D4ED8" },
   mutedInline: { fontSize: 13, color: "#94A3B8", marginBottom: 8 },
   historyRow: { marginBottom: 12 },
@@ -1002,21 +973,18 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#CBD5E1",
-    marginVertical: 14,
-  },
+    marginVertical: 14 },
   subheading: {
     fontSize: 11,
     fontWeight: "800",
     color: "#64748B",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   mergedDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "#CBD5E1",
-    marginVertical: 18,
-  },
+    marginVertical: 18 },
   mergedHint: { fontSize: 12, color: "#64748B", marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 10 },
   rowLabel: { fontSize: 13, color: "#64748B", flex: 1 },
@@ -1026,15 +994,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748B",
     fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   mapContainer: {
     height: 200,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   map: { flex: 1 },
   mapBtn: {
     flexDirection: "row",
@@ -1045,30 +1011,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderRadius: 12,
-    gap: 6,
-  },
+    gap: 6 },
   mapBtnIcon: { marginTop: 1 },
   mapBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   description: { fontSize: 15, color: "#334155", lineHeight: 24 },
   muted: { fontSize: 14, color: "#94A3B8" },
   previewCard: {
     marginBottom: 16,
-    paddingBottom: 4,
-  },
+    paddingBottom: 4 },
   previewFileName: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
   previewMeta: { fontSize: 11, color: "#64748B", marginTop: 4, marginBottom: 8 },
   imagePreview: {
     width: "100%",
     height: 200,
     borderRadius: 12,
-    backgroundColor: "#E2E8F0",
-  },
+    backgroundColor: "#E2E8F0" },
   videoPreview: {
     width: "100%",
     height: 220,
     borderRadius: 12,
-    backgroundColor: "#0F172A",
-  },
+    backgroundColor: "#0F172A" },
   audioBtn: {
     marginTop: 4,
     borderWidth: 1,
@@ -1079,8 +1041,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
+    gap: 10 },
   audioBtnText: { color: "#1D4ED8", fontSize: 14, fontWeight: "600" },
   openBtn: {
     alignSelf: "flex-start",
@@ -1090,15 +1051,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC" },
   openBtnText: { color: "#334155", fontSize: 13, fontWeight: "600" },
   investigationSubLabel: {
     fontSize: 13,
     fontWeight: "800",
     color: "#0F172A",
-    marginBottom: 6,
-  },
+    marginBottom: 6 },
   investigationSubHint: { fontSize: 12, color: "#64748B", marginBottom: 12 },
   tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tagChip: { backgroundColor: "#EFF6FF", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
@@ -1109,8 +1068,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 12,
-    marginBottom: 10,
-  },
+    marginBottom: 10 },
   noteAuthor: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
   noteContent: { fontSize: 14, color: "#334155", marginTop: 8, lineHeight: 22 },
   noteMeta: { fontSize: 11, color: "#64748B", marginTop: 10 },
@@ -1124,8 +1082,7 @@ const styles = StyleSheet.create({
     maxWidth: "88%",
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
+    paddingVertical: 10 },
   msgBubbleYou: { backgroundColor: "#DBEAFE", borderWidth: 1, borderColor: "#BFDBFE" },
   msgBubblePolice: { backgroundColor: "#F1F5F9", borderWidth: 1, borderColor: "#E2E8F0" },
   msgSender: { fontSize: 11, fontWeight: "700", color: "#475569", marginBottom: 4 },
@@ -1143,23 +1100,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: "#0F172A",
-    backgroundColor: "#FFFFFF",
-  },
+    backgroundColor: "#FFFFFF" },
   threadSendBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
     backgroundColor: "#2563EB",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   threadSendBtnDisabled: { opacity: 0.6 },
   socialActionRow: {
     flexDirection: "row",
     gap: 12,
     marginTop: 8,
-    marginBottom: 4,
-  },
+    marginBottom: 4 },
   voteBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1171,30 +1125,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     minWidth: 90,
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   voteBtnActive: {
     backgroundColor: "#1D4ED8",
-    borderColor: "#1D4ED8",
-  },
+    borderColor: "#1D4ED8" },
   voteBtnActiveDown: {
     backgroundColor: "#B91C1C",
-    borderColor: "#B91C1C",
-  },
+    borderColor: "#B91C1C" },
   voteBtnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#1D4ED8",
-  },
+    color: "#1D4ED8" },
   voteBtnTextActive: {
-    color: "#fff",
-  },
+    color: "#fff" },
   commentComposer: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   commentInput: {
     flex: 1,
     minHeight: 44,
@@ -1206,22 +1154,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: "#0F172A",
-    backgroundColor: "#FFFFFF",
-  },
+    backgroundColor: "#FFFFFF" },
   commentSendBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
     backgroundColor: "#2563EB",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   commentSendBtnDisabled: {
-    backgroundColor: "#94A3B8",
-  },
+    backgroundColor: "#94A3B8" },
   commentList: {
-    marginTop: 4,
-  },
+    marginTop: 4 },
   commentCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -1233,52 +1177,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 2,
-  },
+    elevation: 2 },
   commentHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   commentAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#E2E8F0",
-  },
+    backgroundColor: "#E2E8F0" },
   commentAvatarPlaceholder: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: "#E0E7FF",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   commentAvatarText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#4338CA",
-  },
+    color: "#4338CA" },
   commentUser: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#0F172A",
-  },
+    color: "#0F172A" },
   commentDate: {
     fontSize: 11,
-    color: "#94A3B8",
-  },
+    color: "#94A3B8" },
   commentContent: {
     fontSize: 14,
     color: "#334155",
-    lineHeight: 20,
-  },
+    lineHeight: 20 },
   noComments: {
     textAlign: "center",
     fontSize: 13,
     color: "#94A3B8",
     marginTop: 12,
-    fontStyle: "italic",
-  },
-});
+    fontStyle: "italic" } });

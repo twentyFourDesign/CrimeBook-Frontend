@@ -22,7 +22,17 @@ export function CitizenTabBar() {
   const inReportFlow = leaf.startsWith("report-step") || leaf === "report-success" || leaf === "create-alert";
   const onHome    = leaf === "home"      && !inReportFlow;
   const onMap     = leaf === "map"       && !inReportFlow;
-  const onFeed    = leaf === "community" && !inReportFlow;
+  const feedSubPages = new Set([
+    "community",
+    "communities",
+    "live-incidents",
+    "police-verified",
+    "police-appeals",
+    "crime-archive",
+    "create-group",
+    "invites",
+  ]);
+  const onFeed = feedSubPages.has(leaf) && !inReportFlow;
   const onProfile = leaf === "profile"   && !inReportFlow;
   const fabActive = inReportFlow;
 

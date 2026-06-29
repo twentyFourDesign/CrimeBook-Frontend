@@ -1,5 +1,5 @@
 import { Redirect, Stack, useSegments } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useAuth } from "../../src/auth/AuthContext";
 import { citizenNeedsVerification } from "../../src/auth/routing";
 
@@ -9,11 +9,7 @@ export default function CitizenLayout() {
   const segments = useSegments();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <LoadingState fullScreen message="Loading…" />;
   }
 
   if (!user) return <Redirect href="/(auth)/login" />;

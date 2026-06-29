@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,7 +26,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [timeFilter, setTimeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [points, setPoints] = useState<HeatmapPoint[]>([]);
@@ -83,8 +85,7 @@ export default function MapScreen() {
     latitude: 6.5244,
     longitude: 3.3792,
     latitudeDelta: 0.15,
-    longitudeDelta: 0.15,
-  };
+    longitudeDelta: 0.15 };
 
   const gradient = {
     colors: [
@@ -104,8 +105,7 @@ export default function MapScreen() {
     return points.map((p) => ({
       latitude: p.latitude,
       longitude: p.longitude,
-      weight: p.weight,
-    }));
+      weight: p.weight }));
   }, [points]);
 
   return (
@@ -135,7 +135,7 @@ export default function MapScreen() {
             <View>
               <View style={styles.headerContent}>
                 <Text style={styles.title}>Live Safety Map</Text>
-                {loading && <ActivityIndicator size="small" color="#2563EB" style={{ marginLeft: 8 }} />}
+                {loading && <CrimeBookLoader size="small" ballColor="#2563EB" />}
               </View>
               <Text style={styles.subtitle}>
                 {points.length > 0
@@ -249,8 +249,7 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   floatingHeader: {
     position: "absolute",
     left: 20,
@@ -263,74 +262,60 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "rgba(226, 232, 240, 0.8)",
-  },
+    borderColor: "rgba(226, 232, 240, 0.8)" },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
+    justifyContent: "space-between" },
   headerContent: {
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   title: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   subtitle: {
     fontSize: 12,
     color: "#64748B",
     marginTop: 4,
-    fontWeight: "500",
-  },
+    fontWeight: "500" },
   filterToggleButton: {
     padding: 8,
     backgroundColor: "#F1F5F9",
-    borderRadius: 12,
-  },
+    borderRadius: 12 },
   expandedFilters: {
     marginTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
-    paddingTop: 12,
-  },
+    paddingTop: 12 },
   filterSectionTitle: {
     fontSize: 11,
     fontWeight: "700",
     color: "#94A3B8",
     textTransform: "uppercase",
     marginBottom: 8,
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   filterRow: {
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   filterScroll: {
     gap: 8,
-    paddingRight: 20,
-  },
+    paddingRight: 20 },
   filterPill: {
     paddingVertical: 6,
     paddingHorizontal: 14,
     backgroundColor: "#F1F5F9",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "transparent",
-  },
+    borderColor: "transparent" },
   filterPillActive: {
     backgroundColor: "#EFF6FF",
-    borderColor: "#3B82F6",
-  },
+    borderColor: "#3B82F6" },
   filterPillText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#475569",
-  },
+    color: "#475569" },
   filterPillTextActive: {
-    color: "#2563EB",
-  },
+    color: "#2563EB" },
   errorOverlay: {
     position: "absolute",
     top: 90,
@@ -340,11 +325,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF2F2",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FEE2E2",
-  },
+    borderColor: "#FEE2E2" },
   errorText: {
     color: "#B91C1C",
     fontSize: 12,
-    fontWeight: "500",
-  },
-});
+    fontWeight: "500" } });

@@ -1,5 +1,7 @@
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { CrimeBookLoader } from "../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../src/components/common/LoadingState";
 import { useAuth } from "../src/auth/AuthContext";
 import { getPostAuthRoute } from "../src/auth/routing";
 
@@ -9,7 +11,7 @@ export default function Index() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
+        <CrimeBookLoader size="medium" />
       </View>
     );
   }

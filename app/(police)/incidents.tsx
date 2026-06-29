@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import {
-  ActivityIndicator,
   Animated,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,8 +26,7 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; da
   UNDER_INVESTIGATION: { label: "Active", color: "#7C3AED", bg: "#F5F3FF", darkBg: "#1E1B4B" },
   POLICE_RESOLVED: { label: "Resolved", color: "#16A34A", bg: "#DCFCE7", darkBg: "#0A2010" },
   RESOLVED: { label: "Closed", color: "#94A3B8", bg: "#F1F5F9", darkBg: "#141414" },
-  REJECTED: { label: "Rejected", color: "#DC2626", bg: "#FEE2E2", darkBg: "#200805" },
-};
+  REJECTED: { label: "Rejected", color: "#DC2626", bg: "#FEE2E2", darkBg: "#200805" } };
 
 const CATEGORY_ICONS: Record<string, string> = {
   HOMICIDE: "skull", ASSAULT: "body", ROBBERY: "bag-remove",
@@ -37,8 +36,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   MISSING_PERSON: "search", DOMESTIC_VIOLENCE: "heart-dislike", 
   HARASSMENT: "chatbubble-ellipses", STALKING: "eye", TRAFFIC_CRIME: "speedometer",
   DISTURBANCE: "volume-high", SUSPICIOUS_ACTIVITY: "help-circle",
-  WEAPON_VIOLATION: "shield-half", OTHER: "alert-circle",
-};
+  WEAPON_VIOLATION: "shield-half", OTHER: "alert-circle" };
 
 const CATEGORY_COLORS: Record<string, string> = {
   HOMICIDE: "#000000", ASSAULT: "#F97316", ROBBERY: "#EF4444",
@@ -48,8 +46,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   MISSING_PERSON: "#2563EB", DOMESTIC_VIOLENCE: "#DB2777",
   HARASSMENT: "#475569", STALKING: "#111827", TRAFFIC_CRIME: "#0891B2",
   DISTURBANCE: "#854D0E", SUSPICIOUS_ACTIVITY: "#71717A",
-  WEAPON_VIOLATION: "#991B1B", OTHER: "#64748B",
-};
+  WEAPON_VIOLATION: "#991B1B", OTHER: "#64748B" };
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -129,7 +126,7 @@ export default function PoliceIncidentsScreen() {
           </View>
           <TouchableOpacity onPress={refresh} style={[styles.refreshBtn, { backgroundColor: colors.accentSoft }]}>
             {revalidating
-              ? <ActivityIndicator size="small" color={colors.accent} />
+              ? <CrimeBookLoader size="small" ballColor="#2563EB" />
               : <Ionicons name="refresh" size={18} color={colors.accent} />}
           </TouchableOpacity>
         </Animated.View>
@@ -142,7 +139,7 @@ export default function PoliceIncidentsScreen() {
         >
           {loading && !incidents.length ? (
             <View style={styles.loadingState}>
-              <ActivityIndicator color={colors.accent} />
+              <CrimeBookLoader size="medium" ballColor="#2563EB" />
               <Text style={[styles.loadingText, { color: colors.textTertiary }]}>Loading incident reports…</Text>
             </View>
           ) : null}
@@ -246,8 +243,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     paddingHorizontal: 20, paddingTop: 52, paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+    borderBottomWidth: StyleSheet.hairlineWidth },
   pageTitle: { fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
   pageSubtitle: { fontSize: 12, fontWeight: "500", marginTop: 2 },
   refreshBtn: { width: 36, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center" },
@@ -272,5 +268,4 @@ const styles = StyleSheet.create({
   incLocation: { fontSize: 12, marginBottom: 4 },
   incMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   incMetaText: { fontSize: 11 },
-  metaDot: { width: 3, height: 3, borderRadius: 1.5 },
-});
+  metaDot: { width: 3, height: 3, borderRadius: 1.5 } });

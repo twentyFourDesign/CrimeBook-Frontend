@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../src/auth/AuthContext";
+import { APP_LOGO } from "../../src/constants/branding";
 
 export default function Signup() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function Signup() {
     <View style={styles.container}>
       <StatusBar style="dark" />
 
-      <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+      <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
 
       {/* Tab Toggle */}
       <View style={styles.tabRow}>

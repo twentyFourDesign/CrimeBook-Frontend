@@ -1,6 +1,5 @@
 import { StatusBar } from "expo-status-bar";
 import {
-  ActivityIndicator,
   Image,
   Linking,
   Platform,
@@ -9,8 +8,9 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -126,7 +126,7 @@ export default function IncidentReport() {
 
           {loading && !incident && (
             <View style={styles.loadingState}>
-              <ActivityIndicator color="#1D4ED8" />
+              <CrimeBookLoader size="medium" ballColor="#1D4ED8" />
               <Text style={styles.loadingText}>Retrieving intelligence...</Text>
             </View>
           )}
@@ -184,8 +184,7 @@ export default function IncidentReport() {
                       latitude: incident.latitude,
                       longitude: incident.longitude,
                       latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
+                      longitudeDelta: 0.01 }}
                   >
                     <Marker coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}>
                       <View style={styles.markerOutline}>
@@ -288,8 +287,7 @@ export default function IncidentReport() {
                       const res = await takePoliceIncident(String(id));
                       router.replace({
                         pathname: "/(police)/investigation/[id]",
-                        params: { id: res.caseId },
-                      });
+                        params: { id: res.caseId } });
                     } catch (e) {
                       setError(e instanceof Error ? e.message : "Could not accept case");
                     } finally {
@@ -299,7 +297,7 @@ export default function IncidentReport() {
                   activeOpacity={0.9}
                 >
                   {taking ? (
-                    <ActivityIndicator color="#FFFFFF" />
+                    <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                   ) : (
                     <>
                       <Ionicons name="shield-checkmark" size={20} color="#fff" />
@@ -336,11 +334,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   headerText: {
-    alignItems: "center",
-  },
+    alignItems: "center" },
   heading: {
     fontSize: 18,
     fontWeight: "800",
@@ -350,8 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#64748B",
-    marginTop: 2,
-  },
+    marginTop: 2 },
   moreBtn: {
     width: 44,
     height: 44,
@@ -360,28 +355,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
 
   // Loading/Error
   loadingState: {
     paddingVertical: 60,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     color: "#64748B",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     backgroundColor: "#FEF2F2",
     borderRadius: 12,
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
 
   // Main Card
@@ -395,54 +386,45 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   statusRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
-  },
+    borderRadius: 8 },
   statusText: {
     fontSize: 11,
     fontWeight: "800",
     color: "#475569",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   timeTag: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-  },
+    gap: 4 },
   timeText: {
     fontSize: 12,
     color: "#94A3B8",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   incidentTitle: {
     fontSize: 22,
     fontWeight: "800",
     color: "#1E293B",
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   categoryBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: "#EFF6FF",
-    borderRadius: 20,
-  },
+    borderRadius: 20 },
   categoryText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#1D4ED8",
-    textTransform: "capitalize",
-  },
+    textTransform: "capitalize" },
 
   // Section Cards
   sectionCard: {
@@ -451,8 +433,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -465,8 +446,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   sectionTitle: {
     fontSize: 15,
     fontWeight: "800",
@@ -476,16 +456,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748B",
     marginTop: 2,
-    fontWeight: "500",
-  },
+    fontWeight: "500" },
   mapContainer: {
     height: 180,
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   map: { flex: 1 },
   markerOutline: {
     width: 30,
@@ -493,30 +471,25 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: "rgba(29, 78, 216, 0.2)",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   markerInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: "#1D4ED8",
     borderWidth: 2,
-    borderColor: "#fff",
-  },
+    borderColor: "#fff" },
   locationDetails: {
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   addressText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   coordsText: {
     fontSize: 12,
     color: "#94A3B8",
     marginTop: 4,
-    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
-  },
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }) },
   directionsBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -528,8 +501,7 @@ const styles = StyleSheet.create({
     shadowColor: "#1D4ED8",
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
-  },
+    elevation: 4 },
   directionsBtnText: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -540,8 +512,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#475569",
     lineHeight: 24,
-    fontWeight: "500",
-  },
+    fontWeight: "500" },
 
   evidenceGrid: {
     flexDirection: "row",
@@ -555,34 +526,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#F1F5F9",
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   mediaImg: { width: "100%", height: "100%" },
   mediaPlaceholder: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   mediaPlaceholderText: {
     fontSize: 10,
     fontWeight: "700",
     color: "#94A3B8",
-    textAlign: "center",
-  },
+    textAlign: "center" },
   emptyMedia: {
     alignItems: "center",
     paddingVertical: 20,
-    gap: 8,
-  },
+    gap: 8 },
   emptyMediaText: {
     fontSize: 13,
     color: "#94A3B8",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
 
   bottomActions: {
-    marginTop: 24,
-  },
+    marginTop: 24 },
   acceptBtn: {
     backgroundColor: "#111827",
     paddingVertical: 18,
@@ -594,11 +559,9 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 5,
-  },
+    elevation: 5 },
   acceptText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800"
-  },
-});
+  } });

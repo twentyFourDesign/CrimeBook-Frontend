@@ -1,13 +1,13 @@
 import { StatusBar } from "expo-status-bar";
 import {
-  ActivityIndicator,
   Animated,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useMemo } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,8 +20,7 @@ import { useCachedData } from "../../src/hooks/useCachedData";
 import { useTheme } from "../../src/theme/ThemeContext";
 
 const levelColors: Record<string, string> = {
-  critical: "#EF4444", high: "#F97316", medium: "#F59E0B", low: "#22C55E",
-};
+  critical: "#EF4444", high: "#F97316", medium: "#F59E0B", low: "#22C55E" };
 
 function levelFromStatus(status: string): "critical" | "high" | "medium" | "low" {
   const s = status.toUpperCase();
@@ -50,8 +49,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   ROBBERY: "bag-remove", ASSAULT: "body", KIDNAPPING: "person-remove",
   DOMESTIC_VIOLENCE: "home", DRUG_ACTIVITY: "medical", TRAFFIC_CRIME: "car",
   FRAUD: "card", MISSING_PERSON: "search", VANDALISM: "hammer",
-  SUSPICIOUS_ACTIVITY: "eye", OTHER: "alert-circle",
-};
+  SUSPICIOUS_ACTIVITY: "eye", OTHER: "alert-circle" };
 
 export default function PoliceHome() {
   const router = useRouter();
@@ -161,7 +159,7 @@ export default function PoliceHome() {
 
         {loading && !incidents.length ? (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={colors.accent} />
+            <CrimeBookLoader size="small" ballColor="#2563EB" />
             <Text style={[styles.loadingText, { color: colors.textTertiary }]}>Loading…</Text>
           </View>
         ) : null}
@@ -261,8 +259,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row", borderRadius: 16, paddingVertical: 16, paddingHorizontal: 20,
     marginBottom: 16, borderWidth: 1, alignItems: "center",
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
-  },
+    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   statItem: { flex: 1, alignItems: "center" },
   statNum: { fontSize: 22, fontWeight: "800" },
   statLbl: { fontSize: 11, fontWeight: "600", marginTop: 2 },
@@ -295,5 +292,4 @@ const styles = StyleSheet.create({
   nearbyBody: { flex: 1 },
   nearbyTitle: { fontSize: 13, fontWeight: "600" },
   nearbySub: { fontSize: 11, marginTop: 1 },
-  nearbyDot: { width: 6, height: 6, borderRadius: 3 },
-});
+  nearbyDot: { width: 6, height: 6, borderRadius: 3 } });

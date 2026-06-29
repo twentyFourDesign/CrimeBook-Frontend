@@ -1,4 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, BackHandler } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, BackHandler } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { useCallback, useState } from "react";
@@ -15,8 +17,7 @@ const roles = [
     subtitle: "Standard user",
     icon: "👤",
     perks: ["Report crimes", "View activity", "Receive safety alerts"],
-    badge: null,
-  },
+    badge: null },
   {
     id: "verified_citizen" as const,
     intent: "VERIFIED_COMMUNITY" as OnboardingIntent,
@@ -24,8 +25,7 @@ const roles = [
     subtitle: "Community leader",
     icon: "✅",
     perks: ["Validate incident reports", "Neighbourhood alerts", "Moderate community activity"],
-    badge: { label: "Requires ID verification", color: "#F59E0B" },
-  },
+    badge: { label: "Requires ID verification", color: "#F59E0B" } },
   {
     id: "police" as const,
     intent: "POLICE" as OnboardingIntent,
@@ -33,8 +33,7 @@ const roles = [
     subtitle: "Law enforcement",
     icon: "🛡️",
     perks: ["Respond to incidents", "View live reports", "Case management"],
-    badge: { label: "Requires admin approval", color: "#10B981" },
-  },
+    badge: { label: "Requires admin approval", color: "#10B981" } },
 ];
 
 export default function ChooseRole() {
@@ -123,7 +122,7 @@ export default function ChooseRole() {
       ))}
 
       <TouchableOpacity style={styles.button} onPress={onContinue} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Continue</Text>}
+        {loading ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Text style={styles.buttonText}>Continue</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -147,5 +146,4 @@ const styles = StyleSheet.create({
   badge: { marginTop: 10, borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" },
   badgeText: { fontSize: 11, fontWeight: "600" },
   button: { width: "100%", backgroundColor: "#2563EB", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginTop: 8 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-});
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" } });

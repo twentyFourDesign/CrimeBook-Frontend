@@ -1,5 +1,5 @@
 /**
- * SosPinSetup — first-time PIN setup flow presented on the SOS screen.
+ * SosPinSetup — Safety PIN and Duress PIN configuration flow.
  *
  * Flow:
  *  Step 1: Enter cancellation PIN → confirm cancellation PIN
@@ -9,12 +9,12 @@
 
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { Ionicons } from "@expo/vector-icons";
 import { PinKeypad } from "./PinKeypad";
 import { setSosPins } from "../../auth/api";
@@ -104,7 +104,7 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
   if (saving) {
     return (
       <View style={styles.doneBox}>
-        <ActivityIndicator size="large" color="#EF4444" />
+        <CrimeBookLoader size="large" ballColor="#EF4444" />
         <Text style={styles.doneSub}>Saving PINs…</Text>
       </View>
     );
@@ -113,24 +113,19 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
   const configs: Record<Step, { title: string; subtitle: string } | null> = {
     cancel_enter: {
       title: "Set your Safety PIN",
-      subtitle: "This PIN cancels the SOS normally when you're safe.",
-    },
+      subtitle: "This PIN cancels the SOS normally when you're safe." },
     cancel_confirm: {
       title: "Confirm Safety PIN",
-      subtitle: "Re-enter the same PIN to confirm.",
-    },
+      subtitle: "Re-enter the same PIN to confirm." },
     duress_enter: {
       title: "Set your Duress Code",
       subtitle:
-        "This secret code cancels the visible SOS but keeps police tracking you silently — use it if you're under threat.",
-    },
+        "This secret code cancels the visible SOS but keeps police tracking you silently — use it if you're under threat." },
     duress_confirm: {
       title: "Confirm Duress Code",
-      subtitle: "Re-enter the duress code to confirm.",
-    },
+      subtitle: "Re-enter the duress code to confirm." },
     saving: null,
-    done: null,
-  };
+    done: null };
 
   const config = configs[step];
   const stepIndex =
@@ -171,6 +166,7 @@ export function SosPinSetup({ onComplete }: SosPinSetupProps) {
 
       {config && (
         <PinKeypad
+          key={step}
           visible
           title={config.title}
           subtitle={config.subtitle}
@@ -198,8 +194,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: "#BFDBFE",
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   setupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   setupTitle: { fontWeight: "800", color: "#1E3A8A", fontSize: 14 },
   setupBody: { fontSize: 13, color: "#1E40AF", lineHeight: 19, marginTop: 6 },
@@ -212,21 +207,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 8,
-    textAlign: "center",
-  },
+    textAlign: "center" },
   doneBox: {
     alignItems: "center",
     paddingVertical: 40,
-    gap: 12,
-  },
+    gap: 12 },
   doneIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
     backgroundColor: "#ECFDF5",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   doneTitle: { fontSize: 20, fontWeight: "800", color: "#111" },
-  doneSub: { fontSize: 14, color: "#64748B" },
-});
+  doneSub: { fontSize: 14, color: "#64748B" } });

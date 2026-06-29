@@ -4,9 +4,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+  Alert } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ScreenBackButton } from "../../../src/components/common/ScreenBackButton";
@@ -85,7 +85,7 @@ export default function CitizenStep3() {
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
           ) : (
             <Text style={styles.buttonText}>Submit for review →</Text>
           )}
@@ -111,8 +111,7 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
     marginBottom: 24,
-    alignItems: "flex-start",
-  },
+    alignItems: "flex-start" },
   infoIcon: { fontSize: 14 },
   infoText: { flex: 1, fontSize: 12, color: "#555", lineHeight: 18 },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111", marginBottom: 6 },
@@ -123,8 +122,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   summaryLine: { fontSize: 14, color: "#334155", marginBottom: 8 },
   summaryLabel: { fontWeight: "700", color: "#0F172A" },
   err: { color: "#B91C1C", fontSize: 13, marginBottom: 8 },
@@ -133,8 +131,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
-  },
+    marginTop: 8 },
   buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-});
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" } });

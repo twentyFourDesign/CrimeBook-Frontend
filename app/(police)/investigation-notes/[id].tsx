@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Linking,
   RefreshControl,
@@ -8,8 +7,9 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -121,7 +121,7 @@ export default function InvestigationNotesScreen() {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator />
+            <CrimeBookLoader size="medium" />
           </View>
         ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -236,8 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   heading: { fontSize: 18, fontWeight: "700", color: "#111827" },
   sub: { fontSize: 12, color: "#64748B" },
   center: { paddingVertical: 24, alignItems: "center" },
@@ -249,8 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
-    backgroundColor: "#fff",
-  },
+    backgroundColor: "#fff" },
   cardTitle: { fontSize: 13, fontWeight: "700", color: "#111827" },
   cardText: { fontSize: 13, color: "#334155", marginTop: 6 },
   cardMeta: { fontSize: 11, color: "#64748B", marginTop: 8 },
@@ -259,15 +257,13 @@ const styles = StyleSheet.create({
     height: 170,
     borderRadius: 10,
     marginTop: 10,
-    backgroundColor: "#E2E8F0",
-  },
+    backgroundColor: "#E2E8F0" },
   videoPreview: {
     width: "100%",
     height: 190,
     borderRadius: 10,
     marginTop: 10,
-    backgroundColor: "#0F172A",
-  },
+    backgroundColor: "#0F172A" },
   audioBtn: {
     marginTop: 10,
     borderWidth: 1,
@@ -278,8 +274,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
+    gap: 8 },
   audioBtnText: { color: "#1D4ED8", fontSize: 13, fontWeight: "600" },
   openBtn: {
     marginTop: 10,
@@ -289,8 +284,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    backgroundColor: "#F8FAFC",
-  },
-  openBtnText: { color: "#334155", fontSize: 12, fontWeight: "600" },
-});
+    backgroundColor: "#F8FAFC" },
+  openBtnText: { color: "#334155", fontSize: 12, fontWeight: "600" } });
 

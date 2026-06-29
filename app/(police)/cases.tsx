@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { PoliceShell } from "../../src/components/police/PoliceShell";
@@ -27,8 +27,7 @@ const statusConfig: Record<
   SUSPECT_DETAINED: { label: "Suspect Detained", color: "#0F766E", bg: "#CCFBF1" },
   SUSPECT_ARRESTED: { label: "Suspect Arrested", color: "#1D4ED8", bg: "#DBEAFE" },
   CLOSED: { label: "Closed", color: "#16A34A", bg: "#DCFCE7" },
-  COLD_CASE: { label: "Cold Case", color: "#6B7280", bg: "#E5E7EB" },
-};
+  COLD_CASE: { label: "Cold Case", color: "#6B7280", bg: "#E5E7EB" } };
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -88,7 +87,7 @@ export default function PoliceCasesScreen() {
 
           {loading && !cases.length && (
             <View style={styles.loadingState}>
-              <ActivityIndicator size="small" color="#1D4ED8" />
+              <CrimeBookLoader size="small" ballColor="#1D4ED8" />
               <Text style={styles.loadingText}>Syncing dossier...</Text>
             </View>
           )}
@@ -104,8 +103,7 @@ export default function PoliceCasesScreen() {
             const conf = statusConfig[c.status] ?? {
               label: c.status.replace(/_/g, " "),
               color: "#6B7280",
-              bg: "#E5E7EB",
-            };
+              bg: "#E5E7EB" };
             const loc = c.report.locationLabel || c.report.locationAddress || "Unknown location";
             return (
               <TouchableOpacity
@@ -115,8 +113,7 @@ export default function PoliceCasesScreen() {
                 onPress={() =>
                   router.push({
                     pathname: "/(police)/investigation/[id]",
-                    params: { id: c.id },
-                  })
+                    params: { id: c.id } })
                 }
               >
                 <View style={styles.cardHeader}>
@@ -194,8 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DBEAFE",
-  },
+    borderColor: "#DBEAFE" },
   heading: { fontSize: 22, fontWeight: "800", color: "#111827" },
   subheading: { fontSize: 13, color: "#64748B", marginTop: 4 },
   refreshIconBtn: {
@@ -203,8 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
 
   // Loading/Error
   loadingState: {
@@ -213,8 +208,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
     backgroundColor: "#fff",
-    borderRadius: 20,
-  },
+    borderRadius: 20 },
   loadingText: { fontSize: 14, color: "#64748B", marginLeft: 10, fontWeight: "600" },
   errorBox: {
     flexDirection: "row",
@@ -222,8 +216,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#FEF2F2",
     borderRadius: 12,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
 
   // Case Card
@@ -237,72 +230,60 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   caseNumBox: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     backgroundColor: "#F1F5F9",
-    borderRadius: 8,
-  },
+    borderRadius: 8 },
   caseNumText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#475569",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    gap: 6,
-  },
+    gap: 6 },
   statusDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-  },
+    borderRadius: 3 },
   statusText: {
     fontSize: 11,
     fontWeight: "800",
-    letterSpacing: 0.3,
-  },
+    letterSpacing: 0.3 },
   caseTitle: {
     fontSize: 17,
     fontWeight: "800",
     color: "#1E293B",
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   cardMeta: {
     gap: 8,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
+    gap: 8 },
   metaText: {
     fontSize: 13,
     color: "#64748B",
-    flex: 1,
-  },
+    flex: 1 },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F8FAFF",
-  },
+    borderTopColor: "#F8FAFF" },
   priorityBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -310,22 +291,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFF",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
-  },
+    borderRadius: 8 },
   priorityText: {
     fontSize: 12,
     fontWeight: "600",
     color: "#475569",
-    textTransform: "capitalize",
-  },
+    textTransform: "capitalize" },
   viewBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-  },
+    gap: 4 },
   viewBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#1D4ED8",
-  },
-});
+    color: "#1D4ED8" } });

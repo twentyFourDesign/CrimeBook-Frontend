@@ -46,10 +46,13 @@ export function PinKeypad({
     Array.from({ length: pinLength }, () => new Animated.Value(0))
   ).current;
 
-  // Reset digits whenever a new keypad stage starts.
+  // Reset digits and dot animations whenever a new keypad stage starts.
   useEffect(() => {
-    if (visible) setDigits([]);
-  }, [visible, resetKey]);
+    if (visible) {
+      setDigits([]);
+      dotAnims.forEach((anim) => anim.setValue(0));
+    }
+  }, [visible, resetKey, dotAnims]);
 
   // Shake + vibrate on error
   useEffect(() => {

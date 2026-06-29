@@ -5,10 +5,10 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
-  RefreshControl,
-} from "react-native";
+  RefreshControl } from "react-native";
+import { CrimeBookLoader } from "../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../src/components/common/LoadingState";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -51,11 +51,7 @@ export default function AchievementVaultScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
+    return <LoadingState fullScreen message="Loading achievements…" />;
   }
 
   const Shell = user?.role?.includes("POLICE") ? PoliceShell : CitizenShell;
@@ -188,16 +184,14 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   pointsCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-  },
+    marginRight: 16 },
   heroInfo: { flex: 1 },
   pointsLabel: { fontSize: 13, fontWeight: "600", marginBottom: 2 },
   pointsValue: { fontSize: 24, fontWeight: "900" },
@@ -210,16 +204,14 @@ const styles = StyleSheet.create({
   goalCard: {
     padding: 16,
     borderRadius: 20,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   goalHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   goalIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   goalText: { flex: 1 },
   goalTitle: { fontSize: 15, fontWeight: "700" },
   goalDesc: { fontSize: 12, marginTop: 1 },
@@ -238,10 +230,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderStyle: "dashed",
-  },
+    borderStyle: "dashed" },
   badgeName: { fontSize: 11, fontWeight: "800", textAlign: "center" },
   badgeDate: { fontSize: 10, fontWeight: "600" },
   emptyState: { width: "100%", alignItems: "center", padding: 40, gap: 12 },
-  emptyText: { fontSize: 14, fontWeight: "600" },
-});
+  emptyText: { fontSize: 14, fontWeight: "600" } });

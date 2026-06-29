@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -9,8 +8,9 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -184,7 +184,7 @@ function DuressCard({ a, onResolve, resolving }: { a: PoliceSosActiveItem; onRes
           disabled={resolving}
         >
           {resolving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
@@ -296,7 +296,7 @@ function SosCard({ a, onResolve, resolving }: { a: PoliceSosActiveItem; onResolv
           disabled={resolving}
         >
           {resolving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
@@ -373,7 +373,10 @@ export default function PoliceSosActiveScreen() {
               </Text>
             </View>
           </View>
-          <Text style={styles.pollBadge}>Live · 5s</Text>
+          <TouchableOpacity onPress={() => router.push("/(police)/sos-recordings")} style={styles.recordingsBtn}>
+            <Ionicons name="library" size={14} color="#CBD5E1" />
+            <Text style={styles.pollBadge}>Recordings</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -382,7 +385,7 @@ export default function PoliceSosActiveScreen() {
         >
           {loading && (
             <View style={styles.centerState}>
-              <ActivityIndicator color="#EF4444" size="large" />
+              <CrimeBookLoader size="large" ballColor="#EF4444" />
               <Text style={styles.stateText}>Scanning for distress signals…</Text>
             </View>
           )}
@@ -455,13 +458,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: "#1E293B",
     borderBottomWidth: 1,
-    borderColor: "#334155",
-  },
+    borderColor: "#334155" },
   backBtn: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: "#334155",
-    justifyContent: "center", alignItems: "center",
-  },
+    justifyContent: "center", alignItems: "center" },
   headerText: { alignItems: "center", flex: 1 },
   title: { fontSize: 18, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
   alertBadge: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6 },
@@ -470,27 +471,33 @@ const styles = StyleSheet.create({
   alertCount: { fontSize: 11, fontWeight: "800", color: "#EF4444", letterSpacing: 1 },
   alertCountDuress: { color: "#FCA5A5" },
   pollBadge: { fontSize: 10, color: "#475569", fontWeight: "700" },
+  recordingsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#334155",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10 },
   container: { padding: 20, paddingBottom: 40 },
 
   sectionHeader: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    marginBottom: 10, marginTop: 4,
-  },
+    marginBottom: 10, marginTop: 4 },
   sectionHeaderText: {
-    fontSize: 10, fontWeight: "800", color: "#64748B", letterSpacing: 1.2,
-  },
+    fontSize: 10, fontWeight: "800", color: "#64748B", letterSpacing: 1.2 },
 
   centerState: { marginTop: 100, alignItems: "center", gap: 16 },
   secureIconBox: {
     width: 100, height: 100, borderRadius: 50, backgroundColor: "#064E3B",
-    justifyContent: "center", alignItems: "center", marginBottom: 8,
-  },
+    justifyContent: "center", alignItems: "center", marginBottom: 8 },
   stateText: { fontSize: 16, fontWeight: "800", color: "#fff", textAlign: "center" },
   stateSubText: { fontSize: 14, color: "#94A3B8", textAlign: "center" },
   errorBox: {
     backgroundColor: "#451A1A", borderRadius: 20, padding: 24,
-    alignItems: "center", borderWidth: 1, borderColor: "#991B1B",
-  },
+    alignItems: "center", borderWidth: 1, borderColor: "#991B1B" },
   errorText: { color: "#FECACA", fontSize: 14, textAlign: "center", marginVertical: 12, fontWeight: "600" },
   retryBtn: { backgroundColor: "#EF4444", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
   retryText: { color: "#fff", fontWeight: "800" },
@@ -498,28 +505,23 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     backgroundColor: "#1E293B", borderRadius: 24, padding: 20,
-    marginBottom: 16, borderWidth: 1, borderColor: "#334155",
-  },
+    marginBottom: 16, borderWidth: 1, borderColor: "#334155" },
   duressCard: {
-    backgroundColor: "#1A0505", borderWidth: 2,
-  },
+    backgroundColor: "#1A0505", borderWidth: 2 },
   duressBanner: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: "#DC2626", borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16,
-  },
+    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16 },
   duressBannerText: { color: "#fff", fontWeight: "800", fontSize: 12, letterSpacing: 0.5, flex: 1 },
 
   cardHeader: {
     flexDirection: "row", justifyContent: "space-between",
-    alignItems: "flex-start", marginBottom: 16,
-  },
+    alignItems: "flex-start", marginBottom: 16 },
   userSection: { flexDirection: "row", gap: 12, alignItems: "flex-start", flex: 1 },
   avatarPlaceholder: {
     width: 48, height: 48, borderRadius: 16,
     backgroundColor: "#334155", justifyContent: "center", alignItems: "center",
-    borderWidth: 1, borderColor: "#475569",
-  },
+    borderWidth: 1, borderColor: "#475569" },
   duressAvatar: { backgroundColor: "#7F1D1D", borderColor: "#DC2626" },
   avatarInitials: { fontSize: 18, fontWeight: "800", color: "#F1F5F9" },
   cardTitle: { fontSize: 17, fontWeight: "800", color: "#fff" },
@@ -531,23 +533,20 @@ const styles = StyleSheet.create({
   homeAddressBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: "#0F172A", borderRadius: 12, padding: 12, marginBottom: 14,
-    borderWidth: 1, borderColor: "#334155",
-  },
+    borderWidth: 1, borderColor: "#334155" },
   homeAddressLabel: { fontSize: 9, fontWeight: "800", color: "#64748B", letterSpacing: 1 },
   homeAddressText: { fontSize: 13, color: "#FBBF24", fontWeight: "600", marginTop: 1 },
 
   typeBadge: {
     flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
-  },
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   silentBadge: { backgroundColor: "#475569" },
   audibleBadge: { backgroundColor: "#EF4444" },
   typeText: { fontSize: 10, fontWeight: "800", color: "#fff" },
 
   cardStats: {
     flexDirection: "row", backgroundColor: "#0F172A", borderRadius: 16,
-    padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#334155",
-  },
+    padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#334155" },
   statBox: { flex: 1, alignItems: "center" },
   statDivider: { width: 1, backgroundColor: "#334155", marginHorizontal: 12 },
   statLabel: { fontSize: 9, fontWeight: "800", color: "#64748B", letterSpacing: 1, marginBottom: 2 },
@@ -560,20 +559,16 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 6,
     backgroundColor: "#0F172A", borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, borderColor: "#334155",
-  },
+    borderWidth: 1, borderColor: "#334155" },
   audioChunkText: { fontSize: 12, color: "#94A3B8", fontWeight: "600" },
 
   actionGrid: { flexDirection: "row", gap: 12 },
   mapBtn: {
     flex: 1.2, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: "#1D4ED8", paddingVertical: 14, borderRadius: 16,
-  },
+    gap: 8, backgroundColor: "#1D4ED8", paddingVertical: 14, borderRadius: 16 },
   mapBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
   resolveBtn: {
     flex: 0.8, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, backgroundColor: "#059669", paddingVertical: 14, borderRadius: 16,
-  },
+    gap: 8, backgroundColor: "#059669", paddingVertical: 14, borderRadius: 16 },
   resolveDisabled: { opacity: 0.5 },
-  resolveBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
-});
+  resolveBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 } });

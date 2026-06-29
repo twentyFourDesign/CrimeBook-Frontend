@@ -218,6 +218,7 @@ export type OfficerProfilePayload = {
   id: string;
   email: string;
   name: string;
+  username: string;
   avatarUrl: string | null;
   phone: string | null;
   city: string | null;
@@ -340,6 +341,30 @@ export type PoliceSosActiveItem = {
     latitude: number;
     longitude: number;
     accuracy: number | null;
+    loggedAt: string;
+  } | null;
+};
+
+export type PoliceSosRecordingItem = {
+  id: string;
+  status: string;
+  isDuressActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  latitude: number;
+  longitude: number;
+  audioClipUrl: string | null;
+  liveMediaLinks: string[];
+  user: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string;
+  };
+  latestLocation: {
+    latitude: number;
+    longitude: number;
     loggedAt: string;
   } | null;
 };

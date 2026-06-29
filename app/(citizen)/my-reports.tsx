@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { useAuth } from "../../src/auth/AuthContext";
-import { Skeleton } from "../../src/components/common/Skeleton";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { fetchMyReports } from "../../src/auth/api";
 import { MyReportItem } from "../../src/auth/types";
 import { useAppDataCache } from "../../src/cache/AppDataCacheContext";
@@ -59,19 +57,9 @@ export default function MyReportsScreen() {
           <Text style={styles.title}>My reports</Text>
         </View>
 
-        {loading && (
-          <View style={{ gap: 12 }}>
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} style={styles.reportCard}>
-                <Skeleton width="60%" height={18} style={{ marginBottom: 10 }} />
-                <Skeleton width="40%" height={12} style={{ marginBottom: 8 }} />
-                <Skeleton width="30%" height={12} style={{ marginBottom: 10 }} />
-                <Skeleton width="50%" height={12} style={{ marginBottom: 12 }} />
-                <Skeleton width="40%" height={10} />
-              </View>
-            ))}
-          </View>
-        )}
+        {loading ? (
+          <LoadingState message="Loading your reports…" />
+        ) : null}
 
         {error && (
           <View style={styles.errBox}>
@@ -131,12 +119,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: "#fff",
-  },
+    backgroundColor: "#fff" },
   reportTitle: { fontSize: 17, fontWeight: "700", color: "#111" },
   reportCat: { fontSize: 13, color: "#64748B", marginTop: 4 },
   reportStatus: { fontSize: 13, color: "#334155", marginTop: 8, fontWeight: "600" },
   reportLoc: { fontSize: 12, color: "#64748B", marginTop: 6 },
   reportDate: { fontSize: 11, color: "#94A3B8", marginTop: 10 },
-  chevron: { fontSize: 13, color: "#2563EB", fontWeight: "600", marginTop: 10 },
-});
+  chevron: { fontSize: 13, color: "#2563EB", fontWeight: "600", marginTop: 10 } });

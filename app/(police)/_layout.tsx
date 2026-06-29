@@ -1,16 +1,15 @@
 import { Redirect, Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useAuth } from "../../src/auth/AuthContext";
+import { SosWatcherOverlay } from "../../src/components/police/SosWatcherOverlay";
 
 export default function PoliceLayout() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <LoadingState fullScreen message="Loading…" />;
   }
 
   if (!user) return <Redirect href="/(auth)/login" />;
@@ -19,6 +18,9 @@ export default function PoliceLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: "slide_from_right" }} />
+      <SosWatcherOverlay />
+    </View>
   );
 }

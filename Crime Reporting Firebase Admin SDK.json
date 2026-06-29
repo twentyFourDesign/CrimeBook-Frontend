@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "crime-reporting-50556",
+  "private_key_id": "6d2980f437ae282291b83fb1dd19b9b79130f1a5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDiov7EkVSUwrO3\n1l5PNQy7uQ6PXYrWcptRHttzrnXR1CwgGYW36L9qCVqKq9hQMgDO3OoeRnsOD6RC\ndDw5T7+AFYL7Y6hQjpjFB2Ti1l5vbFNUK9M9PYEliXxyAZWqkC0yQkixLVColESd\nX2OrwKbT2EQ65qR2dWzMZ2VsQ9AYbyHYbCubA7DYiF3Ww07REeTTrGDOHv1YF0A3\nnigYLM5Fqs+I7dttXQLs7DgcuOEoHkg6J2n3w1G5nMSM188X/YyedA5/GniIR279\nbHM1/jxX4sh5BWY4WMeMfIk2GYPfSyb6UGxatF/FUAF1I3zRTbCBcJH36cP0vqWT\nwWIkzgB/AgMBAAECggEAAfaizN1a692J88e8a8Kl3LFG5oPLUErDa6NCKlEqCnlb\n203eXe42xC20ohFiUrsA9+v0GQQubojafUf2LTSH9o1oFx+miK12PuPMm+qc60u7\nlgKop0TeGsrHoUDRQuKFNXN9n2UxrEKbxjwNfYBURN4JAp8W1u3h95TVmfBHhq0M\nbASJXr1PdPDfp4/jfkca8pY013DAoLFgHlvdI2cLh5Vh3FHDWlQaO8zRUhAP+xBl\nPuNnoLeGSBJCwncObV1qnX8xmhBpmg+EsLDbSBVDgG04zkIRIvt0sRk2RQIY808p\nDanhS+eA9DpP5+tK/eaOhHuX7pug3BgUAWMBJaALiQKBgQD4H1gU0Cz4pybEG4+d\nd6tzBpzHhX2ehVEmIn959k5j4VZdNDPj0GpGSLlMmcoVrq+BLqg0XERpnpYSPqPs\nqzsp3hHLT/D5oM+cC6l1BPrH9SBAUxrEucldnzlCoDum28PPEWjwOlkW8SphzlPL\nCDak5jne21DOlWsJ9bIFbuee6QKBgQDp1QWyNa2lKEJyM8PsIVrzUKqOhDIPZrlp\nZL1lA2GUcm/2BR5kkRhMSyuTgbVBuxAZ9KyXeH+GCfp+VhnfI4e75sAfibG5jATD\noAJmgmigRtbWWz0w6kf1ogmmxBzbMTLsd5DL/GfSrnPtjRxyKvx+q6axo18EzDbf\nFhjru/2TJwKBgQDs1h5hX4RNpF9geV5QVFYW6Yzk9gq+MUsQN4WuiOiydfjV5mpR\nXjLS+7/D2lgG8kMb78kmkZvLpVBiAeC+m4NRp2McyiWeYV1J+ee6hxJJozUxsSGv\n/hazgrRJYGEQGF2DXX7pLwiy2Wg3C5b4CdL++7LpgjZTulP9ocRXY1E7YQKBgQCd\nOZDk7NbfMBzNcSURhrQC2oBz50tJs8aDqSr32rgn+nJxt6th73WpBvo76oEXu1Hu\nQegyyODmHZuCix5GPTutClCwZANOQWmKp/I1PwZejoMyCpMwarcL4HIg4ciNUZ1u\nBk8j+YlNzeNBHRq9YU35Vi11T+Y58Z4Ljm4fQ34TDQKBgQDIPEsAf9q2YmFdI3rA\nQhIv5/436yckNrfv3synvzFHmiA02RMcSa+jSg7iFEROoKY2bZT+D3dpzbVwdhrj\njAeVDnSGAMjBta/BS8psDzzBTOOKpfU1nij47E1m4gV9UGVFirdEONedjgRV2+6q\nzQImfM+imNjUOrrXh8bInu+02Q==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@crime-reporting-50556.iam.gserviceaccount.com",
+  "client_id": "112338117669698801609",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40crime-reporting-50556.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

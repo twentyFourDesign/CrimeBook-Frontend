@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -11,8 +10,9 @@ import {
   Modal,
   Alert,
   Image,
-  ScrollView,
-} from "react-native";
+  ScrollView } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -30,8 +30,7 @@ import {
   inviteToGroup,
   uploadCrimeMediaFile,
   fetchGroupMessages,
-  sendGroupMessage,
-} from "../../../src/auth/api";
+  sendGroupMessage } from "../../../src/auth/api";
 import type { CommunityGroup, GroupPost, GroupMessage } from "../../../src/auth/types";
 
 function PostMediaGallery({
@@ -293,23 +292,20 @@ export default function GroupDetail() {
             uri: item.uri,
             name: item.name,
             mimeType: item.mimeType,
-            folder: "community",
-          });
+            folder: "community" });
           uploadedMedia.push({
             mediaType: item.type,
             fileUrl: res.url,
             fileName: item.name,
             fileSizeBytes: res.fileSizeBytes,
-            mimeType: item.mimeType,
-          });
+            mimeType: item.mimeType });
         }
         setIsUploadingMedia(false);
       }
 
       await createGroupPost(id, {
         content: newPostContent.trim(),
-        media: uploadedMedia,
-      });
+        media: uploadedMedia });
 
       setNewPostContent("");
       setSelectedMedia([]);
@@ -357,8 +353,7 @@ export default function GroupDetail() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
-    });
+      quality: 0.8 });
     if (!result.canceled) {
       const asset = result.assets[0];
       setSelectedMedia((prev) => [
@@ -367,8 +362,7 @@ export default function GroupDetail() {
           uri: asset.uri,
           name: asset.uri.split("/").pop() || "image.jpg",
           mimeType: asset.type === "image" ? "image/jpeg" : "application/octet-stream",
-          type: "PHOTO",
-        },
+          type: "PHOTO" },
       ]);
       setMediaMenuVisible(false);
     }
@@ -377,8 +371,7 @@ export default function GroupDetail() {
   const pickVideo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: true,
-    });
+      allowsEditing: true });
     if (!result.canceled) {
       const asset = result.assets[0];
       setSelectedMedia((prev) => [
@@ -387,8 +380,7 @@ export default function GroupDetail() {
           uri: asset.uri,
           name: asset.uri.split("/").pop() || "video.mp4",
           mimeType: "video/mp4",
-          type: "VIDEO",
-        },
+          type: "VIDEO" },
       ]);
       setMediaMenuVisible(false);
     }
@@ -397,8 +389,7 @@ export default function GroupDetail() {
   const pickDocument = async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: "*/*",
-      copyToCacheDirectory: true,
-    });
+      copyToCacheDirectory: true });
     if (!result.canceled) {
       const asset = result.assets[0];
       setSelectedMedia((prev) => [
@@ -407,8 +398,7 @@ export default function GroupDetail() {
           uri: asset.uri,
           name: asset.name,
           mimeType: asset.mimeType || "application/octet-stream",
-          type: "DOCUMENT",
-        },
+          type: "DOCUMENT" },
       ]);
       setMediaMenuVisible(false);
     }
@@ -417,8 +407,7 @@ export default function GroupDetail() {
   const pickAudio = async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: "audio/*",
-      copyToCacheDirectory: true,
-    });
+      copyToCacheDirectory: true });
     if (!result.canceled) {
       const asset = result.assets[0];
       setSelectedMedia((prev) => [
@@ -427,8 +416,7 @@ export default function GroupDetail() {
           uri: asset.uri,
           name: asset.name,
           mimeType: asset.mimeType || "audio/mpeg",
-          type: "AUDIO",
-        },
+          type: "AUDIO" },
       ]);
       setMediaMenuVisible(false);
     }
@@ -441,41 +429,7 @@ export default function GroupDetail() {
   if (loading) {
     return (
       <CitizenShell>
-        <View style={styles.header}>
-          <Skeleton width={36} height={36} circle style={{ marginRight: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Skeleton width="60%" height={20} style={{ marginBottom: 4 }} />
-            <Skeleton width="40%" height={12} />
-          </View>
-        </View>
-        <View style={styles.segmentContainer}>
-          {[1, 2, 3].map((i) => (
-            <View key={i} style={styles.segmentBtn}>
-              <Skeleton width={40} height={16} />
-            </View>
-          ))}
-        </View>
-        <ScrollView contentContainerStyle={styles.listContainer}>
-          <View style={styles.descriptionCard}>
-            <Skeleton width="30%" height={12} style={{ marginBottom: 12 }} />
-            <Skeleton width="100%" height={14} style={{ marginBottom: 8 }} />
-            <Skeleton width="90%" height={14} />
-          </View>
-          {[1, 2].map((i) => (
-            <View key={i} style={styles.postCard}>
-              <View style={styles.postHeader}>
-                <Skeleton width={36} height={36} circle style={{ marginRight: 10 }} />
-                <View style={{ flex: 1 }}>
-                  <Skeleton width="40%" height={14} style={{ marginBottom: 4 }} />
-                  <Skeleton width="30%" height={10} />
-                </View>
-              </View>
-              <Skeleton width="100%" height={14} style={{ marginBottom: 8 }} />
-              <Skeleton width="100%" height={14} style={{ marginBottom: 8 }} />
-              <Skeleton width="60%" height={14} />
-            </View>
-          ))}
-        </ScrollView>
+        <LoadingState fullScreen message="Loading group…" />
       </CitizenShell>
     );
   }
@@ -589,7 +543,7 @@ export default function GroupDetail() {
                       disabled={isPosting || isUploadingMedia || (!newPostContent.trim() && selectedMedia.length === 0)}
                     >
                       {isPosting || isUploadingMedia ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                       ) : (
                         <Text style={styles.postBtnText}>Post</Text>
                       )}
@@ -705,7 +659,7 @@ export default function GroupDetail() {
               disabled={isSending || !newMessage.trim()}
             >
               {isSending ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
               ) : (
                 <Ionicons name="send" size={20} color="#fff" />
               )}
@@ -760,7 +714,7 @@ export default function GroupDetail() {
                 disabled={joinLoading}
               >
                 {joinLoading ? (
-                  <ActivityIndicator size="small" color={group.isMember ? "#EF4444" : "#16A34A"} />
+                  <CrimeBookLoader size="small" ballColor="#2563EB" />
                 ) : (
                   <>
                     <Ionicons
@@ -899,7 +853,7 @@ export default function GroupDetail() {
                 disabled={isInviting || !inviteEmail.trim()}
               >
                 {isInviting ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                 ) : (
                   <Text style={styles.modalInviteText}>Send Invite</Text>
                 )}
@@ -921,8 +875,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
-    backgroundColor: "#fff",
-  },
+    backgroundColor: "#fff" },
   backCircle: {
     width: 36,
     height: 36,
@@ -930,8 +883,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12 },
   backIcon: { fontSize: 20, color: "#475569" },
   headerInfo: { flex: 1 },
   groupName: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
@@ -941,27 +893,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
+    borderBottomColor: "#E2E8F0" },
   segmentBtn: {
     paddingVertical: 14,
     marginRight: 24,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   segmentBtnActive: {
-    borderBottomColor: "#2563EB",
-  },
+    borderBottomColor: "#2563EB" },
   segmentText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#64748B",
-  },
+    color: "#64748B" },
   segmentTextActive: {
-    color: "#2563EB",
-  },
+    color: "#2563EB" },
   listContainer: { padding: 20, paddingBottom: 40 },
   descriptionCard: {
     backgroundColor: "#fff",
@@ -971,8 +918,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   descriptionLabel: { fontSize: 12, fontWeight: "700", color: "#2563EB", marginBottom: 8, textTransform: "uppercase" },
   descriptionText: { fontSize: 14, color: "#475569", lineHeight: 20 },
   postInputCard: {
@@ -981,22 +927,19 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   input: {
     fontSize: 14,
     color: "#1E293B",
     minHeight: 60,
     textAlignVertical: "top",
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   postBtn: {
     backgroundColor: "#2563EB",
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   postBtnDisabled: { backgroundColor: "#94A3B8" },
   postBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   lockedCard: {
@@ -1010,8 +953,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 12,
-    elevation: 2,
-  },
+    elevation: 2 },
   lockedIconCircle: {
     width: 64,
     height: 64,
@@ -1019,26 +961,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   lockedTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#1E293B",
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   lockedText: { fontSize: 14, color: "#64748B", textAlign: "center", marginBottom: 24, lineHeight: 22 },
   joinSmallBtn: {
     backgroundColor: "#2563EB",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
-  },
+    borderRadius: 8 },
   joinSmallBtnText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 14,
-  },
+    fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B", marginBottom: 16 },
   postCard: {
     backgroundColor: "#fff",
@@ -1050,8 +988,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   avatarPlaceholder: {
     width: 36,
@@ -1060,8 +997,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#DBEAFE",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
-  },
+    marginRight: 10 },
   avatarInitial: { color: "#2563EB", fontWeight: "700", fontSize: 14 },
   authorName: { fontSize: 14, fontWeight: "600", color: "#1E293B" },
   postTime: { fontSize: 11, color: "#94A3B8", marginTop: 1 },
@@ -1070,8 +1006,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
-  },
+    borderRadius: 12 },
   pinnedText: { fontSize: 10, color: "#D97706", fontWeight: "700" },
   postContent: { fontSize: 15, color: "#334155", lineHeight: 24, marginTop: 4 },
   emptyFeed: { alignItems: "center", paddingVertical: 80 },
@@ -1082,29 +1017,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   emptyText: { fontSize: 14, color: "#94A3B8", textAlign: "center", maxWidth: "80%", lineHeight: 22 },
 
   // Chat Styles
   chatContainer: {
     flex: 1,
-    backgroundColor: "#F8FAFF",
-  },
+    backgroundColor: "#F8FAFF" },
   chatCenter: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   chatListContent: {
     padding: 16,
-    paddingBottom: 24,
-  },
+    paddingBottom: 24 },
   messageRow: {
     flexDirection: "row",
     marginBottom: 16,
-    maxWidth: "85%",
-  },
+    maxWidth: "85%" },
   msgAvatar: {
     width: 32,
     height: 32,
@@ -1113,13 +1043,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
-    marginTop: 4,
-  },
+    marginTop: 4 },
   msgAvatarText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#64748B",
-  },
+    color: "#64748B" },
   msgBubble: {
     backgroundColor: "#fff",
     padding: 12,
@@ -1130,33 +1058,27 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.02,
     shadowRadius: 4,
-    elevation: 1,
-  },
+    elevation: 1 },
   msgSenderName: {
     fontSize: 12,
     fontWeight: "700",
     color: "#2563EB",
-    marginBottom: 4,
-  },
+    marginBottom: 4 },
   msgText: {
     fontSize: 14,
     color: "#1E293B",
-    lineHeight: 20,
-  },
+    lineHeight: 20 },
   msgTime: {
     fontSize: 10,
     color: "#94A3B8",
     textAlign: "right",
-    marginTop: 4,
-  },
+    marginTop: 4 },
   chatEmpty: {
     paddingVertical: 80,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   chatEmptyText: {
     fontSize: 14,
-    color: "#94A3B8",
-  },
+    color: "#94A3B8" },
   chatInputContainer: {
     flexDirection: "row",
     padding: 16,
@@ -1164,8 +1086,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
     alignItems: "flex-end",
-    gap: 12,
-  },
+    gap: 12 },
   chatInput: {
     flex: 1,
     backgroundColor: "#F1F5F9",
@@ -1174,46 +1095,38 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingTop: 8,
     fontSize: 15,
-    maxHeight: 100,
-  },
+    maxHeight: 100 },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: "#2563EB",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   sendBtnDisabled: {
-    backgroundColor: "#CBD5E1",
-  },
+    backgroundColor: "#CBD5E1" },
 
   // Info Styles
   infoContainer: {
     padding: 20,
-    gap: 24,
-  },
+    gap: 24 },
   infoSection: {
-    gap: 12,
-  },
+    gap: 12 },
   infoSectionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#64748B",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   infoCard: {
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   infoGrid: {
     flexDirection: "row",
-    gap: 12,
-  },
+    gap: 12 },
   infoGridItem: {
     flex: 1,
     backgroundColor: "#fff",
@@ -1222,21 +1135,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     alignItems: "center",
-    gap: 8,
-  },
+    gap: 8 },
   infoGridValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   infoGridLabel: {
     fontSize: 11,
     color: "#64748B",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   actionList: {
-    gap: 12,
-  },
+    gap: 12 },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1245,21 +1154,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    gap: 12,
-  },
+    gap: 12 },
   actionBtnDanger: {
     borderColor: "#FECDD3",
-    backgroundColor: "#FFF1F2",
-  },
+    backgroundColor: "#FFF1F2" },
   actionBtnSuccess: {
     borderColor: "#BBF7D0",
-    backgroundColor: "#F0FDF4",
-  },
+    backgroundColor: "#F0FDF4" },
   actionBtnText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
 
   errorText: { color: "#EF4444", fontSize: 14, marginBottom: 20 },
   backBtn: { backgroundColor: "#F1F5F9", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
@@ -1269,8 +1174,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
+    padding: 20 },
   modalContent: {
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -1280,8 +1184,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 20,
-    elevation: 10,
-  },
+    elevation: 10 },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B", marginBottom: 8 },
   modalSubtitle: { fontSize: 14, color: "#64748B", marginBottom: 20, lineHeight: 20 },
   modalInput: {
@@ -1293,24 +1196,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: "#1E293B",
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   modalButtons: { flexDirection: "row", gap: 12 },
   modalCancelBtn: {
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   modalCancelText: { color: "#475569", fontWeight: "600" },
   modalInviteBtn: {
     flex: 2,
     paddingVertical: 12,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: "#2563EB",
-  },
+    backgroundColor: "#2563EB" },
   modalInviteBtnDisabled: { backgroundColor: "#94A3B8" },
   modalInviteText: { color: "#fff", fontWeight: "700" },
 
@@ -1318,113 +1218,91 @@ const styles = StyleSheet.create({
   postInputActions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   addMediaBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-  },
+    gap: 6 },
   addMediaBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#2563EB",
-  },
+    color: "#2563EB" },
   mediaPreviewList: {
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   mediaPreviewItem: {
     marginRight: 10,
-    position: "relative",
-  },
+    position: "relative" },
   mediaPreviewThumb: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   mediaPreviewIcon: {
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   removeMediaBtn: {
     position: "absolute",
     top: -8,
     right: -8,
     backgroundColor: "#fff",
-    borderRadius: 10,
-  },
+    borderRadius: 10 },
   // Enhanced Media Gallery Styles
   postMediaGallery: {
     marginTop: 12,
-    gap: 12,
-  },
+    gap: 12 },
   imageGrid1: {
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   gridImageFull: {
     width: "100%",
-    aspectRatio: 16 / 9,
-  },
+    aspectRatio: 16 / 9 },
   imageGrid2: {
     flexDirection: "row",
     gap: 4,
     height: 200,
     borderRadius: 12,
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   gridImageHalf: {
     flex: 1,
-    height: "100%",
-  },
+    height: "100%" },
   imageGrid3: {
     flexDirection: "row",
     gap: 4,
     height: 240,
     borderRadius: 12,
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   gridImageMain: {
     flex: 2,
-    height: "100%",
-  },
+    height: "100%" },
   gridImageSideCol: {
     flex: 1,
-    gap: 4,
-  },
+    gap: 4 },
   gridImageSide: {
     flex: 1,
-    width: "100%",
-  },
+    width: "100%" },
   gridImageMoreContainer: {
     flex: 1,
-    position: "relative",
-  },
+    position: "relative" },
   gridMoreOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   gridMoreText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "700",
-  },
+    fontWeight: "700" },
   videoPlayerContainer: {
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#000",
-    aspectRatio: 16 / 9,
-  },
+    aspectRatio: 16 / 9 },
   videoPlayer: {
     width: "100%",
-    height: "100%",
-  },
+    height: "100%" },
   audioCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1433,34 +1311,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#BFDBFE",
-    gap: 12,
-  },
+    gap: 12 },
   audioIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: "#2563EB",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   audioInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   audioName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   audioSubtext: {
     fontSize: 12,
     color: "#64748B",
-    marginTop: 2,
-  },
+    marginTop: 2 },
 
   postMediaContainer: {
     marginTop: 12,
-    gap: 8,
-  },
+    gap: 8 },
   mediaAttachmentItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1469,40 +1341,33 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#DBEAFE",
-    gap: 10,
-  },
+    gap: 10 },
   mediaAttachmentName: {
     fontSize: 13,
     color: "#1E293B",
-    flex: 1,
-  },
+    flex: 1 },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   settingsList: {
-    gap: 12,
-  },
+    gap: 12 },
   settingsItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 14,
     backgroundColor: "#F8FAFF",
     borderRadius: 12,
-    gap: 12,
-  },
+    gap: 12 },
   leaveSettingItem: {
     backgroundColor: "#FFF1F2",
     borderWidth: 1,
-    borderColor: "#FECDD3",
-  },
+    borderColor: "#FECDD3" },
   leaveSettingText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#EF4444",
-  },
+    color: "#EF4444" },
   mediaMenuContent: {
     backgroundColor: "#fff",
     borderRadius: 24,
@@ -1512,37 +1377,30 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowRadius: 30,
-    elevation: 20,
-  },
+    elevation: 20 },
   mediaMenuTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#1E293B",
     marginBottom: 20,
-    textAlign: "center",
-  },
+    textAlign: "center" },
   mediaOptionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 16,
-  },
+    gap: 16 },
   mediaOption: {
     width: "45%",
     alignItems: "center",
     gap: 8,
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   mediaOptionIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   mediaOptionLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#475569",
-  },
-});
+    color: "#475569" } });

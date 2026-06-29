@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
 import { ScreenBackButton } from "../../src/components/common/ScreenBackButton";
 import { ReportFooter } from "../../src/components/report/ReportFooter";
@@ -19,10 +19,8 @@ import {
   postSosLocation,
   startCitizenSos,
   cancelSosWithPin,
-  checkSosPinsSet,
-} from "../../src/auth/api";
+  checkSosPinsSet } from "../../src/auth/api";
 import { PinKeypad } from "../../src/components/sos/PinKeypad";
-import { SosPinSetup } from "../../src/components/sos/SosPinSetup";
 import { sosAudioService } from "../../src/services/sosAudio";
 
 const PING_MS = 15000;
@@ -31,7 +29,6 @@ type PendingIntent = "cancel" | "safe";
 
 export default function CitizenSosScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ setupPins?: string }>();
   const [perm, setPerm] = useState<Location.PermissionStatus | null>(null);
   const [sosId, setSosId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,7 +37,6 @@ export default function CitizenSosScreen() {
 
   // PIN gate
   const [pinsConfigured, setPinsConfigured] = useState<boolean | null>(null); // null = loading
-  const [showPinSetup, setShowPinSetup] = useState(false);
 
   // PIN keypad (for cancellation)
   const [pinVisible, setPinVisible] = useState(false);
@@ -56,17 +52,13 @@ export default function CitizenSosScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    checkSosPinsSet()
-      .then(({ pinsConfigured: configured }) => setPinsConfigured(configured))
-      .catch(() => setPinsConfigured(false));
-  }, []);
-
-  useEffect(() => {
-    if (params.setupPins === "1") {
-      setShowPinSetup(true);
-    }
-  }, [params.setupPins]);
+  useFocusEffect(
+    useCallback(() => {
+      checkSosPinsSet()
+        .then(({ pinsConfigured: configured }) => setPinsConfigured(configured))
+        .catch(() => setPinsConfigured(false));
+    }, [])
+  );
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   const clearPing = useCallback(() => {
@@ -86,13 +78,11 @@ export default function CitizenSosScreen() {
   // ── Location ping ──────────────────────────────────────────────────────────
   const pingOnce = async (id: string) => {
     const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
+      accuracy: Location.Accuracy.Balanced });
     await postSosLocation(id, {
       latitude: loc.coords.latitude,
       longitude: loc.coords.longitude,
-      accuracy: loc.coords.accuracy ?? undefined,
-    });
+      accuracy: loc.coords.accuracy ?? undefined });
   };
 
   const startPing = (id: string) => {
@@ -111,20 +101,25 @@ export default function CitizenSosScreen() {
 
     // Gate: must have PINs configured first
     if (!pinsConfigured) {
-      setShowPinSetup(true);
+      Alert.alert(
+        "SOS PINs required",
+        "Set up your Safety PIN and Duress Code in Settings before starting SOS.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => router.push("/(citizen)/sos-pins") },
+        ]
+      );
       return;
     }
 
     setBusy(true);
     try {
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+        accuracy: Location.Accuracy.High });
       const res = await startCitizenSos({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
-        isSilent: silent,
-      });
+        isSilent: silent });
       setSosId(res.sosId);
       // Start audio capture (fire-and-forget; silent on permission denial)
       sosAudioService.start(res.sosId).catch(() => null);
@@ -167,15 +162,6 @@ export default function CitizenSosScreen() {
     }
   };
 
-  // ── PIN Setup completed ────────────────────────────────────────────────────
-  const handlePinSetupComplete = () => {
-    setShowPinSetup(false);
-    setPinsConfigured(true);
-    if (params.setupPins === "1") {
-      router.replace("/(citizen)/sos");
-    }
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <CitizenShell>
@@ -202,12 +188,20 @@ export default function CitizenSosScreen() {
         ) : null}
 
         {/* PIN Status indicator */}
-        {pinsConfigured === false && !showPinSetup && !sosId && (
+        {pinsConfigured === false && !sosId && (
           <View style={styles.pinWarning}>
             <Ionicons name="lock-open-outline" size={18} color="#D97706" />
-            <Text style={styles.pinWarningText}>
-              SOS PINs not set up yet. You must configure them before activating SOS.
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pinWarningText}>
+                SOS PINs not set up yet. Configure them in Settings before activating SOS.
+              </Text>
+              <TouchableOpacity
+                style={styles.settingsLink}
+                onPress={() => router.push("/(citizen)/sos-pins")}
+              >
+                <Text style={styles.settingsLinkText}>Open SOS Settings</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -215,16 +209,13 @@ export default function CitizenSosScreen() {
           <View style={styles.pinReady}>
             <Ionicons name="shield-checkmark-outline" size={16} color="#059669" />
             <Text style={styles.pinReadyText}>Safety PIN & Duress Code configured</Text>
+            <TouchableOpacity onPress={() => router.push("/(citizen)/sos-pins")}>
+              <Text style={styles.pinManageText}>Manage</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* First-time PIN setup */}
-        {showPinSetup && (
-          <SosPinSetup onComplete={handlePinSetupComplete} />
-        )}
-
-        {!showPinSetup && (
-          <TouchableOpacity
+        <TouchableOpacity
             style={[styles.toggle, silent && styles.toggleOn]}
             onPress={() => setSilent(!silent)}
             disabled={!!sosId || busy}
@@ -238,7 +229,6 @@ export default function CitizenSosScreen() {
               Silent mode — {silent ? "ON (discreet)" : "OFF"}
             </Text>
           </TouchableOpacity>
-        )}
 
         {/* Active SOS info */}
         {sosId ? (
@@ -256,8 +246,7 @@ export default function CitizenSosScreen() {
       </ScrollView>
 
       {/* Action footer */}
-      {!showPinSetup && (
-        <ReportFooter style={{ backgroundColor: sosId ? "#FEF2F2" : "#fff" }}>
+      <ReportFooter style={{ backgroundColor: sosId ? "#FEF2F2" : "#fff" }}>
           {!sosId ? (
             <TouchableOpacity
               style={[styles.dangerBtn, (busy || pinsConfigured === null) && styles.btnDisabled]}
@@ -265,7 +254,7 @@ export default function CitizenSosScreen() {
               disabled={busy || perm !== Location.PermissionStatus.GRANTED || pinsConfigured === null}
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
               ) : (
                 <>
                   <Ionicons name="alert-circle" size={20} color="#fff" />
@@ -291,9 +280,8 @@ export default function CitizenSosScreen() {
                 <Text style={styles.cancelBtnText}>Cancel SOS — enter PIN</Text>
               </TouchableOpacity>
             </>
-          )}
-        </ReportFooter>
-      )}
+        )}
+      </ReportFooter>
 
       {/* PIN entry modal */}
       <PinKeypad
@@ -332,9 +320,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  pinWarningText: { flex: 1, fontSize: 13, color: "#92400E", fontWeight: "600" },
+    borderColor: "#FDE68A" },
+  pinWarningText: { fontSize: 13, color: "#92400E", fontWeight: "600" },
+  settingsLink: { marginTop: 8 },
+  settingsLinkText: { fontSize: 13, color: "#B45309", fontWeight: "700" },
 
   pinReady: {
     flexDirection: "row",
@@ -346,9 +335,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  pinReadyText: { fontSize: 13, color: "#065F46", fontWeight: "600" },
+    borderColor: "#A7F3D0" },
+  pinReadyText: { flex: 1, fontSize: 13, color: "#065F46", fontWeight: "600" },
+  pinManageText: { fontSize: 13, color: "#047857", fontWeight: "700" },
 
   toggle: {
     flexDirection: "row",
@@ -358,8 +347,7 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
     borderRadius: 10,
     padding: 12,
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   toggleOn: { backgroundColor: "#F1F5F9", borderColor: "#94A3B8" },
   toggleText: { fontSize: 14, fontWeight: "600", color: "#334155" },
 
@@ -369,15 +357,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "#FECACA",
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   activeRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   pulseDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#DC2626",
-  },
+    backgroundColor: "#DC2626" },
   activeTitle: { fontSize: 16, fontWeight: "800", color: "#991B1B" },
   activeSub: { fontSize: 13, color: "#7F1D1D", lineHeight: 20 },
 
@@ -388,8 +374,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    gap: 8,
-  },
+    gap: 8 },
   dangerBtnText: { color: "#fff", fontWeight: "800", fontSize: 16 },
   btnDisabled: { opacity: 0.6 },
 
@@ -401,9 +386,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: "row",
     justifyContent: "center",
-    gap: 8,
-  },
+    gap: 8 },
   safeBtnText: { color: "#fff", fontWeight: "700" },
   cancelBtn: { paddingVertical: 12, alignItems: "center" },
-  cancelBtnText: { color: "#64748B", fontWeight: "600" },
-});
+  cancelBtnText: { color: "#64748B", fontWeight: "600" } });

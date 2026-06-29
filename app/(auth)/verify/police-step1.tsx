@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+  Alert } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
@@ -37,8 +37,7 @@ export default function PoliceStep1() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.9,
-    });
+      quality: 0.9 });
     if (result.canceled || !result.assets[0]) return;
 
     setUploading(true);
@@ -50,8 +49,7 @@ export default function PoliceStep1() {
         uri: asset.uri,
         name,
         mimeType: mime,
-        folder: "verification",
-      });
+        folder: "verification" });
       setIdDocumentUrl(uploaded.url);
     } catch (e) {
       Alert.alert("Upload failed", e instanceof Error ? e.message : "Try again.");
@@ -73,8 +71,7 @@ export default function PoliceStep1() {
         department: department.trim(),
         precinct: precinct.trim(),
         unitCode: unitCode.trim() || undefined,
-        idDocumentUrl,
-      });
+        idDocumentUrl });
       await refreshUser();
       router.replace("/(auth)/verify/police-review");
     } catch (e) {
@@ -125,7 +122,7 @@ export default function PoliceStep1() {
         <Text style={styles.label}>ID or commission card (optional)</Text>
         <TouchableOpacity style={styles.uploadBtn} onPress={pickDoc} disabled={uploading}>
           {uploading ? (
-            <ActivityIndicator />
+            <CrimeBookLoader size="medium" />
           ) : (
             <Text style={styles.uploadText}>{idDocumentUrl ? "Document attached ✓" : "Upload image"}</Text>
           )}
@@ -133,7 +130,7 @@ export default function PoliceStep1() {
 
         <TouchableOpacity style={styles.button} onPress={onSubmit} disabled={submitting}>
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
           ) : (
             <Text style={styles.buttonText}>Submit application</Text>
           )}
@@ -158,23 +155,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#111",
-  },
+    color: "#111" },
   uploadBtn: {
     borderWidth: 1,
     borderColor: "#CBD5E1",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 4,
-  },
+    marginTop: 4 },
   uploadText: { fontSize: 14, color: "#2563EB", fontWeight: "600" },
   button: {
     marginTop: 24,
     backgroundColor: "#2563EB",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-});
+    alignItems: "center" },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" } });

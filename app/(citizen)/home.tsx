@@ -1,13 +1,11 @@
 import { useMemo } from "react";
 import {
-  ActivityIndicator,
   Animated,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,8 +25,7 @@ function formatEnum(value: string) {
 const STATUS_COLORS: Record<string, string> = {
   SUBMITTED: "#D97706", COMMUNITY_CONFIRMED: "#2563EB",
   POLICE_VERIFIED: "#16A34A", UNDER_INVESTIGATION: "#7C3AED",
-  RESOLVED: "#16A34A", REJECTED: "#DC2626",
-};
+  RESOLVED: "#16A34A", REJECTED: "#DC2626" };
 
 export default function CitizenHome() {
   const router = useRouter();
@@ -51,8 +48,7 @@ export default function CitizenHome() {
     total: reports.length,
     underInvestigation: reports.filter((r) => r.status === "UNDER_INVESTIGATION").length,
     resolved: reports.filter((r) => r.status === "RESOLVED").length,
-    verified: reports.filter((r) => r.isPoliceVerified).length,
-  }), [reports]);
+    verified: reports.filter((r) => r.isPoliceVerified).length }), [reports]);
 
   const animBg = animValue.interpolate({ inputRange: [0, 1], outputRange: ["#F8FAFF", "#000000"] });
   const animSurface = animValue.interpolate({ inputRange: [0, 1], outputRange: ["#FFFFFF", "#141414"] });
@@ -210,8 +206,7 @@ const styles = StyleSheet.create({
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
   statCard: {
     width: "48%", borderWidth: 1, borderRadius: 14, padding: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
-  },
+    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   statValue: { fontSize: 22, fontWeight: "800" },
   statLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
@@ -229,5 +224,4 @@ const styles = StyleSheet.create({
   reportBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
   statusChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   statusChipText: { fontSize: 10, fontWeight: "800" },
-  reportDate: { fontSize: 11 },
-});
+  reportDate: { fontSize: 11 } });

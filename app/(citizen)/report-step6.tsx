@@ -4,9 +4,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
+  Platform } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -23,8 +23,7 @@ import { ReportFooter } from "../../src/components/report/ReportFooter";
 import { useAuth } from "../../src/auth/AuthContext";
 import {
   computeAuthenticityScore,
-  type AuthenticityAnalysis,
-} from "../../src/report/authenticityEngine";
+  type AuthenticityAnalysis } from "../../src/report/authenticityEngine";
 
 const ANALYSIS_STEPS = [
   "Extracting media forensic signatures...",
@@ -77,8 +76,7 @@ export default function ReportStep6() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
         const pos = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+          accuracy: Location.Accuracy.Balanced });
         currentLat = pos.coords.latitude;
         currentLon = pos.coords.longitude;
       }
@@ -128,20 +126,16 @@ export default function ReportStep6() {
                 fileName: m.fileName,
                 mimeType: m.mimeType,
                 fileSizeBytes: m.fileSizeBytes,
-                mediaType: m.mediaType,
-              }))
+                mediaType: m.mediaType }))
             : undefined,
-        authenticityAnalysis: analysis,
-      });
+        authenticityAnalysis: analysis });
       resetDraft();
       router.replace({
         pathname: "/(citizen)/report-success",
         params: {
           displayCaseId: res.report.displayCaseId,
           status: res.report.status,
-          newBadge: res.newBadge ? JSON.stringify(res.newBadge) : undefined,
-        },
-      });
+          newBadge: res.newBadge ? JSON.stringify(res.newBadge) : undefined } });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not submit report");
       setAnalyzing(false);
@@ -197,7 +191,7 @@ export default function ReportStep6() {
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
             ) : (
               <View style={styles.submitRow}>
                 <Text style={styles.buttonText}>Submit report</Text>
@@ -233,7 +227,7 @@ export default function ReportStep6() {
                         {idx < analysisStep ? (
                           <Ionicons name="checkmark" size={10} color="#fff" />
                         ) : idx === analysisStep ? (
-                          <ActivityIndicator size="small" color="#fff" style={{ transform: [{ scale: 0.5 }] }} />
+                          <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                         ) : null}
                       </View>
                       <Text
@@ -256,8 +250,7 @@ export default function ReportStep6() {
                       {
                         width: `${Math.round(
                           ((analysisStep + 1) / ANALYSIS_STEPS.length) * 100
-                        )}%`,
-                      },
+                        )}%` },
                     ]}
                   />
                 </View>
@@ -335,7 +328,7 @@ export default function ReportStep6() {
                   disabled={submitting}
                 >
                   {submitting ? (
-                    <ActivityIndicator color="#fff" />
+                    <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" />
                   ) : (
                     <Text style={styles.buttonText}>Proceed to Submit</Text>
                   )}
@@ -355,8 +348,7 @@ function ReviewRow({
   label,
   value,
   border,
-  numberOfLines,
-}: {
+  numberOfLines }: {
   label: string;
   value: string;
   border?: boolean;
@@ -392,8 +384,7 @@ function SignalBar({ signal }: { signal: { label: string; score: number; detail:
 function CollapsibleHeader({
   title,
   isOpen,
-  onToggle,
-}: {
+  onToggle }: {
   title: string;
   isOpen: boolean;
   onToggle: () => void;
@@ -428,16 +419,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     marginBottom: 16,
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   reviewRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    gap: 12,
-  },
+    gap: 12 },
   reviewRowBorder: { borderBottomWidth: 1, borderBottomColor: "#E2E8F0" },
   reviewLabel: { fontSize: 13, color: "#888", fontWeight: "500", flexShrink: 0 },
   reviewValue: { fontSize: 13, color: "#111", fontWeight: "600", flex: 1, textAlign: "right" },
@@ -456,8 +445,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    zIndex: 1000,
-  },
+    zIndex: 1000 },
   analysisCard: {
     backgroundColor: "#fff",
     borderRadius: 24,
@@ -465,8 +453,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     alignItems: "center",
-    maxHeight: "90%",
-  },
+    maxHeight: "90%" },
 
   // Loading Phase
   engineHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 24 },
@@ -479,8 +466,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: "#E2E8F0",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   stepDotDone: { backgroundColor: "#059669" },
   stepDotActive: { backgroundColor: "#2563EB" },
   stepText: { fontSize: 13, color: "#94A3B8", flex: 1 },
@@ -492,8 +478,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     width: "100%",
     overflow: "hidden",
-    marginTop: 8,
-  },
+    marginTop: 8 },
   progressBarFill: { height: "100%", backgroundColor: "#2563EB", borderRadius: 3 },
   progressPct: { fontSize: 11, color: "#94A3B8", marginTop: 6, alignSelf: "flex-end" },
 
@@ -517,29 +502,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   scoreTextContainer: {
     flexDirection: "row",
     alignItems: "baseline",
-    justifyContent: "center",
-  },
+    justifyContent: "center" },
   scoreValue: {
     fontSize: 48,
     fontWeight: "900",
-    includeFontPadding: false,
-  },
+    includeFontPadding: false },
   scoreSlash: {
     fontSize: 20,
     color: "#CBD5E1",
     marginHorizontal: 4,
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   scoreTotal: {
     fontSize: 20,
     color: "#94A3B8",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
 
   // Signal Bars
   collapsibleHeader: {
@@ -550,19 +530,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   collapsibleTitle: {
     fontSize: 11,
     fontWeight: "700",
     color: "#94A3B8",
-    letterSpacing: 1.5,
-  },
+    letterSpacing: 1.5 },
   collapsibleContent: {
     width: "100%",
     paddingTop: 8,
-    paddingBottom: 16,
-  },
+    paddingBottom: 16 },
   signalRow: { width: "100%", marginBottom: 14 },
   signalMeta: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   signalLabel: { fontSize: 12, fontWeight: "700", color: "#334155" },
@@ -571,14 +548,12 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     flex: 1,
     textAlign: "right",
-    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
-  },
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }) },
   signalBarContainer: {
     height: 6,
     backgroundColor: "#F1F5F9",
     borderRadius: 3,
-    overflow: "hidden",
-  },
+    overflow: "hidden" },
   signalBarFill: { height: "100%", borderRadius: 3 },
   signalScore: { fontSize: 11, fontWeight: "700", alignSelf: "flex-end", marginTop: 2 },
 
@@ -590,23 +565,20 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: 10,
     marginTop: 4,
-    alignSelf: "flex-start",
-  },
+    alignSelf: "flex-start" },
   flagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
     marginBottom: 12,
-    width: "100%",
-  },
+    width: "100%" },
   flagPill: {
     backgroundColor: "#F1F5F9",
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   flagText: { fontSize: 9, fontWeight: "700", color: "#475569" },
 
   // Engine trace
@@ -617,6 +589,4 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
     marginTop: 6,
     marginBottom: 4,
-    lineHeight: 14,
-  },
-});
+    lineHeight: 14 } });

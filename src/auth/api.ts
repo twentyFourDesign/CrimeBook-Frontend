@@ -15,6 +15,7 @@ import {
   PoliceCaseItem,
   PoliceCaseDetail,
   PoliceSosActiveItem,
+  PoliceSosRecordingItem,
   PublicAppealItem,
   UserBadgeEntry,
   ReportDetailPayload,
@@ -236,6 +237,7 @@ export function fetchCitizenProfile() {
 
 export function updateCitizenProfile(body: {
   name?: string;
+  username?: string;
   avatarUrl?: string | null;
   phone?: string | null;
   city?: string | null;
@@ -248,6 +250,13 @@ export function updateCitizenProfile(body: {
   return requestAuthenticated<{ user: AppUser; profile: CitizenProfilePayload }>("/api/citizen/profile", {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export function updateUsername(username: string) {
+  return requestAuthenticated<{ username: string }>("/api/users/me/username", {
+    method: "PATCH",
+    body: JSON.stringify({ username }),
   });
 }
 
@@ -381,8 +390,13 @@ export function fetchPoliceIncidentsForMap(query?: { time?: string; ne?: string;
   });
 }
 
-export function fetchFeedReports() {
-  return requestAuthenticated<{ reports: FeedReportItem[] }>("/api/feed", {
+export type FeedSegment = "live" | "verified" | "archive" | "all";
+
+export function fetchFeedReports(segment: FeedSegment = "all") {
+  const params = new URLSearchParams();
+  if (segment !== "all") params.set("segment", segment);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return requestAuthenticated<{ reports: FeedReportItem[] }>(`/api/feed${suffix}`, {
     method: "GET",
   });
 }
@@ -712,6 +726,40 @@ export function checkSosPinsSet() {
   });
 }
 
+export type SosTrustedContactItem = {
+  id: string;
+  contactUserId: string | null;
+  name: string;
+  email: string;
+  phone?: string | null;
+  onApp: boolean;
+  createdAt: string;
+};
+
+export function fetchSosTrustedContacts() {
+  return requestAuthenticated<{ contacts: SosTrustedContactItem[] }>(
+    "/api/citizen/sos/trusted-contacts",
+    { method: "GET" }
+  );
+}
+
+export function addSosTrustedContact(email: string, name?: string) {
+  return requestAuthenticated<{ contact: SosTrustedContactItem }>(
+    "/api/citizen/sos/trusted-contacts",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, ...(name?.trim() ? { name: name.trim() } : {}) }),
+    }
+  );
+}
+
+export function removeSosTrustedContact(contactId: string) {
+  return requestAuthenticated<{ removed: boolean }>(
+    `/api/citizen/sos/trusted-contacts/${contactId}`,
+    { method: "DELETE" }
+  );
+}
+
 /** Append an audio chunk URL (already uploaded to Supabase) to the SOS alert. */
 export function postSosAudioChunk(sosId: string, chunkUrl: string) {
   return requestAuthenticated<{ totalChunks: number }>(
@@ -760,6 +808,12 @@ export function resolvePoliceSos(sosId: string) {
       body: JSON.stringify({ status: "RESPONDED" }),
     }
   );
+}
+
+export function fetchPoliceSosHistory() {
+  return requestAuthenticated<{ alerts: PoliceSosRecordingItem[] }>("/api/police/sos/history", {
+    method: "GET",
+  });
 }
 
 export function createPoliceCaseAppeal(

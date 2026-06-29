@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, RefreshControl, StyleSheet, Text, TouchableOpacity, View, Platform, Dimensions, ScrollView, LayoutAnimation } from "react-native";
+import { RefreshControl, StyleSheet, Text, TouchableOpacity, View, Platform, Dimensions, ScrollView, LayoutAnimation } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Heatmap, Marker, PROVIDER_GOOGLE, Callout } from "react-native-maps";
@@ -17,7 +19,7 @@ export default function PoliceMapScreen() {
 
   const mapRef = useRef<MapView>(null);
   const [timeFilter, setTimeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [incidents, setIncidents] = useState<any[]>([]);
@@ -76,16 +78,14 @@ export default function PoliceMapScreen() {
         latitude: 6.5244,
         longitude: 3.3792,
         latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      };
+        longitudeDelta: 0.1 };
     }
     const first = incidents[0];
     return {
       latitude: first.latitude,
       longitude: first.longitude,
       latitudeDelta: 0.05,
-      longitudeDelta: 0.05,
-    };
+      longitudeDelta: 0.05 };
   }, [incidents]);
 
   const heatmapPoints = useMemo(
@@ -93,8 +93,7 @@ export default function PoliceMapScreen() {
       (incidents ?? []).map((i) => ({
         latitude: i.latitude,
         longitude: i.longitude,
-        weight: 1,
-      })),
+        weight: 1 })),
     [incidents]
   );
 
@@ -122,8 +121,7 @@ export default function PoliceMapScreen() {
               gradient={{
                 colors: ["#60A5FA", "#3B82F6", "#2563EB", "#1D4ED8", "#EF4444"],
                 startPoints: [0.01, 0.25, 0.5, 0.75, 1],
-                colorMapSize: 256,
-              }}
+                colorMapSize: 256 }}
             />
           )}
           {incidents.slice(0, 50).map((i) => (
@@ -157,7 +155,7 @@ export default function PoliceMapScreen() {
               <View>
                 <Text style={styles.headerTitle}>Operational Heatmap</Text>
                 <View style={styles.statusRow}>
-                  {revalidating ? <ActivityIndicator size="small" color="#1D4ED8" /> : <View style={styles.liveDot} />}
+                  {revalidating ? <CrimeBookLoader size="small" ballColor="#1D4ED8" /> : <View style={styles.liveDot} />}
                   <Text style={styles.headerSubtitle}>
                     {total} incidents active
                   </Text>
@@ -249,7 +247,7 @@ export default function PoliceMapScreen() {
         {loading && !incidents.length && (
           <View style={styles.loadingOverlay}>
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#1D4ED8" />
+              <CrimeBookLoader size="large" ballColor="#1D4ED8" />
               <Text style={styles.loadingText}>Synchronizing Heatmap...</Text>
             </View>
           </View>
@@ -287,8 +285,7 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
     right: 20,
-    zIndex: 10,
-  },
+    zIndex: 10 },
   headerGlass: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -301,8 +298,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-  },
+    borderColor: "rgba(255, 255, 255, 0.8)" },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBox: {
     width: 40,
@@ -310,8 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   headerTitle: { fontSize: 16, fontWeight: "800", color: "#1E293B" },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10B981" },
@@ -324,8 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   expandedFilters: {
     backgroundColor: "rgba(255, 255, 255, 0.95)",
     marginTop: 8,
@@ -336,43 +330,35 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-  },
+    borderColor: "rgba(255, 255, 255, 0.8)" },
   filterSectionTitle: {
     fontSize: 11,
     fontWeight: "700",
     color: "#94A3B8",
     textTransform: "uppercase",
     marginBottom: 8,
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   filterRow: {
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   filterScroll: {
     gap: 8,
-    paddingRight: 20,
-  },
+    paddingRight: 20 },
   filterPill: {
     paddingVertical: 6,
     paddingHorizontal: 14,
     backgroundColor: "#F1F5F9",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "transparent",
-  },
+    borderColor: "transparent" },
   filterPillActive: {
     backgroundColor: "#EFF6FF",
-    borderColor: "#1D4ED8",
-  },
+    borderColor: "#1D4ED8" },
   filterPillText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#475569",
-  },
+    color: "#475569" },
   filterPillTextActive: {
-    color: "#1D4ED8",
-  },
+    color: "#1D4ED8" },
 
   markerContainer: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
   markerPulse: { position: "absolute", width: 24, height: 24, borderRadius: 12 },
@@ -387,8 +373,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   calloutTitle: { fontSize: 14, fontWeight: "800", color: "#1E293B", marginBottom: 4 },
   calloutSub: { fontSize: 11, color: "#64748B", fontWeight: "500", lineHeight: 15 },
   calloutArrow: {
@@ -401,8 +386,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "45deg" }],
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
 
   legend: {
     position: "absolute",
@@ -413,8 +397,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 16,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   legendText: { color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
 
   errorOverlay: {
@@ -429,16 +412,14 @@ const styles = StyleSheet.create({
     borderColor: "#FEE2E2",
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
+    gap: 10 },
   errorText: { color: "#B91C1C", fontSize: 13, fontWeight: "600", flex: 1 },
 
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15, 23, 42, 0.4)",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   loadingCard: {
     backgroundColor: "#fff",
     padding: 24,
@@ -446,7 +427,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.2,
-    shadowRadius: 30,
-  },
-  loadingText: { marginTop: 16, fontSize: 14, color: "#1E293B", fontWeight: "800" },
-});
+    shadowRadius: 30 },
+  loadingText: { marginTop: 16, fontSize: 14, color: "#1E293B", fontWeight: "800" } });

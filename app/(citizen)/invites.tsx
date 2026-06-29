@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+  Alert } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CitizenShell } from "../../src/components/citizen/CitizenShell";
@@ -102,7 +102,7 @@ export default function InvitesScreen() {
               </View>
               <View style={styles.inviteActions}>
                 {respondingId === inv.id ? (
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <CrimeBookLoader size="small" ballColor="#2563EB" />
                 ) : (
                   <>
                     <TouchableOpacity
@@ -168,8 +168,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   inviteInfo: { flex: 1, marginRight: 16 },
   inviteGroupName: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
   inviteMeta: { fontSize: 13, color: "#64748B", marginTop: 2 },
@@ -179,15 +178,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   declineText: { fontSize: 13, fontWeight: "600", color: "#475569" },
   acceptBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "#2563EB",
-  },
+    backgroundColor: "#2563EB" },
   acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" },
   emptyCard: {
     padding: 40,
@@ -197,13 +194,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#F1F5F9",
-    borderStyle: "dashed",
-  },
+    borderStyle: "dashed" },
   emptyText: {
     marginTop: 12,
     fontSize: 14,
     color: "#64748B",
     textAlign: "center",
-    lineHeight: 20,
-  },
-});
+    lineHeight: 20 } });

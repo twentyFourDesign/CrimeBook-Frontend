@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { CrimeBookLoader } from "../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../src/components/common/LoadingState";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -102,7 +102,7 @@ export default function PoliceFeedScreen() {
 
           {loading && !reports.length && (
             <View style={styles.loadingState}>
-              <ActivityIndicator size="small" color="#1D4ED8" />
+              <CrimeBookLoader size="small" ballColor="#1D4ED8" />
               <Text style={styles.loadingText}>Loading jurisdiction feed...</Text>
             </View>
           )}
@@ -122,8 +122,7 @@ export default function PoliceFeedScreen() {
               onPress={() =>
                 router.push({
                   pathname: "/(police)/incident-report",
-                  params: { id: r.id },
-                })
+                  params: { id: r.id } })
               }
             >
               <View style={styles.cardHeader}>
@@ -192,8 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DBEAFE",
-  },
+    borderColor: "#DBEAFE" },
   heading: { fontSize: 22, fontWeight: "800", color: "#111827" },
   subheading: { fontSize: 13, color: "#64748B", marginTop: 4 },
   refreshIconBtn: {
@@ -201,8 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
 
   // Stats Bar
   statsBar: {
@@ -216,29 +213,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   statItem: {
     flex: 1,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   statDivider: {
     width: 1,
     height: "100%",
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   statLabel: {
     fontSize: 10,
     fontWeight: "800",
     color: "#94A3B8",
     letterSpacing: 0.5,
-    marginBottom: 4,
-  },
+    marginBottom: 4 },
   statValue: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
 
   // Loading/Error
   loadingState: {
@@ -247,8 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
     backgroundColor: "#fff",
-    borderRadius: 20,
-  },
+    borderRadius: 20 },
   loadingText: { fontSize: 14, color: "#64748B", marginLeft: 10, fontWeight: "600" },
   errorBox: {
     flexDirection: "row",
@@ -256,8 +247,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#FEF2F2",
     borderRadius: 12,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   errorText: { color: "#DC2626", fontSize: 14, marginLeft: 8, flex: 1 },
 
   // Card Design
@@ -271,88 +261,71 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: "#FEF3C7",
-  },
+    backgroundColor: "#FEF3C7" },
   statusBadgeVerified: {
-    backgroundColor: "#DCFCE7",
-  },
+    backgroundColor: "#DCFCE7" },
   statusText: {
     fontSize: 10,
     fontWeight: "900",
-    color: "#92400E",
-  },
+    color: "#92400E" },
   statusTextVerified: {
-    color: "#166534",
-  },
+    color: "#166534" },
   timeText: {
     fontSize: 12,
     color: "#94A3B8",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   cardTitle: {
     fontSize: 17,
     fontWeight: "800",
     color: "#1E293B",
-    marginBottom: 8,
-  },
+    marginBottom: 8 },
   cardBody: {
     fontSize: 14,
     color: "#475569",
     lineHeight: 20,
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   cardMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   metaText: {
     fontSize: 12,
     color: "#64748B",
     fontWeight: "500",
-    flex: 1,
-  },
+    flex: 1 },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F8FAFF",
-  },
+    borderTopColor: "#F8FAFF" },
   confirmBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-  },
+    gap: 6 },
   confirmText: {
     fontSize: 12,
     color: "#64748B",
-    fontWeight: "600",
-  },
+    fontWeight: "600" },
   viewAction: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-  },
+    gap: 4 },
   viewActionText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#1D4ED8",
-  },
-});
+    color: "#1D4ED8" } });

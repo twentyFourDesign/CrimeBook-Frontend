@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   RefreshControl,
@@ -12,8 +11,9 @@ import {
   TouchableOpacity,
   View,
   Platform,
-  KeyboardAvoidingView,
-} from "react-native";
+  KeyboardAvoidingView } from "react-native";
+import { CrimeBookLoader } from "../../../src/components/common/CrimeBookLoader";
+import { LoadingState } from "../../../src/components/common/LoadingState";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
@@ -29,8 +29,7 @@ import {
   saveCaseNote,
   sendCaseMessage,
   updatePoliceCaseStatus,
-  uploadCrimeMediaFile,
-} from "../../../src/auth/api";
+  uploadCrimeMediaFile } from "../../../src/auth/api";
 import type { ReportMessageItem } from "../../../src/auth/types";
 
 function formatEnum(s: string) {
@@ -185,8 +184,7 @@ export default function InvestigationDetail() {
         description: appealDescription.trim(),
         latitude: report.latitude,
         longitude: report.longitude,
-        radiusKm: Number(appealRadiusKm) || 5,
-      });
+        radiusKm: Number(appealRadiusKm) || 5 });
       setAppealOpen(false);
       Alert.alert("Success", "Public appeal broadcasted.");
     } catch (e) {
@@ -271,8 +269,7 @@ export default function InvestigationDetail() {
         fileUrl: uploaded.url,
         fileName: uploaded.fileName,
         fileSizeBytes: uploaded.fileSizeBytes,
-        evidenceType: mime.startsWith("image") ? "PHOTO" : "OTHER",
-      });
+        evidenceType: mime.startsWith("image") ? "PHOTO" : "OTHER" });
       Alert.alert("Success", "Evidence recorded.");
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Upload failed");
@@ -312,7 +309,7 @@ export default function InvestigationDetail() {
         >
           {caseLoading && !refreshing ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator color="#1D4ED8" />
+              <CrimeBookLoader size="medium" ballColor="#1D4ED8" />
               <Text style={styles.loadingText}>Accessing secure case files...</Text>
             </View>
           ) : (
@@ -415,7 +412,7 @@ export default function InvestigationDetail() {
                     onPress={sendReporterMessage}
                     disabled={!threadInput.trim() || threadSending}
                   >
-                    {threadSending ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+                    {threadSending ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Ionicons name="send" size={18} color="#fff" />}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -467,7 +464,7 @@ export default function InvestigationDetail() {
                   }}
                   disabled={!notes.trim() || saving}
                 >
-                  {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Record Entry</Text>}
+                  {saving ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Text style={styles.saveBtnText}>Record Entry</Text>}
                 </TouchableOpacity>
               </View>
             </>
@@ -509,7 +506,7 @@ export default function InvestigationDetail() {
                   onPress={submitAppeal}
                   disabled={appealSaving}
                 >
-                  {appealSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalSubmitText}>Broadcast Now</Text>}
+                  {appealSaving ? <CrimeBookLoader size="small" barColor="#fff" ballColor="#93C5FD" /> : <Text style={styles.modalSubmitText}>Broadcast Now</Text>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -531,16 +528,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderColor: "#F1F5F9",
-  },
+    borderColor: "#F1F5F9" },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
     backgroundColor: "#F1F5F9",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   headerText: { alignItems: "center" },
   title: { fontSize: 16, fontWeight: "800", color: "#1E293B" },
   subTitle: { fontSize: 12, fontWeight: "600", color: "#64748B", marginTop: 2 },
@@ -552,8 +547,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#DBEAFE",
-  },
+    borderColor: "#DBEAFE" },
 
   container: { padding: 20 },
   loadingBox: { paddingVertical: 100, alignItems: "center", gap: 12 },
@@ -569,8 +563,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
   sectionTitle: { fontSize: 14, fontWeight: "800", color: "#1E293B", letterSpacing: 0.5 },
 
@@ -582,8 +575,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0" },
   statusChipActive: { backgroundColor: "#1D4ED8", borderColor: "#1D4ED8" },
   statusChipText: { fontSize: 13, fontWeight: "700", color: "#64748B" },
   statusChipTextActive: { color: "#fff" },
@@ -595,8 +587,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFBEB",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#FEF3C7",
-  },
+    borderColor: "#FEF3C7" },
   outcomeChipActive: { backgroundColor: "#D97706", borderColor: "#D97706" },
   outcomeChipText: { fontSize: 13, fontWeight: "700", color: "#B45309" },
   outcomeChipTextActive: { color: "#fff" },
@@ -608,15 +599,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   captureLabel: { fontSize: 11, fontWeight: "700", color: "#64748B" },
 
   chatBox: {
     maxHeight: 300,
     marginBottom: 16,
-    gap: 12,
-  },
+    gap: 12 },
   emptyChat: { fontSize: 13, color: "#94A3B8", textAlign: "center", fontStyle: "italic", padding: 20 },
   messageRow: { flexDirection: "row", marginBottom: 8 },
   messageMe: { justifyContent: "flex-end" },
@@ -624,16 +613,13 @@ const styles = StyleSheet.create({
   bubble: {
     maxWidth: "85%",
     padding: 12,
-    borderRadius: 16,
-  },
+    borderRadius: 16 },
   bubbleMe: {
     backgroundColor: "#1D4ED8",
-    borderBottomRightRadius: 4,
-  },
+    borderBottomRightRadius: 4 },
   bubbleOther: {
     backgroundColor: "#F1F5F9",
-    borderBottomLeftRadius: 4,
-  },
+    borderBottomLeftRadius: 4 },
   senderName: { fontSize: 9, fontWeight: "900", marginBottom: 4, letterSpacing: 0.5 },
   senderMe: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   senderOther: { color: "#64748B" },
@@ -645,8 +631,7 @@ const styles = StyleSheet.create({
   chatInputRow: {
     flexDirection: "row",
     gap: 8,
-    alignItems: "flex-end",
-  },
+    alignItems: "flex-end" },
   chatInput: {
     flex: 1,
     backgroundColor: "#F8FAFF",
@@ -657,16 +642,14 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 10,
     maxHeight: 100,
-    fontSize: 14,
-  },
+    fontSize: 14 },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: "#1D4ED8",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   sendBtnDisabled: { backgroundColor: "#94A3B8" },
 
   appealBanner: {
@@ -676,16 +659,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 15,
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   appealIconBox: {
     width: 48,
     height: 48,
     borderRadius: 14,
     backgroundColor: "#334155",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center" },
   appealContent: { flex: 1 },
   appealTitle: { fontSize: 15, fontWeight: "800", color: "#fff" },
   appealSub: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
@@ -699,14 +680,12 @@ const styles = StyleSheet.create({
     height: 120,
     fontSize: 14,
     color: "#1E293B",
-    marginBottom: 16,
-  },
+    marginBottom: 16 },
   saveBtn: {
     backgroundColor: "#1E293B",
     paddingVertical: 14,
     borderRadius: 16,
-    alignItems: "center",
-  },
+    alignItems: "center" },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { color: "#fff", fontSize: 14, fontWeight: "800" },
 
@@ -714,19 +693,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.8)",
     justifyContent: "center",
-    padding: 20,
-  },
+    padding: 20 },
   modalCard: {
     backgroundColor: "#fff",
     borderRadius: 32,
-    padding: 24,
-  },
+    padding: 24 },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-  },
+    marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: "800", color: "#1E293B" },
   modalLabel: { fontSize: 12, fontWeight: "800", color: "#64748B", marginBottom: 8 },
   modalInput: {
@@ -735,8 +711,7 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 15,
     marginBottom: 16,
-    color: "#1E293B",
-  },
+    color: "#1E293B" },
   modalArea: { height: 120, textAlignVertical: "top" },
   modalFooter: { flexDirection: "row", gap: 12, marginTop: 8 },
   modalCancel: {
@@ -744,16 +719,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9" },
   modalCancelText: { fontSize: 14, fontWeight: "700", color: "#64748B" },
   modalSubmit: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",
-    backgroundColor: "#1D4ED8",
-  },
+    backgroundColor: "#1D4ED8" },
   modalSubmitDisabled: { opacity: 0.5 },
-  modalSubmitText: { fontSize: 14, fontWeight: "800", color: "#fff" },
-});
+  modalSubmitText: { fontSize: 14, fontWeight: "800", color: "#fff" } });
